@@ -9,30 +9,18 @@ export const About: React.FC = () => {
   const { elementRef: sectionRef, isRevealed: isHeaderRevealed } =
     useScrollReveal<HTMLElement>({ threshold: 0.1 });
 
-  // Dedicated observer for the cards: only triggers when user has scrolled into the whole UI
+  // Dedicated observer for the cards: ONE-TIME ONLY reveal when scrolled down
   const cardsContainerRef = useRef<HTMLDivElement | null>(null);
   const [isCardsRevealed, setIsCardsRevealed] = useState(false);
-  const [revealDirection, setRevealDirection] = useState<
-    "fromTop" | "fromBottom"
-  >("fromTop");
-  const [isResetting, setIsResetting] = useState(false);
   const [isAnimationFinished, setIsAnimationFinished] = useState(false);
-
-  const lastScrollYRef = useRef(
-    typeof window !== "undefined" ? window.scrollY : 0,
-  );
-  const scrollDirRef = useRef<"down" | "up">("down");
 
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
     if (isCardsRevealed) {
-      setIsAnimationFinished(false);
       // Wait for all 4 cards to finish their slowmo entrance (delay 2.55s + duration 2.4s = ~5.0s)
       timer = setTimeout(() => {
         setIsAnimationFinished(true);
       }, 5000);
-    } else {
-      setIsAnimationFinished(false);
     }
     return () => {
       if (timer) clearTimeout(timer);
@@ -40,24 +28,12 @@ export const About: React.FC = () => {
   }, [isCardsRevealed]);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const currentY = window.scrollY;
-      if (currentY > lastScrollYRef.current) {
-        scrollDirRef.current = "down";
-      } else if (currentY < lastScrollYRef.current) {
-        scrollDirRef.current = "up";
-      }
-      lastScrollYRef.current = currentY;
-    };
+    if (isCardsRevealed) return;
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
     const el = cardsContainerRef.current;
     if (!el || typeof IntersectionObserver === "undefined") {
       setIsCardsRevealed(true);
+      setIsAnimationFinished(true);
       return;
     }
 
@@ -65,26 +41,15 @@ export const About: React.FC = () => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            // Determine direction: if scrollDir is up or element is entering from bottom of page
-            const isComingFromBottom =
-              scrollDirRef.current === "up" || entry.boundingClientRect.top < 0;
-
-            setRevealDirection(isComingFromBottom ? "fromBottom" : "fromTop");
-            setIsResetting(false);
+            // Trigger ONE-TIME ONLY animation!
             setIsCardsRevealed(true);
-          } else {
-            // ONLY reset when the container is completely 100% out of the viewport!
-            // This prevents cards from disappearing while still on screen.
-            if (entry.intersectionRatio <= 0) {
-              setIsResetting(true);
-              setIsCardsRevealed(false);
-              setIsAnimationFinished(false);
-            }
+            observer.unobserve(entry.target);
+            observer.disconnect();
           }
         });
       },
       {
-        threshold: [0, 0.28],
+        threshold: 0.28,
         rootMargin: "0px 0px -40px 0px",
       },
     );
@@ -94,7 +59,7 @@ export const About: React.FC = () => {
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [isCardsRevealed]);
 
   return (
     <section
@@ -124,14 +89,12 @@ export const About: React.FC = () => {
           <div className={styles.headerUnderline} aria-hidden="true" />
         </div>
 
-        {/* Staggered Editorial Layout: Triggers with direction-aware top/bottom reveal */}
+        {/* Staggered Editorial Layout: One-time reveal when whole UI is reached */}
         <div
           ref={cardsContainerRef}
           className={`${styles.editorialLayout} ${
             isCardsRevealed ? styles.isCardsRevealed : ""
-          } ${styles[revealDirection]} ${isResetting ? styles.resetOffscreen : ""} ${
-            isAnimationFinished ? styles.animationFinished : ""
-          }`}
+          } ${isAnimationFinished ? styles.animationFinished : ""}`}
         >
           {/* Left Column: Narrative */}
           <div className={styles.narrativeCol}>

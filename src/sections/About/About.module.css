@@ -287,50 +287,25 @@
 }
 
 /* =========================================================================
-   DIRECTION 1: Scrolling DOWN from Hero into About (.fromTop)
-   Strict User Order:
+   One-Time Scroll Reveal (Strict User Order from Video):
    1st: Repository Contribution (from bottom)
    2nd: 01 border (from right)
    3rd: 02 border (from left)
    4th: 03 border (from right)
    ========================================================================= */
-.isCardsRevealed.fromTop .buildingMask .contributionBuildingRise {
+.isCardsRevealed .buildingMask .contributionBuildingRise {
   transition-delay: 0.3s;
 }
 
-.isCardsRevealed.fromTop .buildingMask .cardDelay1 {
+.isCardsRevealed .buildingMask .cardDelay1 {
   transition-delay: 1.05s;
 }
 
-.isCardsRevealed.fromTop .buildingMask .cardDelay2 {
+.isCardsRevealed .buildingMask .cardDelay2 {
   transition-delay: 1.8s;
 }
 
-.isCardsRevealed.fromTop .buildingMask .cardDelay3 {
-  transition-delay: 2.55s;
-}
-
-/* =========================================================================
-   DIRECTION 2: Scrolling UP from Works into About (.fromBottom)
-   Strict User Reverse Order:
-   1st: 03 border (from right)
-   2nd: 02 border (from left)
-   3rd: 01 border (from right)
-   4th: Repository Contribution (from bottom)
-   ========================================================================= */
-.isCardsRevealed.fromBottom .buildingMask .cardDelay3 {
-  transition-delay: 0.3s;
-}
-
-.isCardsRevealed.fromBottom .buildingMask .cardDelay2 {
-  transition-delay: 1.05s;
-}
-
-.isCardsRevealed.fromBottom .buildingMask .cardDelay1 {
-  transition-delay: 1.8s;
-}
-
-.isCardsRevealed.fromBottom .buildingMask .contributionBuildingRise {
+.isCardsRevealed .buildingMask .cardDelay3 {
   transition-delay: 2.55s;
 }
 

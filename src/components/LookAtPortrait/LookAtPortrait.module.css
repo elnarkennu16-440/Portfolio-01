@@ -97,7 +97,7 @@
   visibility: hidden;
 }
 
-/* The previous frame stays 100% solid underneath so black background can NEVER show through */
+/* The previous frame stays 100% solid underneath so black background can NEVER show throug */
 .framePrevious {
   opacity: 1 !important;
   z-index: 1 !important;
