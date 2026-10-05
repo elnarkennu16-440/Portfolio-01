@@ -117,7 +117,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({
         setIsSubmitting(false);
       }
     } else {
-      // Deterministic graceful fallback per spec
+      // Deterministic graceful fallback per
       launchMailtoFallback();
       setIsSubmitting(false);
     }

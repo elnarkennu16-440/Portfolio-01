@@ -107,7 +107,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           />
         </a>
 
-        {/* Right Zone: Navigation Links positioned beside Dark Mode Toggle and Actions */}
+        {/* Right Zone: Navigation Links positioned beside Dark Mode Toggle & Actions */}
         <div className={styles.rightGroup}>
           <nav aria-label="Main Navigation" className={styles.desktopNav}>
             <ul className={styles.navLinks}>
