@@ -1,0 +1,330 @@
+.heroSection {
+  position: relative;
+  min-height: calc(100vh - 65px);
+  display: flex;
+  align-items: center;
+  padding-top: clamp(1rem, 3vh, 2.5rem);
+  padding-bottom: clamp(2rem, 5vh, 4rem);
+  overflow: hidden;
+  width: 100%;
+}
+
+.heroBackgroundCurve {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.85;
+}
+
+.curvePath {
+  stroke: var(--border-hairline);
+  stroke-width: 1;
+  stroke-dasharray: 2000;
+  stroke-dashoffset: 2000;
+  animation: drawCurve 1.6s var(--ease-editorial) forwards;
+}
+
+@keyframes drawCurve {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.watermark {
+  top: 15%;
+  right: -5%;
+  max-width: 100vw;
+  overflow: hidden;
+}
+
+.heroGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(var(--space-6), 4vw, var(--space-10));
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+@media (min-width: 992px) {
+  .heroGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-8);
+  }
+}
+
+.contentCol {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.eyebrowRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.accentRule {
+  width: 24px;
+  height: 2px;
+  background-color: var(--border-strong);
+  display: inline-block;
+}
+
+.eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.headlineMask {
+  overflow: hidden;
+  width: 100%;
+  margin-bottom: clamp(var(--space-1), 0.8vw, var(--space-2));
+}
+
+.headlineLine {
+  display: block;
+  transform: translateY(105%);
+  animation: revealLine 0.9s var(--ease-editorial) 0.15s forwards;
+  will-change: transform;
+}
+
+.headlineLineSecond {
+  animation-delay: 0.3s;
+}
+
+.heroLogoImage {
+  display: block;
+  height: clamp(3rem, 7.8vw, 5.75rem);
+  width: auto;
+  max-width: min(100%, 420px);
+  object-fit: contain;
+  object-position: left center;
+  transition: filter var(--duration-normal) var(--ease-editorial);
+}
+
+[data-theme="light"] .heroLogoImage {
+  filter: invert(1) brightness(0.08);
+}
+
+[data-theme="dark"] .heroLogoImage {
+  filter: none;
+}
+
+@keyframes revealLine {
+  to {
+    transform: translateY(0);
+  }
+}
+
+.roleMask {
+  overflow: hidden;
+  margin-top: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.roleTagline {
+  font-family: var(--font-sans);
+  font-size: clamp(0.75rem, 2.5vw, var(--text-base));
+  font-weight: 400;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  transform: translateY(100%);
+  animation: revealLine 0.8s var(--ease-editorial) 0.4s forwards;
+}
+
+.manifesto {
+  font-family: var(--font-sans);
+  font-size: clamp(0.875rem, 2.2vw, var(--text-base));
+  line-height: var(--leading-relaxed);
+  color: var(--text-secondary);
+  max-width: 52ch;
+  margin-bottom: var(--space-6);
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fadeIn 0.6s var(--ease-editorial) 0.5s forwards;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ctaGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: fadeIn 0.6s var(--ease-editorial) 0.6s forwards;
+  width: 100%;
+}
+
+/* Portrait Column Stage */
+.portraitCol {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+}
+
+@media (max-width: 991px) {
+  .heroSection {
+    min-height: auto;
+    padding-top: var(--space-4);
+    padding-bottom: clamp(1.5rem, 3vh, 2.5rem);
+    align-items: flex-start;
+  }
+
+  .heroGrid {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    width: 100%;
+  }
+
+  .contentCol {
+    display: contents;
+  }
+
+  .eyebrowRow {
+    order: 1;
+    margin-bottom: var(--space-2);
+  }
+
+  .headlineMask:nth-of-type(1) {
+    order: 2;
+    margin-bottom: 0.15rem;
+  }
+
+  .headlineMask:nth-of-type(2) {
+    order: 3;
+    margin-bottom: 0.25rem;
+  }
+
+  .roleMask {
+    order: 4;
+    margin-top: 0.35rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .roleTagline {
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+  }
+
+  .manifesto {
+    order: 5;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    max-width: 100%;
+    margin-bottom: clamp(0.75rem, 2vh, 1.25rem);
+  }
+
+  .portraitCol {
+    order: 6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin-top: 0.25rem;
+    margin-bottom: clamp(1.35rem, 3.8vh, 2.1rem);
+    opacity: 1;
+    transform: none;
+  }
+
+  .ctaGroup {
+    order: 7;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+    margin-top: clamp(0.35rem, 1.2vh, 0.75rem);
+    padding-top: 0;
+  }
+
+  /* Compact, Subtly Vignetted Mobile Buttons (Not Touching Image, Not Bright) */
+  .ctaGroup a,
+  .ctaGroup button {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 0.26rem 0.65rem !important;
+    font-size: 0.62rem !important;
+    letter-spacing: 0.04em !important;
+    gap: 0.25rem !important;
+    border-radius: var(--radius-pill) !important;
+    text-align: center;
+    height: auto !important;
+    min-height: 28px !important;
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(24, 24, 24, 0.8) 0%,
+      rgba(8, 8, 8, 0.95) 100%
+    ) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow:
+      0 4px 14px rgba(0, 0, 0, 0.5),
+      inset 0 0 10px rgba(0, 0, 0, 0.6) !important;
+    color: rgba(235, 235, 235, 0.85) !important;
+  }
+
+  .ctaGroup a svg,
+  .ctaGroup button svg {
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  .ctaGroup a span,
+  .ctaGroup button span {
+    font-size: 0.62rem !important;
+  }
+
+  [data-theme="light"] .ctaGroup a,
+  [data-theme="light"] .ctaGroup button {
+    background: radial-gradient(
+      circle at 50% 50%,
+      rgba(242, 242, 242, 0.88) 0%,
+      rgba(222, 222, 222, 0.95) 100%
+    ) !important;
+    border: 1px solid rgba(0, 0, 0, 0.16) !important;
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.06),
+      inset 0 0 8px rgba(0, 0, 0, 0.04) !important;
+    color: var(--text-primary) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .curvePath {
+    stroke-dashoffset: 0 !important;
+    animation: none !important;
+  }
+  .headlineLine,
+  .roleTagline,
+  .manifesto,
+  .ctaGroup {
+    transform: none !important;
+    opacity: 1 !important;
+    animation: none !important;
+  }
+}

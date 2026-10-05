@@ -1,0 +1,292 @@
+.processSection {
+  position: relative;
+  padding-top: clamp(var(--space-12), 6vh, var(--space-20));
+  padding-bottom: clamp(var(--space-12), 6vh, var(--space-24));
+  border-top: 1px solid var(--border-hairline);
+  overflow: hidden;
+  width: 100%;
+}
+
+.watermark {
+  top: 10%;
+  right: -2%;
+  max-width: 100vw;
+  overflow: hidden;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-4);
+  position: relative;
+  padding-bottom: var(--space-4);
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.headerUnderline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: var(--border-hairline);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.8s var(--ease-editorial);
+}
+
+.isRevealed .headerUnderline {
+  transform: scaleX(1);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.titleAccentBar {
+  width: 24px;
+  height: 2px;
+  background-color: var(--border-strong);
+  display: inline-block;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--duration-medium) var(--ease-editorial);
+}
+
+.isRevealed .titleAccentBar {
+  transform: scaleX(1);
+}
+
+.sectionNumber {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-muted);
+}
+
+.sectionTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(1.6rem, 5vw, var(--text-3xl));
+  font-weight: 300;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-primary);
+  text-transform: uppercase;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path var(--duration-medium) var(--ease-editorial);
+}
+
+.isRevealed .sectionTitle {
+  clip-path: inset(0 0 0 0);
+}
+
+.introText {
+  font-family: var(--font-sans);
+  font-size: clamp(0.875rem, 2.2vw, var(--text-base));
+  color: var(--text-secondary);
+  max-width: 60ch;
+  margin-bottom: clamp(var(--space-6), 4vh, var(--space-12));
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 0.6s var(--ease-editorial) 0.15s,
+    transform 0.6s var(--ease-editorial) 0.15s;
+}
+
+.isRevealed .introText {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 4 Steps Grid */
+.stepsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: clamp(var(--space-4), 3vw, var(--space-6));
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .stepsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  .stepsGrid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-6);
+  }
+
+  .stepsGrid::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background-color: var(--border-hairline);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform var(--duration-slow) var(--ease-editorial);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .isRevealed.stepsGrid::before,
+  .isRevealed .stepsGrid::before {
+    transform: scaleX(1);
+  }
+}
+
+.stepCard {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  padding: clamp(var(--space-5), 3.5vw, var(--space-8))
+    clamp(var(--space-4), 3vw, var(--space-6));
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.7s var(--ease-editorial),
+    transform 0.7s var(--ease-editorial),
+    border-color var(--duration-fast) var(--ease-editorial);
+  width: 100%;
+}
+
+.isRevealed .stepCard:nth-child(1) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.1s;
+}
+
+.isRevealed .stepCard:nth-child(2) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.22s;
+}
+
+.isRevealed .stepCard:nth-child(3) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.34s;
+}
+
+.isRevealed .stepCard:nth-child(4) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.46s;
+}
+
+.stepCard:hover {
+  transform: translateY(-3px);
+  border-color: var(--border-strong);
+}
+
+.stepTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: var(--space-4);
+  gap: var(--space-2);
+}
+
+.stepNumber {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 5vw, var(--text-4xl));
+  font-weight: 300;
+  color: var(--text-primary);
+  line-height: 0.9;
+}
+
+.stepStageBadge {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.stepTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(1.15rem, 3vw, var(--text-2xl));
+  font-weight: 400;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.stepSummary {
+  font-family: var(--font-sans);
+  font-size: clamp(0.8125rem, 2.2vw, var(--text-sm));
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: var(--leading-snug);
+  margin-bottom: var(--space-2);
+}
+
+.stepDetails {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  line-height: var(--leading-normal);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .introText {
+    font-size: 0.8rem;
+    line-height: 1.5;
+  }
+
+  .stepTitle {
+    font-size: 1.15rem;
+  }
+
+  .stepSummary {
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+  .stepDetails {
+    font-size: 0.7rem;
+    line-height: 1.4;
+  }
+}
+
+.cardRule {
+  height: 1px;
+  background-color: var(--border-hairline);
+  margin-top: auto;
+  margin-bottom: var(--space-3);
+  padding-top: 0;
+}
+
+.stepIndicator {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  letter-spacing: var(--tracking-wider);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .headerUnderline {
+    transform: none !important;
+    transition: none !important;
+  }
+  .introText,
+  .stepCard {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+  .stepCard:hover {
+    transform: none !important;
+  }
+}

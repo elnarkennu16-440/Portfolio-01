@@ -1,0 +1,6 @@
+{
+  "name": "Kennu Elnar Portfolio",
+  "description": "Personal portfolio for Kennu Elnar, an aspiring Web Developer and QA Tester.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

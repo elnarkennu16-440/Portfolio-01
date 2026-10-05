@@ -1,0 +1,99 @@
+.toggleButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-hairline);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    border-color var(--duration-fast) ease,
+    background-color var(--duration-fast) ease,
+    transform 0.15s var(--ease-editorial);
+  user-select: none;
+}
+
+.toggleButton:hover {
+  border-color: var(--border-strong);
+  transform: scale(1.05);
+}
+
+.toggleButton:active {
+  transform: scale(0.95);
+}
+
+.iconWrapper {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.85;
+  transition:
+    transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 0.25s ease;
+  pointer-events: none;
+}
+
+/* Light mode state: Moon visible, Sun hidden rotated */
+.sunIcon {
+  transform: rotate(90deg) scale(0);
+  opacity: 0;
+}
+
+.moonIcon {
+  transform: rotate(0deg) scale(1);
+  opacity: 1;
+}
+
+/* Dark mode state: Sun visible, Moon hidden rotated */
+[data-theme="dark"] .sunIcon {
+  transform: rotate(0deg) scale(1);
+  opacity: 1;
+}
+
+[data-theme="dark"] .moonIcon {
+  transform: rotate(-90deg) scale(0);
+  opacity: 0;
+}
+
+@media (max-width: 768px) {
+  .toggleButton {
+    width: 26px;
+    height: 26px;
+  }
+
+  .iconWrapper {
+    width: 12px;
+    height: 12px;
+  }
+
+  .icon {
+    width: 12px;
+    height: 12px;
+    stroke-width: 1.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toggleButton {
+    transition: none !important;
+    transform: none !important;
+  }
+  .icon {
+    transition: none !important;
+  }
+}

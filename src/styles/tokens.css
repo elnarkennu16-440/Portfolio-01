@@ -1,0 +1,138 @@
+/**
+ * Design Tokens (CSS Custom Properties)
+ * Strict Grayscale System — Light (Warm Paper) & Dark (Carbon/Silver)
+ * Calibrated for strict WCAG AA contrast across all text elements.
+ */
+
+:root {
+  /* ==========================================================================
+     Color Tokens: Light Theme (Warm Paper & Deep Carbon)
+     ========================================================================== */
+  --bg-primary: #f9f9f7; /* Warm off-white paper canvas */
+  --bg-surface: #ffffff; /* Pure card & dialog surface */
+  --bg-surface-elevated: #f2f2ee; /* Subtle panel contrast */
+  --bg-portrait-frame: #efefea; /* Architectural light matte frame in both themes */
+  --bg-overlay: rgba(18, 18, 18, 0.6);
+
+  --text-primary: #121212; /* Near-black ink (18.5:1 contrast) */
+  --text-secondary: #3e3e3c; /* High-contrast secondary body & metadata (10.5:1) */
+  --text-muted: #595956; /* WCAG AA certified small text & labels (7.0:1 on canvas, 6.1:1 on elevated) */
+  --text-ghost: rgba(18, 18, 18, 0.05); /* Faint background watermark */
+
+  --border-hairline: rgba(18, 18, 18, 0.16); /* Hairline rule */
+  --border-medium: rgba(18, 18, 18, 0.4); /* Intermediate divider */
+  --border-strong: #121212; /* Bold structural accent rule */
+  --border-focus: #121212; /* High-visibility keyboard focus */
+
+  --pill-bg: transparent;
+  --pill-border: #121212;
+  --pill-text: #121212;
+  --pill-hover-bg: #121212;
+  --pill-hover-text: #f9f9f7;
+
+  /* ==========================================================================
+     Typography Tokens (Consolidated to at most 2 Font Families)
+     1. Serif: Editorial Display & Section Headers
+     2. Sans (Grotesk): Body, Navigation, and Uppercase Letter-spaced Labels
+     ========================================================================== */
+  --font-serif:
+    "Cormorant Garamond", Didot, "Bodoni MT", "Times New Roman", serif;
+  --font-sans:
+    "Hanken Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: var(
+    --font-sans
+  ); /* Consolidated: Grotesk uppercase letter-spaced replaces monospace */
+
+  --text-xs: 0.75rem; /* 12px - metadata, index tags */
+  --text-sm: 0.875rem; /* 14px - body secondary, labels */
+  --text-base: 1rem; /* 16px - body text */
+  --text-lg: 1.125rem; /* 18px - lead paragraphs */
+  --text-xl: 1.375rem; /* 22px - card titles */
+  --text-2xl: 1.75rem; /* 28px - subsection titles */
+  --text-3xl: 2.25rem; /* 36px - section headers */
+  --text-4xl: 3.5rem; /* 56px - oversized numerals */
+  --text-display: clamp(
+    2.75rem,
+    6.5vw,
+    5.5rem
+  ); /* Calibrated for laptop viewports */
+
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.06em;
+  --tracking-widest: 0.12em;
+
+  --leading-tight: 1.05;
+  --leading-snug: 1.25;
+  --leading-normal: 1.6;
+  --leading-loose: 1.8;
+
+  /* ==========================================================================
+     Spacing & Layout Tokens (8pt Grid System)
+     ========================================================================== */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem; /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem; /* 24px */
+  --space-7: 1.75rem; /* 28px */
+  --space-8: 2rem; /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem; /* 48px */
+  --space-16: 4rem; /* 64px */
+  --space-20: 5rem; /* 80px */
+  --space-24: 6rem; /* 96px */
+  --space-32: 8rem; /* 128px */
+
+  --container-max: 1280px;
+  --gutter: clamp(1rem, 4vw, 3.5rem);
+
+  /* Radii */
+  --radius-none: 0px;
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-pill: 9999px;
+
+  /* Shadows (Used strictly for elevated dialogs/drawers) */
+  --shadow-dialog: 0 20px 48px rgba(0, 0, 0, 0.2);
+
+  /* Motion Timing (Shared Motion Tokens per Prompt 2) */
+  --ease-editorial: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 400ms;
+  --duration-medium: 700ms;
+  --duration-slow: 1000ms;
+  --stagger-step: 60ms;
+}
+
+/* ==========================================================================
+   Dark Theme: Intentional Carbon & Silver Inversion
+   Calibrated for strict WCAG AA contrast on dark surfaces.
+   ========================================================================== */
+[data-theme="dark"] {
+  --bg-primary: #0e0e10; /* Deep obsidian paper */
+  --bg-surface: #151518; /* Charcoal elevation */
+  --bg-surface-elevated: #1d1d20; /* Distinct panel surface */
+  /* Portrait frame intentionally remains a light architectural matte */
+  --bg-portrait-frame: #e8e8e4;
+  --bg-overlay: rgba(0, 0, 0, 0.8);
+
+  --text-primary: #eeeeec; /* Crisp silver/white text (16.8:1) */
+  --text-secondary: #d0d0d4; /* WCAG AA compliant secondary text (11.5:1) */
+  --text-muted: #a8a8ac; /* WCAG AA compliant small text (6.8:1 on canvas, 5.6:1 on surface) */
+  --text-ghost: rgba(255, 255, 255, 0.04); /* Subtle dark watermark */
+
+  --border-hairline: rgba(238, 238, 236, 0.16);
+  --border-medium: rgba(238, 238, 236, 0.36);
+  --border-strong: #eeeeec;
+  --border-focus: #ffffff;
+
+  --pill-bg: transparent;
+  --pill-border: #eeeeec;
+  --pill-text: #eeeeec;
+  --pill-hover-bg: #eeeeec;
+  --pill-hover-text: #0e0e10;
+
+  --shadow-dialog: 0 20px 48px rgba(0, 0, 0, 0.6);
+}
