@@ -5,6 +5,7 @@
 
 import React, { useState } from "react";
 import { useTheme } from "./hooks/useTheme";
+import { IntroLoader } from "./components/IntroLoader/IntroLoader";
 import { Navbar } from "./components/Navbar/Navbar";
 import { Hero } from "./sections/Hero/Hero";
 import { About } from "./sections/About/About";
@@ -19,6 +20,7 @@ import { ContactModal } from "./components/ContactModal/ContactModal";
 export default function App() {
   const { theme, toggleTheme } = useTheme();
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [showIntro, setShowIntro] = useState(true);
 
   const handleOpenContact = () => {
     setIsContactModalOpen(true);
@@ -28,8 +30,18 @@ export default function App() {
     setIsContactModalOpen(false);
   };
 
+  // Called after loader has fully finished
+  const handleCompleteIntro = () => {
+    setShowIntro(false);
+  };
+
   return (
     <>
+      {/* Smooth Minimalist Black Loading Introduction */}
+      {showIntro && (
+        <IntroLoader durationMs={2000} onComplete={handleCompleteIntro} />
+      )}
+
       <div
         className="portfolioRoot"
         inert={isContactModalOpen ? true : undefined}
@@ -39,7 +51,7 @@ export default function App() {
           Skip to content
         </a>
 
-        {/* Navbar */}
+        {/* Floating Navbar */}
         <Navbar
           theme={theme}
           onToggleTheme={toggleTheme}
