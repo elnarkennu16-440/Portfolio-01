@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { createPortal } from "react-dom";
+import emailjs from "@emailjs/browser";
 import { siteContent } from "../../content/siteContent";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 import styles from "./ContactModal.module.css";
@@ -21,6 +22,50 @@ interface FormErrors {
   message?: string;
 }
 
+// EmailJS Service & Template identifiers provided by user:
+// Service ID (Gmail): service_jywlhsz
+// Contact Us Template ID (Notification to Kennu): template_vcl3ubl
+// Auto-Reply Template ID (Confirmation to Sender): template_fk2vlnu
+const EMAILJS_SERVICE_ID =
+  import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_jywlhsz";
+const EMAILJS_TEMPLATE_ID =
+  import.meta.env.VITE_EMAILJS_TEMPLATE_ID || "template_vcl3ubl";
+const EMAILJS_AUTOREPLY_TEMPLATE_ID =
+  import.meta.env.VITE_EMAILJS_AUTOREPLY_TEMPLATE_ID || "template_fk2vlnu";
+const EMAILJS_PUBLIC_KEY =
+  import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "OnBse-4nZVFDGjy43";
+
+// Resilient dispatcher supporting both SDK and native fetch REST API
+const sendViaEmailJS = async (
+  serviceId: string,
+  templateId: string,
+  params: Record<string, unknown>,
+  publicKey: string,
+) => {
+  try {
+    return await emailjs.send(serviceId, templateId, params, publicKey);
+  } catch {
+    // Native browser REST API fallback (works without any SDK dependency)
+    const res = await fetch("https://api.emailjs.com/api/v1.0/email/send", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        service_id: serviceId,
+        template_id: templateId,
+        user_id: publicKey,
+        template_params: params,
+      }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText || `EmailJS HTTP ${res.status}`);
+    }
+    return { status: 200, text: "OK" };
+  }
+};
+
 export const ContactModal: React.FC<ContactModalProps> = ({
   isOpen,
   onClose,
@@ -38,8 +83,6 @@ export const ContactModal: React.FC<ContactModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
-
-  const endpoint = import.meta.env.VITE_CONTACT_ENDPOINT;
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
@@ -75,49 +118,81 @@ export const ContactModal: React.FC<ContactModalProps> = ({
     }
 
     setIsSubmitting(true);
-    setSubmissionStatus("Submitting...");
+    setSubmissionStatus("Transmitting via EmailJS...");
 
-    // Production submission flow
-    if (endpoint) {
+    const templateParams = {
+      // Sender Details
+      name: formData.name.trim(),
+      from_name: formData.name.trim(),
+      user_name: formData.name.trim(),
+      email: formData.email.trim(),
+      from_email: formData.email.trim(),
+      user_email: formData.email.trim(),
+      reply_to: formData.email.trim(),
+
+      // Recipient (Kennu Elnar)
+      to_name: "Kennu Elnar",
+      to_email: siteContent.meta.email, // elnarkennu16@gmail.com
+
+      // Message Content
+      message: formData.message.trim(),
+      user_message: formData.message.trim(),
+
+      // Metadata
+      subject: `Portfolio Inquiry from ${formData.name.trim()}`,
+      sent_at: new Date().toLocaleString("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    };
+
+    if (EMAILJS_PUBLIC_KEY) {
       try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            message: formData.message,
-            timestamp: new Date().toISOString(),
-          }),
-        });
+        // 1. Primary delivery: Send Contact Us notification to Kennu's Gmail
+        await sendViaEmailJS(
+          EMAILJS_SERVICE_ID,
+          EMAILJS_TEMPLATE_ID,
+          templateParams,
+          EMAILJS_PUBLIC_KEY,
+        );
 
-        if (response.ok) {
-          setSubmissionStatus(
-            "Message sent successfully. Thank you for reaching out.",
-          );
-          setFormData({ name: "", email: "", message: "" });
-          setErrors({});
-          setTimeout(() => {
-            onClose();
-            setSubmissionStatus(null);
-          }, 1800);
-        } else {
-          setSubmissionStatus(
-            "Submission failed. Falling back to email client...",
-          );
-          launchMailtoFallback();
+        // 2. Auto-Reply: Send immediate confirmation copy to sender
+        if (EMAILJS_AUTOREPLY_TEMPLATE_ID) {
+          try {
+            await sendViaEmailJS(
+              EMAILJS_SERVICE_ID,
+              EMAILJS_AUTOREPLY_TEMPLATE_ID,
+              templateParams,
+              EMAILJS_PUBLIC_KEY,
+            );
+          } catch (autoReplyError) {
+            console.warn("EmailJS auto-reply note:", autoReplyError);
+          }
         }
-      } catch {
-        setSubmissionStatus("Network issue. Opening default email client...");
+
+        setSubmissionStatus(
+          "Message sent successfully! A confirmation copy has been sent to your email.",
+        );
+        setFormData({ name: "", email: "", message: "" });
+        setErrors({});
+        setTimeout(() => {
+          onClose();
+          setSubmissionStatus(null);
+        }, 2200);
+      } catch (err: unknown) {
+        console.error("EmailJS transmission error:", err);
+        setSubmissionStatus(
+          "EmailJS error encountered. Launching email client fallback...",
+        );
         launchMailtoFallback();
       } finally {
         setIsSubmitting(false);
       }
     } else {
-      // Deterministic graceful fallback per
+      // If Public Key isn't defined yet, provide graceful guidance and launch mailto
+      setSubmissionStatus(
+        "Opening default email client with your formatted message...",
+      );
       launchMailtoFallback();
       setIsSubmitting(false);
     }
@@ -133,9 +208,6 @@ export const ContactModal: React.FC<ContactModalProps> = ({
     );
     const mailtoUrl = `mailto:${recipient}?subject=${subject}&body=${body}`;
 
-    setSubmissionStatus(
-      "Launching default mail client with formatted draft...",
-    );
     window.location.href = mailtoUrl;
   };
 
@@ -181,18 +253,15 @@ export const ContactModal: React.FC<ContactModalProps> = ({
           </button>
         </div>
 
-        {/* Honest Architecture & Fallback Disclosure per spec */}
+        {/* Direct Transmission Notice */}
         <div className={styles.fallbackNotice} role="note">
           <strong>Direct Transmission Notice:</strong>{" "}
-          {endpoint ? (
-            <span>Form will transmit to configured endpoint ({endpoint}).</span>
-          ) : (
-            <span>
-              No external API endpoint is configured. Submitting this form opens
-              your system's default email client pre-populated to send directly
-              to <strong>{siteContent.meta.email}</strong>.
-            </span>
-          )}
+          <span>
+            Connected via <strong>EmailJS</strong> (Service:{" "}
+            <code>{EMAILJS_SERVICE_ID}</code>). Messages are delivered directly
+            to <strong>{siteContent.meta.email}</strong> with an automated
+            confirmation sent to your inbox.
+          </span>
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit} noValidate>

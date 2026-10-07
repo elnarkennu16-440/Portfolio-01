@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
+import { Mail } from "lucide-react";
 import { siteContent } from "../../content/siteContent";
 import { ThemeToggle } from "../ThemeToggle/ThemeToggle";
 import type { Theme } from "../../hooks/useTheme";
-import logoImg from "../../assets/Minimalist-KennuLogo-.png";
+import { REAL_TECH_ITEMS } from "../TechMarquee/RealTechIcons";
+import logoImg from "../../assets/logo/KE-LOGO-.png";
 import styles from "./Navbar.module.css";
 
 interface NavbarProps {
@@ -10,17 +12,6 @@ interface NavbarProps {
   onToggleTheme: (e?: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenContact?: () => void;
 }
-
-const SIGNAL_PATHS: string[] = [
-  // 0: ABOUT - High dramatic spike reaching high up to Y=2 (height=36, baseline=18)
-  "M 0 18 L 30 18 L 38 14 L 44 21 L 52 2 L 60 27 L 68 11 L 76 18 L 160 18 L 190 18 L 198 14 L 204 21 L 212 2 L 220 27 L 228 11 L 236 18 L 320 18 L 350 18 L 358 14 L 364 21 L 372 2 L 380 27 L 388 11 L 396 18 L 480 18",
-  // 1: WORKS - Medium-high sharp peak to Y=5 with dampening
-  "M 0 18 L 40 18 L 46 23 L 52 5 L 58 25 L 64 13 L 70 18 L 160 18 L 200 18 L 206 23 L 212 5 L 218 25 L 224 13 L 230 18 L 320 18 L 360 18 L 366 23 L 372 5 L 378 25 L 384 13 L 390 18 L 480 18",
-  // 2: CAPABILITIES - Varied frequency rhythm with multiple peaks
-  "M 0 18 L 20 18 L 26 11 L 32 23 L 38 8 L 44 20 L 50 14 L 56 18 L 85 18 L 91 9 L 97 26 L 103 18 L 160 18 L 180 18 L 186 11 L 192 23 L 198 8 L 204 20 L 210 14 L 216 18 L 245 18 L 251 9 L 257 26 L 263 18 L 320 18 L 340 18 L 346 11 L 352 23 L 358 8 L 364 20 L 370 14 L 376 18 L 405 18 L 411 9 L 417 26 L 423 18 L 480 18",
-  // 3: PROCESS - Deep downward spike shooting down to Y=35 plus sharp rebound
-  "M 0 18 L 25 18 L 32 13 L 38 21 L 44 9 L 50 35 L 56 6 L 62 20 L 68 18 L 160 18 L 185 18 L 192 13 L 198 21 L 204 9 L 210 35 L 216 6 L 222 20 L 228 18 L 320 18 L 345 18 L 352 13 L 358 21 L 364 9 L 370 35 L 376 6 L 382 20 L 388 18 L 480 18",
-];
 
 export const Navbar: React.FC<NavbarProps> = ({
   theme,
@@ -69,7 +60,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
 
     const handleResize = () => {
-      if (window.innerWidth >= 768 && mobileMenuOpen) {
+      if (window.innerWidth >= 960 && mobileMenuOpen) {
         setMobileMenuOpen(false);
       }
     };
@@ -90,7 +81,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className={styles.header}>
-      <div className={`container ${styles.inner}`}>
+      <div className={styles.inner}>
         {/* Brand Logo Zone */}
         <a
           href="#hero"
@@ -99,15 +90,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <img
             src={logoImg}
-            alt="Kennu Logo"
+            alt="Kennu Elnar"
             className={styles.brandLogo}
-            width={469}
-            height={126}
+            width={212}
+            height={235}
             loading="eager"
           />
         </a>
 
-        {/* Right Zone: Navigation Links positioned beside Dark Mode Toggle so Actions */}
+        {/* Right Zone: Navigation Links positioned beside Dark Mode Toggle and Actions */}
         <div className={styles.rightGroup}>
           <nav aria-label="Main Navigation" className={styles.desktopNav}>
             <ul className={styles.navLinks}>
@@ -128,20 +119,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             </ul>
           </nav>
 
-          {/* Primary Actions: Theme Toggle & "Let's talk" */}
+          {/* Primary Actions: Theme Toggle, Mail Box Button, Hamburger */}
           <div className={styles.actions}>
             <ThemeToggle theme={theme} onToggle={onToggleTheme} />
 
+            {/* Mail Box Button (both Desktop & Mobile) */}
             <button
               type="button"
-              className={`pillButton ${styles.talkButton}`}
+              className={styles.mailBoxButton}
               onClick={onOpenContact}
               aria-haspopup="dialog"
+              aria-label="Message me"
+              title="Message me"
             >
-              <span>Let's talk</span>
-              <span className="arrow" aria-hidden="true">
-                →
-              </span>
+              <Mail className={styles.mailBoxIcon} aria-hidden="true" />
             </button>
 
             {/* Accessible Mobile Menu Toggle */}
@@ -196,31 +187,40 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <div className={styles.mobileNavRow}>
                   <span className={styles.mobileNavText}>{item.label}</span>
 
-                  {/* Live Minimalist Signal Waveform with Dynamic Vertical Heights */}
-                  <div className={styles.signalContainer} aria-hidden="true">
-                    <div className={styles.signalTrack}>
-                      <svg
-                        className={styles.signalSvg}
-                        viewBox="0 0 480 36"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          className={styles.signalPath}
-                          d={SIGNAL_PATHS[index % SIGNAL_PATHS.length]}
-                        />
-                      </svg>
-                      <svg
-                        className={styles.signalSvg}
-                        viewBox="0 0 480 36"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          className={styles.signalPath}
-                          d={SIGNAL_PATHS[index % SIGNAL_PATHS.length]}
-                        />
-                      </svg>
+                  {/* Mini Moving & 3D Spinning Tech Language Icons Ribbon */}
+                  <div
+                    className={styles.navTechTrackContainer}
+                    aria-hidden="true"
+                  >
+                    <div className={styles.navTechTrack}>
+                      {/* Set 1 */}
+                      <div className={styles.navTechGroup}>
+                        {REAL_TECH_ITEMS.map((tech, idx) => (
+                          <span
+                            key={`m1-${tech.id}-${idx}`}
+                            className={styles.navTechIcon}
+                            style={{
+                              animationDelay: `${(idx + index * 3) * 0.22}s`,
+                            }}
+                          >
+                            {tech.icon}
+                          </span>
+                        ))}
+                      </div>
+                      {/* Set 2 for seamless infinite loop */}
+                      <div className={styles.navTechGroup} aria-hidden="true">
+                        {REAL_TECH_ITEMS.map((tech, idx) => (
+                          <span
+                            key={`m2-${tech.id}-${idx}`}
+                            className={styles.navTechIcon}
+                            style={{
+                              animationDelay: `${(idx + index * 3) * 0.22}s`,
+                            }}
+                          >
+                            {tech.icon}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -284,7 +284,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             aria-haspopup="dialog"
             style={{ width: "100%", justifyContent: "center" }}
           >
-            <span>Let's talk</span>
+            <span>Message me</span>
             <span className="arrow" aria-hidden="true">
               →
             </span>

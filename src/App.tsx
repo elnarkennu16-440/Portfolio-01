@@ -8,9 +8,11 @@ import { useTheme } from "./hooks/useTheme";
 import { Navbar } from "./components/Navbar/Navbar";
 import { Hero } from "./sections/Hero/Hero";
 import { About } from "./sections/About/About";
+import { TechMarquee } from "./components/TechMarquee/TechMarquee";
 import { Works } from "./sections/Works/Works";
 import { Capabilities } from "./sections/Capabilities/Capabilities";
 import { Process } from "./sections/Process/Process";
+import { Philosophy } from "./sections/Philosophy/Philosophy";
 import { Footer } from "./sections/Footer/Footer";
 import { ContactModal } from "./components/ContactModal/ContactModal";
 
@@ -51,6 +53,9 @@ export default function App() {
           {/* About Section */}
           <About />
 
+          {/* Tech Stack Sliding Loop with Wave Spin Icons */}
+          <TechMarquee />
+
           {/* Works Section */}
           <Works />
 
@@ -59,6 +64,9 @@ export default function App() {
 
           {/* Process Section */}
           <Process />
+
+          {/* Philosophy / Scroll-Switching Statement Section */}
+          <Philosophy />
         </main>
 
         {/* Footer */}

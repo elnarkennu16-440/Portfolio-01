@@ -1,7 +1,7 @@
 .aboutSection {
   position: relative;
   padding-top: clamp(var(--space-12), 6vh, var(--space-20));
-  padding-bottom: clamp(var(--space-12), 6vh, var(--space-24));
+  padding-bottom: clamp(4.5rem, 8vh, 8.5rem);
   border-top: 1px solid var(--border-hairline);
   overflow: hidden;
   width: 100%;
@@ -226,6 +226,7 @@
 }
 
 /* Ground Floor Baseline Mask: Clips anything outside the card boundary */
+/* Ground Floor Baseline Mask: Clips anything below the baseline for widgets */
 .buildingMask {
   overflow: hidden;
   position: relative;
@@ -234,79 +235,19 @@
   margin-top: -4px;
 }
 
-/* Base styles for all revealed cards */
-.buildingMask .principleCard,
+/* GitHub Repository Contribution Card: Independent rise from bottom (not split) */
 .buildingMask .contributionBuildingRise {
+  transform: translate3d(0, 105%, 0);
   opacity: 0;
   transition:
-    transform 2.4s cubic-bezier(0.14, 1, 0.28, 1),
-    opacity 0.7s ease-out,
-    border-color var(--duration-fast) var(--ease-editorial);
+    transform 1.25s cubic-bezier(0.16, 1, 0.3, 1) 0.2s,
+    opacity 0.4s ease-out 0.2s;
   will-change: transform, opacity;
 }
 
-/* While animating: disable pointer events so dragging or hovering the mouse NEVER freezes or interrupts the slowmo reveal! */
-.editorialLayout:not(.animationFinished) .buildingMask .principleCard,
-.editorialLayout:not(.animationFinished)
-  .buildingMask
-  .contributionBuildingRise {
-  pointer-events: none;
-}
-
-/* 1. Repository Contribution: Emerges from the BOTTOM (rising up like a building) */
-.buildingMask .contributionBuildingRise {
-  transform: translate3d(0, 115%, 0);
-}
-
-/* 2. Card 01: Emerges from the RIGHT side (sliding in to the left) */
-.buildingMask .cardDelay1 {
-  transform: translate3d(115%, 0, 0);
-}
-
-/* 3. Card 02: Emerges from the LEFT side (sliding in to the right) */
-.buildingMask .cardDelay2 {
-  transform: translate3d(-115%, 0, 0);
-}
-
-/* 4. Card 03: Emerges from the RIGHT side (sliding in to the left) */
-.buildingMask .cardDelay3 {
-  transform: translate3d(115%, 0, 0);
-}
-
-/* Silent instant reset when completely offscreen (prevents glitch/snap while in view) */
-.resetOffscreen .buildingMask .principleCard,
-.resetOffscreen .buildingMask .contributionBuildingRise {
-  transition: none !important;
-}
-
-/* When revealed: all cards glide smoothly into place at 0, 0, 0 */
-.isCardsRevealed .buildingMask .principleCard,
 .isCardsRevealed .buildingMask .contributionBuildingRise {
   transform: translate3d(0, 0, 0);
   opacity: 1;
-}
-
-/* =========================================================================
-   One-Time Scroll Reveal (Strict User Order from Video):
-   1st: Repository Contribution (from bottom)
-   2nd: 01 border (from right)
-   3rd: 02 border (from left)
-   4th: 03 border (from right)
-   ========================================================================= */
-.isCardsRevealed .buildingMask .contributionBuildingRise {
-  transition-delay: 0.3s;
-}
-
-.isCardsRevealed .buildingMask .cardDelay1 {
-  transition-delay: 1.05s;
-}
-
-.isCardsRevealed .buildingMask .cardDelay2 {
-  transition-delay: 1.8s;
-}
-
-.isCardsRevealed .buildingMask .cardDelay3 {
-  transition-delay: 2.55s;
 }
 
 /* Right Principles Column */
@@ -332,8 +273,21 @@
   flex-wrap: wrap;
 }
 
-/* Core Focus Box / Card Styling */
-.buildingMask .principleCard {
+/* =========================================================================
+   TWO-PHASE ARCHITECTURAL SPLIT-REVEAL FOR 3 CORE FOCUS CARDS
+   - Phase 1 (1st Image): Right halves slide horizontally from right wall together
+   - Phase 2 (2nd Image): Left halves rise vertically from bottom together
+   - Merges into original 3 distinct cards with spaces maintained
+   ========================================================================= */
+
+.splitCardContainer {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+}
+
+/* Base Principle Card: Permanent sizing & interactive state after animation */
+.principleCard {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-hairline);
   padding: clamp(var(--space-4), 3.5vw, var(--space-6));
@@ -342,19 +296,110 @@
   gap: var(--space-3);
   position: relative;
   width: 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.35s ease-out,
+    transform 0.25s var(--ease-editorial),
+    border-color 0.25s var(--ease-editorial);
 }
 
-/* ONLY when animation is finished and cards are in final position: allow hover white border! */
-.animationFinished .buildingMask .principleCard {
+/* Once both split phases have locked into place: reveal base card and enable hover */
+.animationFinished .principleCard {
+  opacity: 1;
   pointer-events: auto;
 }
 
-.animationFinished .buildingMask .principleCard:hover {
+.animationFinished .principleCard:hover {
   transform: translate3d(0, -2px, 0);
   border-color: var(--border-medium);
+}
+
+/* Overlay segments for split animation */
+.rightHalfSegment,
+.leftHalfSegment {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  will-change: transform, opacity;
+}
+
+.halfCardBody {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  padding: clamp(var(--space-4), 3.5vw, var(--space-6));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* =========================================================================
+   PHASE 1 (1st Image): All 3 Right Halves Slide in Horizontally from Right
+   Together (Sabay-sabay)
+   ========================================================================= */
+.rightHalfSegment {
+  clip-path: inset(0 0 0 50%);
+  transform: translate3d(105%, 0, 0);
+  opacity: 0;
   transition:
-    transform 0.25s var(--ease-editorial),
-    border-color 0.25s var(--ease-editorial);
+    transform 1.25s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
+    opacity 0.3s ease-out 0.15s;
+}
+
+/* Vertical dividing line on the cut edge */
+.rightHalfSegment::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background-color: var(--border-hairline);
+}
+
+.isCardsRevealed .rightHalfSegment {
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+}
+
+/* =========================================================================
+   PHASE 2 (2nd Image): All 3 Left Halves Rise up Vertically from Bottom
+   Together (Sabay-sabay)
+   ========================================================================= */
+.leftHalfSegment {
+  clip-path: inset(0 50% 0 0);
+  transform: translate3d(0, 105%, 0);
+  opacity: 0;
+  transition:
+    transform 1.25s cubic-bezier(0.16, 1, 0.3, 1) 0.7s,
+    opacity 0.3s ease-out 0.7s;
+}
+
+/* Vertical dividing line on the cut edge */
+.leftHalfSegment::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 50%;
+  width: 1px;
+  background-color: var(--border-hairline);
+}
+
+.isCardsRevealed .leftHalfSegment {
+  transform: translate3d(0, 0, 0);
+  opacity: 1;
+}
+
+/* Seamless merge: smoothly fade out split layers once unified card takes over */
+.animationFinished .rightHalfSegment,
+.animationFinished .leftHalfSegment {
+  opacity: 0;
+  transition: opacity 0.35s ease-out;
 }
 
 .principleMeta {

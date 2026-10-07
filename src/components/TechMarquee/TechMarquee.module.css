@@ -1,0 +1,155 @@
+.techMarqueeSection {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding: clamp(2.5rem, 5.5vh, 4.25rem) 0;
+  border-top: none;
+  border-bottom: none;
+  background-color: transparent;
+  /* Gentle dissolve on outer screen margins */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+}
+
+.marqueeTrack {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  will-change: transform;
+  /* Smooth horizontal sliding marquee */
+  animation: marqueeLoop 32s linear infinite;
+}
+
+.techMarqueeSection:hover .marqueeTrack {
+  animation-play-state: paused;
+}
+
+.marqueeGroup {
+  display: flex;
+  align-items: center;
+  /* Large generous spacing based on user's 3rd image */
+  gap: clamp(44px, 5.5vw, 76px);
+  padding-right: clamp(44px, 5.5vw, 76px);
+  flex-shrink: 0;
+}
+
+/* Large, real tech brand icons - NO background, NO box, clean gray */
+.marqueeItem {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Large icon dimensions based on user's 2nd & 3rd images */
+  width: clamp(44px, 4vw, 54px);
+  height: clamp(44px, 4vw, 54px);
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0;
+  color: #8e8e96;
+  cursor: default;
+  transform-origin: center center;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+  /* 3D Wave spin-jumping animation */
+  animation: spinJumpWave 3.2s cubic-bezier(0.34, 1.25, 0.64, 1) infinite;
+}
+
+.marqueeItem svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .marqueeItem {
+  color: #555560;
+}
+
+/* 3D Spin-Jumping Wave Animation (scaled for large 50px icons) */
+@keyframes spinJumpWave {
+  0% {
+    transform: perspective(500px) rotateY(0deg) translateY(0);
+    opacity: 0.82;
+  }
+  14% {
+    transform: perspective(500px) rotateY(90deg) translateY(-8px);
+    opacity: 0.94;
+  }
+  28% {
+    transform: perspective(500px) rotateY(180deg) translateY(-12px);
+    opacity: 1;
+  }
+  42% {
+    transform: perspective(500px) rotateY(270deg) translateY(-6px);
+    opacity: 0.94;
+  }
+  54% {
+    transform: perspective(500px) rotateY(360deg) translateY(0);
+    opacity: 0.82;
+  }
+  100% {
+    transform: perspective(500px) rotateY(360deg) translateY(0);
+    opacity: 0.82;
+  }
+}
+
+/* Horizontal Infinite Marquee Loop */
+@keyframes marqueeLoop {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.marqueeItem:hover {
+  color: #ffffff !important;
+  opacity: 1;
+  transform: perspective(500px) translateY(-4px) scale(1.15);
+  animation-play-state: paused;
+  transition:
+    transform var(--duration-fast) var(--ease-editorial),
+    color var(--duration-fast) ease;
+}
+
+[data-theme="light"] .marqueeItem:hover {
+  color: #000000 !important;
+  opacity: 1;
+  transform: perspective(500px) translateY(-4px) scale(1.15);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marqueeTrack {
+    animation: none !important;
+  }
+  .marqueeItem {
+    animation: none !important;
+    transform: none !important;
+  }
+}

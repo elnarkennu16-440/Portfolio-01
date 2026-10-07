@@ -1,0 +1,277 @@
+/* ==========================================================================
+   Philosophy / Scroll Statement Section
+   Sticky viewport scroll-switching text transition (Minimalist Grayscale)
+   ========================================================================== */
+
+.scrollSection {
+  position: relative;
+  width: 100%;
+  height: 240vh; /* Balanced 3-step scroll distance without massive empty gap */
+  background-color: var(--bg-primary);
+  border-top: 1px solid var(--border-hairline);
+  /* Note: NO overflow:hidden on track so position:sticky works natively */
+}
+
+/* Sticky Screen: Stays pinned while scrolling through the track */
+.stickyStage {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-primary);
+  z-index: 10;
+  padding-top: clamp(3.75rem, 8vw, 4.5rem);
+  transition: background-color var(--duration-normal) var(--ease-editorial);
+}
+
+/* Background Hairline Curve — matching Hero section aesthetic */
+.backgroundCurve {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.65;
+}
+
+.curvePath {
+  stroke: var(--border-hairline);
+  stroke-width: 1;
+  stroke-dasharray: 2400;
+  stroke-dashoffset: 2400;
+  animation: drawCurve 2s var(--ease-editorial) forwards;
+}
+
+.curvePathSecondary {
+  stroke: var(--border-hairline);
+  stroke-width: 0.75;
+  stroke-dasharray: 2000;
+  stroke-dashoffset: 2000;
+  animation: drawCurve 2.4s var(--ease-editorial) 0.3s forwards;
+  opacity: 0.5;
+}
+
+@keyframes drawCurve {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Main Container Grid */
+.containerInner {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 100%;
+  padding: 0 clamp(1.5rem, 4.5vw, 4.5rem);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  align-items: center;
+  gap: clamp(1.5rem, 3.5vw, 3.5rem);
+}
+
+@media (max-width: 768px) {
+  .containerInner {
+    grid-template-columns: 36px 1fr;
+    gap: var(--space-3);
+    padding: 0 1.25rem;
+  }
+}
+
+/* ==========================================================================
+   Left Progress & Indicator Column (matching video structure)
+   ========================================================================== */
+.indicatorCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  user-select: none;
+}
+
+/* Quote Icon Badge */
+.quoteBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  line-height: 1;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition: border-color var(--duration-fast) ease;
+}
+
+@media (max-width: 768px) {
+  .quoteBadge {
+    width: 26px;
+    height: 26px;
+    font-size: 0.95rem;
+  }
+}
+
+/* Vertical Progress Bar Track */
+.trackContainer {
+  position: relative;
+  width: 2px;
+  height: 120px;
+  background-color: var(--border-hairline);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .trackContainer {
+    height: 90px;
+  }
+}
+
+.trackFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: var(--text-primary);
+  border-radius: 2px;
+  transition: height 0.08s linear;
+  will-change: height;
+}
+
+/* Step Numbers Stack */
+.stepsStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.stepNumberBtn {
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0.4;
+  transition:
+    opacity var(--duration-normal) var(--ease-editorial),
+    color var(--duration-normal) var(--ease-editorial),
+    transform var(--duration-normal) var(--ease-editorial);
+}
+
+.stepNumberBtn:hover {
+  opacity: 0.8;
+  color: var(--text-primary);
+}
+
+.stepNumberActive {
+  opacity: 1;
+  color: var(--text-primary);
+  font-weight: 600;
+  transform: scale(1.15);
+}
+
+/* ==========================================================================
+   Right Statement Area (Stacked Cross-fading / Blur-switching Slides)
+   ========================================================================== */
+.statementArea {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .statementArea {
+    min-height: 230px;
+  }
+}
+
+.statementSlide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  will-change: transform, opacity, filter;
+}
+
+/* Main Heading Statement (Increased font, elegant editorial serif) */
+.mainHeading {
+  font-family: var(--font-serif);
+  font-size: clamp(2.1rem, 5.2vw, 4.25rem);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--text-secondary);
+  margin: 0;
+  letter-spacing: -0.015em;
+  width: 100%;
+  max-width: 100%;
+  text-wrap: wrap !important;
+  word-break: normal;
+  white-space: normal;
+}
+
+@media (max-width: 768px) {
+  .mainHeading {
+    font-size: clamp(1.6rem, 6.2vw, 2.5rem);
+    line-height: 1.22;
+    width: 100%;
+    max-width: 100%;
+    text-wrap: wrap !important;
+  }
+}
+
+/* Minimalist Emphasis / Highlight */
+.highlight {
+  color: var(--text-primary);
+  font-weight: 400;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 6px;
+  text-decoration-color: var(--border-medium);
+  transition: text-decoration-color var(--duration-normal) var(--ease-editorial);
+  display: inline;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .curvePath,
+  .curvePathSecondary {
+    stroke-dashoffset: 0 !important;
+    animation: none !important;
+  }
+  .statementSlide {
+    filter: none !important;
+    transition: opacity 0.3s ease !important;
+  }
+  .scrollSection {
+    height: auto !important;
+  }
+  .stickyStage {
+    position: relative !important;
+    height: auto !important;
+    padding: 4rem 0 !important;
+  }
+}

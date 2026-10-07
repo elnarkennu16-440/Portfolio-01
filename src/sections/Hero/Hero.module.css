@@ -127,33 +127,29 @@
   }
 }
 
-.roleMask {
-  overflow: hidden;
-  margin-top: var(--space-3);
-  margin-bottom: var(--space-3);
-}
-
-.roleTagline {
-  font-family: var(--font-sans);
-  font-size: clamp(0.75rem, 2.5vw, var(--text-base));
+.heroLeadStatement {
+  font-family: var(--font-serif);
+  font-size: clamp(1.15rem, 2.5vw, 1.75rem);
   font-weight: 400;
-  letter-spacing: var(--tracking-wide);
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  transform: translateY(100%);
-  animation: revealLine 0.8s var(--ease-editorial) 0.4s forwards;
+  line-height: var(--leading-snug);
+  color: var(--text-primary);
+  text-transform: none;
+  letter-spacing: normal;
+  max-width: 44ch;
+  margin-top: clamp(var(--space-3), 2vh, var(--space-5));
+  margin-bottom: clamp(var(--space-6), 3.5vh, var(--space-8));
+  text-wrap: balance;
+  opacity: 0;
+  transform: translateY(14px);
+  animation: fadeIn 0.7s var(--ease-editorial) 0.35s forwards;
 }
 
-.manifesto {
-  font-family: var(--font-sans);
-  font-size: clamp(0.875rem, 2.2vw, var(--text-base));
-  line-height: var(--leading-relaxed);
-  color: var(--text-secondary);
-  max-width: 52ch;
-  margin-bottom: var(--space-6);
-  opacity: 0;
-  transform: translateY(12px);
-  animation: fadeIn 0.6s var(--ease-editorial) 0.5s forwards;
+.underlinedEmphasis {
+  position: relative;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+  text-decoration-color: var(--border-medium);
 }
 
 @keyframes fadeIn {
@@ -218,27 +214,17 @@
     margin-bottom: 0.25rem;
   }
 
-  .roleMask {
+  .heroLeadStatement {
     order: 4;
-    margin-top: 0.35rem;
-    margin-bottom: 0.35rem;
-  }
-
-  .roleTagline {
-    font-size: 0.75rem;
-    letter-spacing: 0.08em;
-  }
-
-  .manifesto {
-    order: 5;
-    font-size: 0.8rem;
-    line-height: 1.5;
+    font-size: clamp(1.05rem, 4.2vw, 1.35rem);
+    line-height: 1.38;
     max-width: 100%;
-    margin-bottom: clamp(0.75rem, 2vh, 1.25rem);
+    margin-top: 0.45rem;
+    margin-bottom: clamp(0.65rem, 1.8vh, 1.15rem);
   }
 
   .portraitCol {
-    order: 6;
+    order: 5;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -250,7 +236,7 @@
   }
 
   .ctaGroup {
-    order: 7;
+    order: 6;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -320,8 +306,7 @@
     animation: none !important;
   }
   .headlineLine,
-  .roleTagline,
-  .manifesto,
+  .heroLeadStatement,
   .ctaGroup {
     transform: none !important;
     opacity: 1 !important;

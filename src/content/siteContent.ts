@@ -99,10 +99,9 @@ export const siteContent = {
     eyebrow: "2026",
     headlinePart1: "KENNU",
     headlinePart2: "ELNAR",
-    roleTagline: "Junior QA Tester & Web Developer",
-    // Short, honest first-person summary
-    manifesto:
-      "Fresh graduate focused on finding bugs early, writing clean front-end code, and making sure web pages work as expected.",
+    roleTagline:
+      "Focusing on software quality, user flows, and dependable web applications.",
+    manifesto: "",
     ctaWorks: "View works",
     ctaResume: "Download CV",
     portraitLabel: "Portrait",
@@ -114,10 +113,10 @@ export const siteContent = {
     sectionNumber: "",
     sectionTitle: "ABOUT",
     faintWatermark: "ABOUT",
-    lead: "Focusing on software quality, user flows, and dependable web applications.",
+    lead: "A Personal Workspace. Notes, Builds, and Progress",
     paragraphs: [
-      "I am an aspiring QA specialist with hands-on exposure to web technologies. My background in exploring front-end interfaces gives me a practical eye for detail—helping me understand how applications behave, where user journeys usually break, and why visual consistency matters.",
-      "My day-to-day focus centers on manual functional testing, writing clear reproduction steps, and verifying features against product requirements. I use modern development and testing tools to inspect issues closely and help teams ship stable, user-ready web software.",
+      "I’m Kennu. I maintain this platform as an open repository to document my background, practical work, and technical development. Instead of leaving projects confined to private directories, this space serves as an accessible record of my hands-on exploration and steady learning curve.",
+      "I place high value on structural clarity and consistent routines. Much of my time involves refining interface behavior, addressing edge cases deliberately, and building applications with longevity and clean organization in mind.",
     ],
     principles: [
       {
@@ -370,7 +369,7 @@ export const siteContent = {
   },
 
   contact: {
-    title: "Let's Talk",
+    title: "Message me",
     subtitle:
       "Inquiries regarding junior QA roles, front-end opportunities, or projects.",
     endpointConfigNote:

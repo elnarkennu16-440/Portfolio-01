@@ -32,13 +32,8 @@
   width: 100%;
   height: 1px;
   background-color: var(--border-hairline);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 0.8s var(--ease-editorial);
-}
-
-.isRevealed .headerUnderline {
   transform: scaleX(1);
+  transform-origin: left;
 }
 
 .sectionHeader {
@@ -52,13 +47,8 @@
   height: 2px;
   background-color: var(--border-strong);
   display: inline-block;
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform var(--duration-medium) var(--ease-editorial);
-}
-
-.isRevealed .titleAccentBar {
   transform: scaleX(1);
+  transform-origin: left;
 }
 
 .sectionNumber {
@@ -75,11 +65,6 @@
   letter-spacing: var(--tracking-wide);
   color: var(--text-primary);
   text-transform: uppercase;
-  clip-path: inset(0 100% 0 0);
-  transition: clip-path var(--duration-medium) var(--ease-editorial);
-}
-
-.isRevealed .sectionTitle {
   clip-path: inset(0 0 0 0);
 }
 
@@ -89,19 +74,11 @@
   color: var(--text-secondary);
   max-width: 60ch;
   margin-bottom: clamp(var(--space-6), 4vh, var(--space-12));
-  opacity: 0;
-  transform: translateY(12px);
-  transition:
-    opacity 0.6s var(--ease-editorial) 0.15s,
-    transform 0.6s var(--ease-editorial) 0.15s;
-}
-
-.isRevealed .introText {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate3d(0, 0, 0);
 }
 
-/* 4 Steps Grid */
+/* 4 Steps Grid: 100% Pantay-Pantay Level Alignment matching Image 1 */
 .stepsGrid {
   display: grid;
   grid-template-columns: 1fr;
@@ -109,6 +86,7 @@
   position: relative;
   z-index: 2;
   width: 100%;
+  align-items: stretch;
 }
 
 @media (min-width: 640px) {
@@ -134,7 +112,7 @@
     background-color: var(--border-hairline);
     transform: scaleX(0);
     transform-origin: left;
-    transition: transform var(--duration-slow) var(--ease-editorial);
+    transition: transform 1.4s var(--ease-slowmo) 0.2s;
     z-index: 0;
     pointer-events: none;
   }
@@ -145,49 +123,63 @@
   }
 }
 
+/* Step Card: Flat, level, 100% Pantay-Pantay balanced height and borders */
 .stepCard {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-hairline);
-  padding: clamp(var(--space-5), 3.5vw, var(--space-8))
-    clamp(var(--space-4), 3vw, var(--space-6));
+  padding: clamp(var(--space-4), 2.5vw, var(--space-6));
   display: flex;
   flex-direction: column;
   position: relative;
-  opacity: 0;
-  transform: translateY(24px);
+  height: 100%;
+  transform: perspective(900px) rotateY(0deg) scale(1);
+  transform-style: preserve-3d;
+  will-change: transform, opacity, border-color;
   transition:
-    opacity 0.7s var(--ease-editorial),
-    transform 0.7s var(--ease-editorial),
+    transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.4s ease,
     border-color var(--duration-fast) var(--ease-editorial);
   width: 100%;
+  box-sizing: border-box;
 }
 
-.isRevealed .stepCard:nth-child(1) {
-  opacity: 1;
-  transform: translateY(0);
-  transition-delay: 0.1s;
+/* Inner layout ensuring equal space distribution across all 4 cards */
+.cardInnerContent {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  justify-content: space-between;
+  flex-grow: 1;
 }
 
-.isRevealed .stepCard:nth-child(2) {
-  opacity: 1;
-  transform: translateY(0);
-  transition-delay: 0.22s;
+/* Purposeful compact Card Footer with small balanced bottom space */
+.stepCardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wider);
+  color: var(--text-muted);
 }
 
-.isRevealed .stepCard:nth-child(3) {
-  opacity: 1;
-  transform: translateY(0);
-  transition-delay: 0.34s;
+/* Rubik's Cube Face Twist: Card turns 90deg on Y axis, switches phase, and snaps back */
+.isFlipping {
+  transform: perspective(900px) rotateY(-90deg) scale(0.95);
+  opacity: 0.35;
+  transition:
+    transform 0.42s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s ease;
 }
 
-.isRevealed .stepCard:nth-child(4) {
-  opacity: 1;
-  transform: translateY(0);
-  transition-delay: 0.46s;
+/* Subtle hairline confirmation pulse when a slot is solved in order */
+.isSolved {
+  border-color: rgba(255, 255, 255, 0.24);
 }
 
-.stepCard:hover {
-  transform: translateY(-3px);
+.stepCard:not(.isFlipping):hover {
+  transform: translateY(-4px);
   border-color: var(--border-strong);
 }
 

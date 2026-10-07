@@ -1,7 +1,7 @@
 import React from "react";
 import { siteContent } from "../../content/siteContent";
-import kennuLogo from "../../assets/Minimalist-KennuLogo-.png";
-import elnarLogo from "../../assets/Minimalist-ElnarLogo-.png";
+import { useScrollReveal } from "../../hooks/useScrollReveal";
+import officialLogo from "../../assets/logo/KE-LOGO-.png";
 import styles from "./Footer.module.css";
 
 interface FooterProps {
@@ -10,27 +10,26 @@ interface FooterProps {
 
 export const Footer: React.FC<FooterProps> = ({ onOpenContact }) => {
   const { meta, footer } = siteContent;
+  const { elementRef, isRevealed } = useScrollReveal<HTMLElement>({
+    threshold: 0.08,
+  });
 
   return (
-    <footer className={styles.footer} role="contentinfo">
+    <footer
+      ref={elementRef}
+      className={`${styles.footer} ${isRevealed ? styles.isRevealed : ""}`}
+      role="contentinfo"
+    >
       <div className={`container ${styles.inner}`}>
         <div className={styles.topRow}>
           <div className={styles.identityBlock}>
-            <div className={styles.footerLogoGroup}>
+            <div className={styles.footerLogoContainer}>
               <img
-                src={kennuLogo}
-                alt="Kennu"
+                src={officialLogo}
+                alt="Kennu Elnar Logo"
                 className={styles.footerLogo}
-                width={180}
-                height={48}
-                loading="lazy"
-              />
-              <img
-                src={elnarLogo}
-                alt="Elnar"
-                className={styles.footerLogo}
-                width={180}
-                height={48}
+                width={212}
+                height={235}
                 loading="lazy"
               />
             </div>
@@ -85,7 +84,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact }) => {
               onClick={onOpenContact}
               aria-haspopup="dialog"
             >
-              <span>Let's talk</span>
+              <span>Message me</span>
               <span className="arrow" aria-hidden="true">
                 →
               </span>

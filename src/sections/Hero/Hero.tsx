@@ -70,15 +70,16 @@ export const Hero: React.FC = () => {
               </div>
             </div>
 
-            <div className={styles.roleMask}>
-              <p className={styles.roleTagline}>{hero.roleTagline}</p>
-            </div>
-
-            <p
-              className={styles.manifesto}
-              data-debug-content={getPlaceholderDebugAttr(hero.status)}
-            >
-              {hero.manifesto}
+            <p className={styles.heroLeadStatement}>
+              Focusing on{" "}
+              <span className={styles.underlinedEmphasis}>
+                software quality
+              </span>
+              , user flows, and{" "}
+              <span className={styles.underlinedEmphasis}>
+                dependable web applications
+              </span>
+              .
             </p>
 
             <div className={styles.ctaGroup}>

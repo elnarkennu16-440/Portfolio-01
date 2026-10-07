@@ -17,10 +17,11 @@ export const About: React.FC = () => {
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
     if (isCardsRevealed) {
-      // Wait for all 4 cards to finish their slowmo entrance (delay 2.55s + duration 2.4s = ~5.0s)
+      // Phase 1 (Right halves): delay 0.15s, duration 1.25s
+      // Phase 2 (Left halves): delay 0.70s, duration 1.25s (completes at 1.95s)
       timer = setTimeout(() => {
         setIsAnimationFinished(true);
-      }, 5000);
+      }, 2100);
     }
     return () => {
       if (timer) clearTimeout(timer);
@@ -99,15 +100,10 @@ export const About: React.FC = () => {
           {/* Left Column: Narrative */}
           <div className={styles.narrativeCol}>
             <p className={styles.leadStatement}>
-              Focusing on{" "}
-              <span className={styles.underlinedEmphasis}>
-                software quality
-              </span>
-              , user flows, and{" "}
-              <span className={styles.underlinedEmphasis}>
-                dependable web applications
-              </span>
-              .
+              A Personal{" "}
+              <span className={styles.underlinedEmphasis}>Workspace</span>.
+              Notes, Builds, and{" "}
+              <span className={styles.underlinedEmphasis}>Progress</span>.
             </p>
 
             <div className={styles.bodyCopy}>
@@ -151,10 +147,9 @@ export const About: React.FC = () => {
               const formattedIndex = String(index + 1).padStart(2, "0");
 
               return (
-                <div key={principle.term} className={styles.buildingMask}>
-                  <div
-                    className={`${styles.principleCard} ${styles[`cardDelay${index + 1}`]}`}
-                  >
+                <div key={principle.term} className={styles.splitCardContainer}>
+                  {/* Base full card (permanent layout, interactive after merge) */}
+                  <div className={styles.principleCard}>
                     <div className={styles.principleMeta}>
                       <span className={styles.principleNumber}>
                         {formattedIndex}
@@ -165,6 +160,36 @@ export const About: React.FC = () => {
                     <p className={styles.principleDesc}>
                       {principle.description}
                     </p>
+                  </div>
+
+                  {/* Split Phase 1: Right half (slides horizontally from right wall together) */}
+                  <div className={styles.rightHalfSegment} aria-hidden="true">
+                    <div className={styles.halfCardBody}>
+                      <div className={styles.principleMeta}>
+                        <span className={styles.principleNumber}>
+                          {formattedIndex}
+                        </span>
+                      </div>
+                      <h3 className={styles.principleTerm}>{principle.term}</h3>
+                      <p className={styles.principleDesc}>
+                        {principle.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Split Phase 2: Left half (rises vertically from bottom together) */}
+                  <div className={styles.leftHalfSegment} aria-hidden="true">
+                    <div className={styles.halfCardBody}>
+                      <div className={styles.principleMeta}>
+                        <span className={styles.principleNumber}>
+                          {formattedIndex}
+                        </span>
+                      </div>
+                      <h3 className={styles.principleTerm}>{principle.term}</h3>
+                      <p className={styles.principleDesc}>
+                        {principle.description}
+                      </p>
+                    </div>
                   </div>
                 </div>
               );
