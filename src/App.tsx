@@ -16,6 +16,7 @@ import { Process } from "./sections/Process/Process";
 import { Philosophy } from "./sections/Philosophy/Philosophy";
 import { Footer } from "./sections/Footer/Footer";
 import { ContactModal } from "./components/ContactModal/ContactModal";
+import { Chatbot } from "./components/Chatbot/Chatbot";
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
@@ -87,6 +88,9 @@ export default function App() {
 
       {/* Accessible Contact Modal */}
       <ContactModal isOpen={isContactModalOpen} onClose={handleCloseContact} />
+
+      {/* Floating AI / Auto Messenger Chatbot */}
+      <Chatbot />
     </>
   );
 }
