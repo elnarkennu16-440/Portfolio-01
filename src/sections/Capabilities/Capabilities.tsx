@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { siteContent, CapabilityGroup } from "../../content/siteContent";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
 import styles from "./Capabilities.module.css";
@@ -8,6 +8,41 @@ export const Capabilities: React.FC = () => {
   const { elementRef, isRevealed } = useScrollReveal<HTMLElement>({
     threshold: 0.1,
   });
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMenuOpen]);
+
+  const handleItemClick = () => {
+    // Small delay ensures native browser download starts before unmounting menu
+    setTimeout(() => {
+      setIsMenuOpen(false);
+    }, 150);
+  };
 
   return (
     <section
@@ -39,17 +74,61 @@ export const Capabilities: React.FC = () => {
         <div className={styles.introRow}>
           <p className={styles.introText}>{capabilities.intro}</p>
 
-          <a
-            href={meta.resumeUrl}
-            download="Elnar_Kennu_Resume.docx"
-            className={`pillButton ${styles.downloadCvBtn}`}
-            aria-label="Download Kennu Elnar CV (.docx)"
-          >
-            <span>Download CV</span>
-            <span className="arrow" aria-hidden="true">
-              ↓
-            </span>
-          </a>
+          {/* Download CV with DOCX and PDF Format Options */}
+          <div className={styles.downloadWrapper} ref={menuRef}>
+            <button
+              type="button"
+              onClick={() => setIsMenuOpen((prev) => !prev)}
+              className={`pillButton ${styles.downloadCvBtn}`}
+              aria-expanded={isMenuOpen}
+              aria-haspopup="true"
+              aria-label="Download CV options"
+            >
+              <span>Download CV</span>
+              <span
+                className={`${styles.downloadArrow} ${isMenuOpen ? styles.downloadArrowOpen : ""}`}
+                aria-hidden="true"
+              >
+                ↓
+              </span>
+            </button>
+
+            {isMenuOpen && (
+              <div
+                className={styles.downloadMenu}
+                role="menu"
+                aria-label="Download CV options"
+              >
+                <a
+                  href={meta.resumeDocxUrl || "/resume/Elnar_Kennu_Resume.docx"}
+                  download="Elnar_Kennu_Resume.docx"
+                  role="menuitem"
+                  className={styles.menuItem}
+                  onClick={handleItemClick}
+                >
+                  <span className={styles.fileBadge}>DOCX</span>
+                  <span className={styles.menuLabel}>Download DOCX</span>
+                  <span className={styles.menuArrow} aria-hidden="true">
+                    ↓
+                  </span>
+                </a>
+
+                <a
+                  href={meta.resumePdfUrl || "/resume/Kennu-Elnar-Resume.pdf"}
+                  download="Kennu-Elnar-Resume.pdf"
+                  role="menuitem"
+                  className={styles.menuItem}
+                  onClick={handleItemClick}
+                >
+                  <span className={styles.fileBadge}>PDF</span>
+                  <span className={styles.menuLabel}>Download PDF</span>
+                  <span className={styles.menuArrow} aria-hidden="true">
+                    ↓
+                  </span>
+                </a>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 3-Column Grid */}
