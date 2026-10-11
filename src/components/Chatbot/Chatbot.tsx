@@ -16,50 +16,44 @@ interface Message {
 }
 
 const QUICK_PROMPTS_EN = [
-  {
-    label: "About Kennu",
-    query: "Tell me about Kennu Elnar and his background",
-  },
-  {
-    label: "QA & Skills",
-    query: "What are Kennu's QA testing skills and tools?",
-  },
-  { label: "Projects", query: "What projects has Kennu developed and tested?" },
-  { label: "Download CV", query: "How can I download Kennu's resume or CV?" },
+  { label: "About Me", query: "Tell me about yourself and your background" },
+  { label: "QA & Skills", query: "What are your QA testing skills and tools?" },
+  { label: "Projects", query: "What projects have you developed and tested?" },
+  { label: "Download CV", query: "Where can I download your resume or CV?" },
   {
     label: "Contact / Hire",
-    query: "How do I get in touch with Kennu or hire him?",
+    query: "How do I get in touch with you or hire you?",
   },
 ];
 
 const QUICK_PROMPTS_TL = [
   {
-    label: "Tungkol kay Kennu",
-    query: "Sino si Kennu Elnar at ano ang kanyang background?",
+    label: "Tungkol sa Akin",
+    query: "Pakilala ka at ano ang iyong background?",
   },
   {
     label: "QA at Kasanayan",
-    query: "Ano ang mga QA testing skills at tools ni Kennu?",
+    query: "Ano ang mga QA testing skills at tools mo?",
   },
   {
     label: "Mga Proyekto",
-    query: "Ano ang mga proyektong ginawa at sinuri ni Kennu?",
+    query: "Ano ang mga proyektong ginawa at sinuri mo?",
   },
   {
     label: "Download CV",
-    query: "Paano ko mada-download ang CV o resume ni Kennu?",
+    query: "Saan ko pwedeng i-download ang resume o CV mo?",
   },
   {
     label: "Makipag-ugnayan",
-    query: "Paano makikipag-ugnayan o mag-hire kay Kennu?",
+    query: "Paano makikipag-ugnayan o mag-hire sa iyo?",
   },
 ];
 
 const INITIAL_GREETING_EN =
-  "I am the autonomous AI assistant for Kennu Elnar's portfolio. You may submit inquiries regarding his QA methodologies, technical architectures, full-stack systems, or curriculum vitae. Inquiries are processed in English, Filipino, or Taglish.";
+  "Hi! I'm Kennu Elnar. Feel free to ask me anything about my projects, QA testing skills, tech stack, or CV. You can ask in English or Tagalog!";
 
 const INITIAL_GREETING_TL =
-  "Ako ang opisyal na AI assistant para sa portfolio ni Kennu Elnar. Maaari kang sumangguni hinggil sa kanyang mga metodolohiya sa QA, arkitektura ng software, mga natapos na sistema, o curriculum vitae sa wikang Filipino, Ingles, o Taglish.";
+  "Kumusta! Ako si Kennu Elnar. Huwag mag-atubiling magtanong tungkol sa aking mga proyekto, QA testing skills, tech stack, o CV sa English o Tagalog!";
 
 export const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);

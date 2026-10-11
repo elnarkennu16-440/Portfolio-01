@@ -1,42 +1,27 @@
 /**
- * Knowledge Base for Kennu Elnar's Portfolio AI Assistant
- * Kennu Elnar — Junior QA Tester & Full-Stack Web Developer
- *
- * Aesthetic & Tone: Cold, minimalist, hyper-professional, analytical, articulate.
- * Zero colloquial filler, zero cringe/jejemon phrasing, zero "Haha", zero informal slang.
- * Advanced vocabulary in both English and Filipino/Tagalog.
- * Covers 65+ comprehensive knowledge nodes spanning 200+ inquiry variations.
+ * Knowledge Base for Kennu Elnar's Portfolio Chatbot
+ * Persona: Kennu Elnar (First-person: "I" / "Ako")
+ * Tone: Casual and a bit professional, straight-to-the-point, clear, articulate.
+ * Zero corporate roundabout fluff, zero cringe/jejemon, zero "Haha".
+ * Simple questions get short, direct answers.
  */
 
 export const KENNU_BIO = `
-Name: Kennu Elnar
-Role: Junior QA Tester & Web Developer (Full-Stack Capable)
+Name: Kennu M. Elnar
+Role: Junior QA Tester & Web Developer
+Hometown: Mercedes, Camarines Norte, Philippines
+College: Camarines Norte State College (CNSC), Daet, Camarines Norte
+Degree: Bachelor of Science in Information Systems (Graduated 2026)
+Internship: IT Support Intern at RGS Recovery Management and Collection Services Inc. (Feb - May 2026)
+Website Built: 2026
 Email: elnarkennu16@gmail.com
-Phone: +63 09453870032
+Phone: +63 945 387 0032
 GitHub: https://github.com/elnarkennu16-440
-Location: Philippines (Remote Ready, GMT+8)
-
-Core Philosophy:
-Integrates rigorous software verification methodologies with clean, scalable front-end and back-end architectural principles. Prioritizes defect elimination, end-user reliability, and minimal design friction.
-
-Technical Disciplines:
-1. Front-End:
-   - Modern HTML5, Semantic CSS3, JavaScript (ES6+), React, TypeScript, Tailwind CSS, Python
-2. Quality Assurance & Testing:
-   - Manual & Exploratory Testing, Test Case Specification, Defect Lifecycle Triage, Playwright E2E Automation, Postman API Testing, Chrome DevTools Network/DOM Profiling
-3. Systems & Tooling:
-   - Git & GitHub, VS Code, Cursor, Vite, Laravel 11, MySQL, PostgreSQL, Spatie RBAC
-
-Development Projects:
-1. MIRAMS (Manufacturing Internal Request & Asset Management System) [2026]
-   - Stack: React, TypeScript, Laravel 11, PostgreSQL/MySQL, Spatie RBAC, Tailwind CSS
-2. NCAMIS (Northills College of Asia Management Information System) [2025]
-   - Stack: PHP, JavaScript, Relational Database, RBAC
-3. NobleClassics (Curated Literary E-Commerce Platform) [2024]
-   - Stack: PHP, MySQL, JavaScript, CSS3, Multi-tier Checkout, Admin Inventory Suite
-
-Curriculum Vitae:
-- Available for direct retrieval in DOCX and PDF formats within the Capabilities module.
+Tech Stack: React, TypeScript, JavaScript, HTML5, CSS3, Tailwind CSS, PHP, Laravel 11, MySQL, PostgreSQL, Playwright, Git/GitHub, Chrome DevTools, Postman
+Featured Projects:
+1. MIRAMS (2026) – Manufacturing Internal Request & Asset Management System
+2. NCAMIS (2025) – Northills College of Asia Management Information System
+3. NobleClassics (2024) – Curated E-Commerce Bookstore Platform
 `;
 
 export interface QAEntry {
@@ -58,75 +43,251 @@ export interface QAEntry {
 }
 
 export const QA_DATABASE: QAEntry[] = [
-  // 1. IDENTITY OF ASSISTANT / NAME
+  // 1. WHAT IS YOUR NAME / WHO ARE YOU
   {
-    id: "bot_name_identity",
+    id: "name_identity",
     patterns: [
-      /\b(ano.*(pangalan|name)|anong pangalan|what is your name|whats your name|what's your name|who are you|sino ka|sinong ka|anong tawag sa.*yo|pangalan mo)\b/i,
-      /\b(what should i call you|identify yourself|who am i speaking with|who is this assistant)\b/i,
+      /\b(what('?s| is)? (you|your|ur) name|what is you name|whats your name|what's your name|who are you|identify yourself|who am i talking to)\b/i,
+      /\b(ano.*(pangalan|name)|anong pangalan|pangalan mo|sino ka|sinong ka|anong tawag sa.*yo|sino ka ba)\b/i,
     ],
-    keywords: [
-      "pangalan",
-      "name",
-      "sino ka",
-      "who are you",
-      "tawag",
-      "identity",
-      "assistant",
-    ],
-    category: "general",
-    en: "I am the dedicated AI Knowledge Engine and virtual assistant for Kennu Elnar's professional portfolio. My directive is to provide articulate, factual, and detailed information regarding Kennu's technical proficiencies, quality assurance methodologies, software systems, and professional background.",
-    tl: "Ako ang opisyal na AI Knowledge Engine at virtual assistant para sa propesyonal na portfolio ni Kennu Elnar. Ang aking tungkulin ay maghatid ng tumpak, komprehensibo, at propesyonal na impormasyon hinggil sa mga teknikal na kakayahan, mga metodolohiya sa quality assurance, mga natapos na software system, at propesyonal na kredensyal ni Kennu.",
+    keywords: ["name", "pangalan", "sino ka", "who are you", "identity"],
+    category: "about",
+    en: "My name is Kennu Elnar. I'm an Junior QA Tester and Web Developer.",
+    tl: "Ako si Kennu Elnar, isang Junior QA Tester at Web Developer.",
   },
 
-  // 2. GREETINGS & FORMAL SALUTATIONS
+  // 2. GREETINGS
   {
     id: "greeting",
     patterns: [
-      /^(hi|hello|hey|kamusta|kumusta|musta|good day|good morning|good afternoon|good evening|magandang araw|greetings)\b/i,
-      /\b(how do you do|greetings to you)\b/i,
+      /^(hi|hello|hey|kamusta|kumusta|musta|good day|good morning|good afternoon|good evening|magandang araw|yo|hoy)\b/i,
     ],
-    keywords: [
-      "hello",
-      "kamusta",
-      "kumusta",
-      "hi",
-      "greetings",
-      "magandang araw",
-    ],
+    keywords: ["hi", "hello", "kamusta", "kumusta", "magandang araw"],
     category: "general",
-    en: "Greetings. I am at your disposal to discuss Kennu Elnar's qualifications in Quality Assurance testing and Full-Stack web development. You may query specific project architectures, test methodologies, technical toolchains, or employment availability in English or Filipino.",
-    tl: "Pagbati. Nakahanda akong magbahagi ng detalyadong impormasyon ukol sa mga kwalipikasyon ni Kennu Elnar sa larangan ng Quality Assurance testing at Full-Stack web development. Maaari kang sumangguni hinggil sa arkitektura ng kanyang mga proyekto, metodolohiya sa pagsusuri, o estado ng kanyang kasanayan.",
+    en: "Hi! How can I help you today? Feel free to ask about my projects, skills and ideas, tech stack, or CV.",
+    tl: "Kumusta! Paano kita matutulungan ngayon? Huwag mag-atubiling magtanong tungkol sa aking mga proyekto, QA skills, tech stack, o CV.",
   },
 
-  // 3. WHO IS KENNU ELNAR / COMPREHENSIVE OVERVIEW
+  // 3. WHERE ARE YOU FROM / LOCATION
   {
-    id: "who_is_kennu",
+    id: "location_origin",
     patterns: [
-      /\b(who is kennu|sino si kennu|pakilala mo si kennu|tungkol kay kennu|about kennu|introduce kennu|background ni kennu|profile ni kennu)\b/i,
-      /\b(tell me about kennu|give me an overview of kennu|kennu elnar background)\b/i,
+      /\b(where (are you|do you|r u) (from|live|located)|what is your location|where are you located|where do u live)\b/i,
+      /\b(taga[ -]?saan|saan ka (nakatira|nakatira|tira|nagmula|galing)|nasaan ka|anong lugar mo|san ka nakatira|san ka galing)\b/i,
     ],
     keywords: [
-      "sino si kennu",
-      "who is kennu",
-      "about kennu",
-      "pakilala",
-      "background",
-      "profile",
+      "location",
+      "where from",
+      "taga saan",
+      "nakatira",
+      "nasaan",
+      "mercedes",
+      "camarines norte",
     ],
     category: "about",
-    en: "Kennu Elnar is an analytical Junior Quality Assurance and Web Developer based in the Philippines. His core competence lies at the intersection of modern front-end web (React, TypeScript, Tailwind CSS) and systematic software quality assurance (exploratory testing, structured defect documentation, and Playwright end-to-end automation). He is committed to software reliability, structural precision, and eliminating production regressions.",
-    tl: "Si Kennu Elnar ay isang analitikal na Junior Quality Assurance at Web Developer mula sa Pilipinas. Ang kanyang pangunahing kadalubhasaan ay nakapokus sa integrasyon ng modernong front-end web development (React, TypeScript, Tailwind CSS) at sistematikong quality assurance (exploratory testing, structured defect documentation, at Playwright automated testing). Layunin niyang tiyakin ang integridad, tibay, at kawalan ng mga depekto sa bawat software na kanyang binubuo at sinusuri.",
+    en: "I'm from Mercedes, Camarines Norte, Philippines.",
+    tl: "Taga-Mercedes, Camarines Norte ako sa Pilipinas.",
   },
 
-  // 4. WHY CHOSEN CAREER / MOTIVATION / "BAKIT KAYA GANITO ANG GINUSTO MO?"
+  // 4. WHERE DID YOU STUDY / COLLEGE / UNIVERSITY
+  {
+    id: "school_university",
+    patterns: [
+      /\b(where did you (study|graduate|go to school|go to college)|what (school|college|university) did you go to|what is your university|what is your school)\b/i,
+      /\b(saan ka nag[ -]?aral|san ka nag[ -]?aral|saan ka nagtapos|anong (school|kolehiyo|unibersidad|college|university) mo|saang school ka)\b/i,
+      /\b(cnsc|camarines norte state college)\b/i,
+    ],
+    keywords: [
+      "school",
+      "college",
+      "university",
+      "nag-aral",
+      "cnsc",
+      "nagtapos",
+      "saan nag aral",
+    ],
+    category: "about",
+    en: "I graduated from Camarines Norte State College (CNSC) in Daet, Camarines Norte, with a Bachelor of Science in Information Systems in 2026.",
+    tl: "Nagtapos ako sa Camarines Norte State College (CNSC) sa Daet, Camarines Norte, ng kursong Bachelor of Science in Information Systems noong 2026.",
+  },
+
+  // 5. COURSE / DEGREE / MAJOR
+  {
+    id: "course_degree",
+    patterns: [
+      /\b(what (is your|course|degree|major) did you take|what did you study|what degree do you have)\b/i,
+      /\b(anong? (kurso|course|degree|tinapos) mo|anong natapos mo|anong tinapos mong kurso)\b/i,
+      /\b(bsis|information systems)\b/i,
+    ],
+    keywords: [
+      "course",
+      "degree",
+      "kurso",
+      "tinapos",
+      "bsis",
+      "information systems",
+    ],
+    category: "about",
+    en: "I graduated with a Bachelor of Science in Information Systems (BSIS).",
+    tl: "Nagtapos ako ng kursong Bachelor of Science in Information Systems (BSIS).",
+  },
+
+  // 6. WHEN WAS THIS WEBSITE BUILT / CREATED
+  {
+    id: "website_build_year",
+    patterns: [
+      /\b(when was this (website|site|portfolio) (built|made|created|launched)|when did you build this (website|site)|how old is this website)\b/i,
+      /\b(kailan (ginawa|binuo|inilabas|ginawa itong|binuo itong) (website|site|portfolio)|kelan ginawa itong website|kailan ito ginawa)\b/i,
+    ],
+    keywords: ["website built", "kailan ginawa", "built 2026", "created site"],
+    category: "about",
+    en: "I designed and built this portfolio website in 2026.",
+    tl: "Ginawa at binuo ko itong portfolio website noong 2026.",
+  },
+
+  // 7. EMAIL CONTACT
+  {
+    id: "email_contact",
+    patterns: [
+      /\b(what is your email|what's your email|how can i email you|your email address|email mo)\b/i,
+      /\b(ano(ng)? email mo|paano kita ma-email|email address mo|saan kita pwede i-email)\b/i,
+    ],
+    keywords: ["email", "elnarkennu16@gmail.com", "email mo", "contact email"],
+    category: "contact",
+    en: "My email is elnarkennu16@gmail.com.",
+    tl: "Ang email ko ay elnarkennu16@gmail.com.",
+  },
+
+  // 8. PHONE / CONTACT NUMBER
+  {
+    id: "phone_contact",
+    patterns: [
+      /\b(what is your (phone|number|contact number|cellphone number|mobile number))\b/i,
+      /\b(ano(ng)? (phone|number|contact number|cellphone|telepono) mo|contact number mo)\b/i,
+    ],
+    keywords: ["phone", "contact number", "cellphone", "mobile", "telepono"],
+    category: "contact",
+    en: "My contact number is +63 945 387 0032.",
+    tl: "Ang contact number ko ay +63 945 387 0032.",
+  },
+
+  // 9. GITHUB
+  {
+    id: "github_profile",
+    patterns: [
+      /\b(what is your github|github profile|github link|github account|share your github)\b/i,
+      /\b(ano(ng)? github mo|link ng github|github account mo|patingin ng github)\b/i,
+    ],
+    keywords: ["github", "repository", "git", "github account"],
+    category: "contact",
+    en: "My GitHub profile is https://github.com/elnarkennu16-440.",
+    tl: "Ang GitHub profile ko ay https://github.com/elnarkennu16-440.",
+  },
+
+  // 10. AGE / FRESH GRADUATE
+  {
+    id: "freshgrad",
+    patterns: [/\b(graduate|graduation|fresh grad ka ba|fresh graduate)\b/i],
+    keywords: ["graduate", "graduating", "graduation", "fresh graduate"],
+    category: "about",
+    en: "I am a fresh graduate holding a Bachelor of Science in Information Systems (Class of 2026).",
+    tl: "Isang fresh graduate na nagtapos ng kursong Bachelor of Science in Information Systems (Batch 2026). ",
+  },
+
+  // 10. AGE / FRESH GRADUATE
+  {
+    id: "age",
+    patterns: [
+      /\b(how old are you|what is your age|your age|ilang taon ka na|edad mo|anong edad mo)\b/i,
+    ],
+    keywords: ["age", "ilang taon", "edad"],
+    category: "about",
+    en: "I am currently 23 years old.",
+    tl: "Ako ay 23 taon na.",
+  },
+
+  // 11. RELATIONSHIP STATUS / SINGLE / JOWA
+  {
+    id: "relationship_status",
+    patterns: [
+      /\b(are you (single|taken|married)|do you have a (girlfriend|partner|gf|wife)|relationship status)\b/i,
+      /\b(may jowa ka na|single ka ba|may gf ka|may girlfriend ka|may asawa ka|may syota ka|status mo)\b/i,
+    ],
+    keywords: ["single", "jowa", "girlfriend", "gf", "relationship"],
+    category: "general",
+    en: "I'm single and currently focused on my career and software development.",
+    tl: "Single ako ngayon at nakatutok muna sa aking karera at software development.",
+  },
+
+  // 12. HAVE YOU EATEN / KUMAIN KA NA BA
+  {
+    id: "have_you_eaten",
+    patterns: [
+      /\b(have you eaten|did you eat|are you hungry|kain na|kumain ka na|kumain ka na ba|nag lunch ka na|nag dinner ka na|anong ulam mo)\b/i,
+    ],
+    keywords: ["kumain", "kain", "eaten", "hungry", "ulam"],
+    category: "general",
+    en: "Yes, I have! Thanks for asking. How can I help you today?",
+    tl: "Oo, kumain na ako! Salamat sa pangangamusta. Ano ang maitutulong ko sa iyo ngayon?",
+  },
+
+  // 13. SLEEP / PUYAT / MAY TULOG KA PA BA
+  {
+    id: "sleep_and_rest",
+    patterns: [
+      /\b(do you (sleep|get enough sleep)|are you sleepy|have you slept|get some sleep)\b/i,
+      /\b(may tulog ka pa|natutulog ka ba|tulog tulog din|puyat ka ba|nagpupuyat ka|wala kang tulog)\b/i,
+    ],
+    keywords: ["tulog", "puyat", "sleep", "resting"],
+    category: "general",
+    en: "Yes, I make sure to get enough rest so I stay alert and focused while working and developing.",
+    tl: "Oo, sinisiguro kong may sapat akong pahinga para laging alerto at focused sa pag-develop ng mga proyekto.",
+  },
+
+  // 14. HOW ARE YOU / KAMUSTA KA
+  {
+    id: "how_are_you",
+    patterns: [
+      /\b(how are you|how r u|how are things|how's it going|kamusta ka|kumusta ka|kamusta ka na|kumusta ka na)\b/i,
+    ],
+    keywords: ["how are you", "kamusta ka", "kumusta ka"],
+    category: "general",
+    en: "I'm doing well, thank you! How can I help you with my portfolio or projects? are you interested? or do you have any ideas or suggestions for me?",
+    tl: "Mabuti naman ako, salamat! Paano kita matutulungan sa aking portfolio o mga proyekto? Interesado ka ba o may mga ideya o suggestions para sa akin?",
+  },
+
+  // 15. ARE YOU REAL OR AI
+  {
+    id: "real_or_ai",
+    patterns: [
+      /\b(are you (real|an ai|a bot|a human|a robot)|is this an ai|are you real or ai)\b/i,
+      /\b(totoo ka ba|tao ka ba|ai ka ba|bot ka ba|robot ka ba|totoo ka ba o ai)\b/i,
+    ],
+    keywords: ["real", "ai", "bot", "totoo", "robot"],
+    category: "general",
+    en: "I'm an autonomous AI assistant answering directly on behalf of Kennu Elnar, using his real background, skills, and projects. I can probably read your mind too, but I won't do that. Haha.",
+    tl: "Ako ang portfolio assistant na sumasagot para kay Kennu Elnar gamit ang kanyang tunay na background, kasanayan, at mga proyekto. Marahil ay kaya ko ring basahin ang iyong isip, pero hindi ko gagawin iyon. Haha.",
+  },
+
+  // 16. LEGIT OR SCAM / VERIFIABILITY
+  {
+    id: "legit_or_scam",
+    patterns: [
+      /\b(are you (legit|a scam|real|trustworthy)|is kennu (legit|real)|can i trust you)\b/i,
+      /\b(legit ka ba|scam ka ba|totoo ba ito|mapagkakatiwalaan ba|legit ba si kennu)\b/i,
+    ],
+    keywords: ["legit", "scam", "totoo", "trust"],
+    category: "general",
+    en: "Yes, I am legitimate. You can inspect my projects and commit history on GitHub (github.com/elnarkennu16-440) or reach me at elnarkennu16@gmail.com. 'm being honest and transparent about my skills and work. I don't scam or mislead anyone. Even though I'm an AI assistant, I can assure you that my responses are based on real information and not fabricated. You can verify my work and background through the provided links and contact information.",
+    tl: "Oo, lehitimo ako. Maaari mong suriin ang aking mga gawa sa GitHub (github.com/elnarkennu16-440) o mag-email sa elnarkennu16@gmail.com. Ako ay tapat at malinaw tungkol sa aking mga kasanayan at trabaho. Hindi ako nanlilinlang o nagkakamali sa sinuman. Kahit na ako ay isang AI assistant, makakasiguro ka na ang aking mga sagot ay batay sa totoong impormasyon at hindi peke. Maaari mong beripikahin ang aking trabaho at background sa pamamagitan ng mga ibinigay na link at impormasyon sa pakikipag-ugnayan.",
+  },
+
+  // 17. WHY DID YOU CHOOSE THIS FIELD / MOTIVATION
   {
     id: "why_chosen_career",
     patterns: [
-      /\b(bakit.*(ganito|ito|ganyan).*ginusto)\b/i,
-      /\b(bakit.*(pinili|ginusto|nagustuhan|pumasok).*(coding|tech|qa|web dev|developer|programming|testing|larangan|career))\b/i,
-      /\b(bakit ka nag-developer|bakit ka nag-qa|bakit coding|bakit web dev|bakit ito pinili)\b/i,
-      /\b(why did you choose (this|coding|qa|web development|tech)|motivation behind this|what inspired you)\b/i,
+      /\b(why did you choose (this|coding|qa|web development|tech)|what inspired you|what made you choose this)\b/i,
+      /\b(bakit.*(ganito|ito|ganyan).*ginusto|bakit mo pinili|bakit ka nag-?developer|bakit ka nag-?qa|bakit coding|bakit tech)\b/i,
     ],
     keywords: [
       "ginusto",
@@ -135,1006 +296,2920 @@ export const QA_DATABASE: QAEntry[] = [
       "bakit qa",
       "bakit ganito",
       "motivation",
-      "inspiration",
-      "career choice",
     ],
     category: "about",
-    en: "Kennu deliberately selected software development and quality assurance due to his deep fascination with architectural problem-solving and systemic integrity. Early in his technical journey, he recognized that writing functional code constitutes merely one dimension of development; ensuring fault tolerance, accessibility, and resilience under unpredictable edge cases is what defines truly enterprise-grade software. This conviction drives his dual dedication to both building interfaces and meticulously validating their robustness.",
-    tl: "Pinili ni Kennu ang larangan ng software development at quality assurance dahil sa kanyang matinding interes sa arkitektural na paglutas ng mga suliranin at integridad ng mga digital na sistema. Sa simula pa lamang ng kanyang pagsasanay, napagtanto niya na ang pagsusulat ng functional code ay kalahati lamang ng inhinyeriya; ang pagtiyak sa katatagan ng software, pagiging maaasahan nito, at pag-iwas sa mga kritikal na depekto ang tunay na nagpapatunay ng kalidad. Ang pananaw na ito ang nagtulak sa kanya upang pagsamahin ang pagbuo ng modernong web apps at masusing pagsusuri.",
+    en: "I've been passionate about computers and problem solving and I didn't end up here for certain reasons, but I found myself enjoying building clean UIs and ensuring systems work properly and bug-free. If you are interested at all, I can share my experience and how I got into this field.",
+    tl: "Nagkaroon ako ng hilig sa teknolohiya at paglutas ng problema sa computer at software kaya hindi ako napunta rito nang walang dahilan. Masaya ako sa pagbuo ng malinis na UI at sa pagtiyak na maayos at walang bug ang bawat sistema. Kung interesado ka, maari kong ibahagi ang aking karanasan at kung paano ako napunta sa larangang ito.",
   },
 
-  // 5. WHY BOTH QA AND WEB DEVELOPER? / DUAL ROLE ADVANTAGE
+  // 18. WHY BOTH QA AND WEB DEVELOPER / DUAL ROLE
   {
     id: "why_both_qa_and_dev",
     patterns: [
-      /\b(bakit.*pareho\w*|bakit.*dalawa|bakit.*qa.*(dev|web|developer)|bakit.*dev.*qa|bakit.*developer.*tester)\b/i,
-      /\b(why.*both.*(qa|developer|tester)|why.*both.*roles|dual role|hybrid)\b/i,
+      /\b(why (both|are you both).*qa.*(dev|developer|web)|why do you do both|dual role)\b/i,
+      /\b(bakit.*pareho.*(qa|developer|dev)|bakit dalawa.*role|bakit qa at dev|bakit dev at qa)\b/i,
     ],
-    keywords: [
-      "bakit dalawa",
-      "bakit pareho",
-      "qa at dev",
-      "both qa and dev",
-      "dual role",
-    ],
+    keywords: ["both qa and dev", "bakit dalawa", "bakit pareho", "dual role"],
     category: "about",
-    en: "Operating simultaneously as a QA tester and a web developer provides an asymmetric advantage. Traditional developers often design with happy-path assumptions, whereas QA analysts anticipate boundary failure modes. Because Kennu possesses practical fluency in React, TypeScript, and Laravel, he diagnoses defect root causes at the architectural layer rather than merely observing surface symptoms. Conversely, his QA discipline ensures defensive coding standards from the initial commit.",
-    tl: "Ang sabay na pagganap bilang QA tester at web developer ay nagdudulot ng natatanging kalamangan sa inhinyeriya ng software. Kalimitang nakatuon ang tradisyunal na developer sa inaasahang daloy (happy path), habang ang isang QA analyst ay sinasanay na suriin ang mga hangganan at potensyal na pagkabigo ng sistema. Dahil may malalim na kaalaman si Kennu sa React, TypeScript, at Laravel, natutukoy niya ang ugat ng depekto sa mismong arkitektura ng code, at sabay na nakakapag-code nang may mataas na depensa laban sa mga posibleng bug.",
+    en: "Being both gives me an edge: knowing how to code helps me find the root cause of bugs faster, and having QA discipline ensures I write cleaner, defensive code from the start. Even I'm still learning and improving, I can confidently say that my dual role allows me to deliver better software and user experiences.",
+    tl: "Malaking kalamangan ang pagiging parehong QA at developer: dahil marunong akong mag-code, madali kong natutukoy ang sanhi ng bugs, at dahil sanay ako sa QA, mas malinis at matatag ang naisusulat kong code. Kahit patuloy pa rin akong natututo at nag-iimprove, masasabi kong ang dual role ko ay nakakatulong sa akin na makapaghatid ng mas maayos na software at karanasan para sa mga gumagamit.",
   },
 
-  // 6. LEGIT OR SCAM / VERIFIABILITY / TRUST
+  // 19. WHAT IS YOUR ROLE / PROFESSION
   {
-    id: "legit_or_scam",
+    id: "current_role",
     patterns: [
-      /\b(scam|legit|totoo ba|tunay ba|peke ba|fake ba|scam ba si kennu|legit ba si kennu|mapagkakatiwalaan ba|trustworthy)\b/i,
-      /\b(is kennu legit|are you a scam|is this real or a scam|can i trust you|is this real|real person)\b/i,
+      /\b(what is your (role|job|title|profession|position)|what do you do)\b/i,
+      /\b(ano(ng)? (role|trabaho|posisyon|propesyon) mo|anong ginagawa mo)\b/i,
     ],
-    keywords: [
-      "scam",
-      "legit",
-      "totoo",
-      "tunay",
-      "peke",
-      "trustworthy",
-      "beripikado",
-    ],
-    category: "general",
-    en: "Kennu Elnar is an authentic, verified software professional based in the Philippines. His professional credentials, source code architectures, and continuous commit histories are publicly auditable via his official GitHub repository (github.com/elnarkennu16-440). Furthermore, direct professional communication channels, including verified telephone (+63 09453870032) and institutional email (elnarkennu16@gmail.com), remain fully operational for verification purposes.",
-    tl: "Beripikado at lehitimo ang propesyonal na pagkakakilanlan ni Kennu Elnar. Siya ay isang tunay na Quality Assurance at Web Developer na nakabase sa Pilipinas. Ang kanyang mga teknikal na kasanayan, commit history, at arkitektura ng mga proyekto—kabilang ang MIRAMS, NCAMIS, at NobleClassics—ay bukas at maaaring suriin sa kanyang opisyal na GitHub repository (github.com/elnarkennu16-440). Bukas din ang kanyang opisyal na linya sa telepono (+63 09453870032) at email (elnarkennu16@gmail.com) para sa beripikasyon.",
+    keywords: ["role", "job", "trabaho", "posisyon"],
+    category: "about",
+    en: "I am a Junior QA Tester and Frontend/Web Developer. I currently working on company projects and contributing to open-source repositories.",
+    tl: "Ako ay isang Junior QA Tester at Web Developer. Kasulukuyan akong nagtatrabaho sa mga proyekto ng kumpanya at nag-aambag sa mga open-source repositories.",
   },
 
-  // 7. RELATIONSHIP STATUS / JOWA / SINGLE
+  // 20. TELL ME ABOUT YOURSELF / INTRODUCE YOURSELF
   {
-    id: "relationship_status",
+    id: "about_me_intro",
     patterns: [
-      /\b(jowa|girlfriend|gf|syota|may asawa|single ka|may jowa ka na|taken ka na ba|crush|status mo|in a relationship)\b/i,
-      /\b(do you have a girlfriend|are you single|are you taken|do you have a partner|relationship status)\b/i,
+      /\b(tell me about yourself|introduce yourself|who is kennu|about kennu|background ni kennu)\b/i,
+      /\b(pakilala ka|magpakilala ka|tungkol sa iyo|sabihin mo ang tungkol sa iyo|ikwento mo ang sarili mo)\b/i,
     ],
-    keywords: [
-      "jowa",
-      "girlfriend",
-      "gf",
-      "single",
-      "taken",
-      "relationship",
-      "asawa",
-    ],
-    category: "general",
-    en: "Kennu maintains strict professional discretion regarding personal matters. His primary operational focus remains centered on technical mastery, defect prevention, and the execution of high-standard web deliverables. Inquiries concerning software architecture, testing cycles, or collaborative contracts are given priority.",
-    tl: "Pinapanatili ni Kennu ang mataas na antas ng propesyonalismo hinggil sa mga personal na usapin. Ang kanyang pangunahing atensyon ay nakalaan nang buo sa teknikal na kahusayan, pagsugpo sa mga depekto sa software, at pagpapatupad ng de-kalidad na web solutions. Binibigyang-prayoridad sa sistemang ito ang mga katanungang may kinalaman sa inhinyeriya at propesyonal na pakikipagtulungan.",
+    keywords: ["pakilala", "about yourself", "introduce", "background"],
+    category: "about",
+    en: "I'm Kennu Elnar, a Junior QA Tester and Web Developer and I'm from Camarines Norte, Philippines. I maintain this platform as an open repository to document my background, practical work, and technical development. Instead of leaving projects confined to private directories, this space serves as an accessible record of my hands-on exploration and steady learning curve. Feel free to look around and ask questions—or share your ideas if you have any..",
+    tl: "Ako si Kennu Elnar, isang Junior QA Tester at Web Developer mula sa Camarines Norte, Pilipinas. Pinapanatili ko ang platform na ito bilang isang bukas na repositoryo upang idokumento ang aking background, praktikal na trabaho, at teknikal na pag-unlad. Sa halip na iwanan ang mga proyekto sa mga pribadong direktoryo, nagsisilbing accessible record ang espasyong ito ng aking hands-on exploration at patuloy na learning curve. Huwag mag-atubiling magtanong o magbahagi ng iyong mga ideya kung mayroon ka.",
   },
 
-  // 8. HAVE YOU EATEN / SUSTENANCE / "KUMAIN KA NA BA?"
+  // 21. ALL PROJECTS SUMMARY
   {
-    id: "have_you_eaten",
+    id: "all_projects",
     patterns: [
-      /\b(kumain ka na|kumain ka na ba|kain na|kain tayo|gutom ka ba|anong ulam mo|nag-lunch ka na|nag-dinner ka na|almusal)\b/i,
-      /\b(have you eaten|did you eat|are you hungry|let's eat|what's your food)\b/i,
+      /\b(what (are your|projects have you|projects did you) (projects|built|made|developed)|list your projects|show me your projects)\b/i,
+      /\b(ano(ng)? mga (proyekto|projects) mo|anong nagawa mong projects|mga nagawa mo|sample projects)\b/i,
     ],
-    keywords: [
-      "kumain",
-      "kain",
-      "gutom",
-      "ulam",
-      "lunch",
-      "dinner",
-      "eaten",
-      "hungry",
-    ],
-    category: "general",
-    en: "As an autonomous virtual interface, I operate strictly on server computations and require no organic sustenance. Regarding Kennu Elnar, he maintains a structured personal routine to ensure cognitive endurance and analytical sharpness during complex software testing and development cycles.",
-    tl: "Bilang isang awtonomong digital interface, ang aking operasyon ay pinatatakbo ng computational logic at hindi nangangailangan ng organikong nutrisyon. Sa panig naman ni Kennu Elnar, pinapanatili niya ang disiplinadong iskedyul upang mapanatili ang mataas na antas ng konsentrasyon at analytical precision sa kanyang pagsubok at pagbuo ng software.",
-  },
-
-  // 9. SLEEP & REST / PUYAT / "MAY TULOG KA PA BA?"
-  {
-    id: "sleep_and_rest",
-    patterns: [
-      /\b(may tulog ka pa|natutulog ka pa ba|natulog ka ba|tulog tulog din|puyat ka ba|nagpupuyat ka|wala kang tulog)\b/i,
-      /\b(do you sleep|do you ever sleep|have you slept|get some sleep|are you sleepy)\b/i,
-    ],
-    keywords: ["tulog", "puyat", "sleep", "sleepy", "resting", "pahinga"],
-    category: "general",
-    en: "This automated system maintains continuous uptime to process portfolio inquiries. For Kennu, maintaining intellectual sharpness is critical for detecting subtle boundary defects in software; consequently, he adheres to a disciplined rest and recovery schedule, while retaining the capacity for extended sprints when critical deployment milestones require it.",
-    tl: "Ang automated assistant na ito ay nananatiling aktibo 24/7 para sa mga bisita ng portfolio. Sa panig ni Kennu, kinikilala niya na ang kalinawan ng pag-iisip ay kritikal sa pagtukoy ng mga masalimuot na depekto sa software, kung kaya't pinangangalagaan niya ang tamang balanse ng pahinga at disiplina sa trabaho, habang handang maglaan ng ibayong oras sa panahon ng mga kritikal na deployment.",
-  },
-
-  // 10. RATES AND PRICING / HOW MUCH / SINGIL
-  {
-    id: "rates_and_pricing",
-    patterns: [
-      /\b(magkano.*(bayad|singil|rate|presyo|fee|charge|sweldo|sahod))\b/i,
-      /\b(rates|pricing|how much do you charge|what is your rate|hourly rate|project cost|presyo mo|magkano ka)\b/i,
-    ],
-    keywords: [
-      "magkano",
-      "rate",
-      "singil",
-      "bayad",
-      "presyo",
-      "pricing",
-      "cost",
-      "hourly",
-    ],
-    category: "pricing",
-    en: "Kennu's compensation models are determined by technical scope, duration, and contractual engagement type. For Quality Assurance services (exploratory testing, test plan creation, regression suites, Playwright automation) and Front-End Development (React, TypeScript), engagements are structured on an hourly rate, milestone-based deliverable, or dedicated monthly retainer. Prospective partners may request an official proposal via elnarkennu16@gmail.com.",
-    tl: "Ang istruktura ng singil at kompensasyon ni Kennu ay nakadepende sa saklaw ng teknikal na rekisito, haba ng proyekto, at uri ng kontrata. Para sa Quality Assurance (exploratory testing, test case documentation, Playwright automation) at Front-End Development (React, TypeScript), maaaring magkasundo sa hourly rate, milestone-based deliverables, o buwanang retainer. Maaaring magsumite ng pormal na kahilingan para sa pagtaya ng gastos sa elnarkennu16@gmail.com.",
-  },
-
-  // 11. TIGHT BUDGET / DISCOUNTS / NEGOTIATIONS
-  {
-    id: "tight_budget",
-    patterns: [
-      /\b(tight.*budget|maliit.*budget|walang budget|kulang sa budget|pwede.*tawad|may discount|installment|mura lang|budget friendly)\b/i,
-      /\b(tight budget|low budget|can i get a discount|negotiable|can we negotiate|student discount|small budget)\b/i,
-    ],
-    keywords: [
-      "budget",
-      "tight",
-      "tawad",
-      "discount",
-      "maliit",
-      "mura",
-      "negotiable",
-      "installment",
-    ],
-    category: "pricing",
-    en: "Engagements can be tailored to align with specified budgetary parameters. Kennu accommodates phased modular delivery—prioritizing core Minimal Viable Product (MVP) features or high-impact QA audits within initial phases, thereby maintaining uncompromising technical standards while observing financial constraints.",
-    tl: "Maaaring isaayos ang saklaw ng trabaho upang umangkop sa mga itinakdang limitasyon sa badyet. Bukas si Kennu sa modular o phased deployment—kung saan inuuna ang pinakamahahalagang core features (MVP) o primaryang QA audit sa unang yugto, upang mapanatili ang integridad ng software nang hindi lumalagpas sa itinakdang pondo.",
-  },
-
-  // 12. E-COMMERCE & RESPONSIVE MOBILE APPLICATIONS
-  {
-    id: "ecommerce_mobile_apps",
-    patterns: [
-      /\b(e-commerce|ecommerce|online shop|online store|tindahan|shopping cart)\b/i,
-      /\b(mobile app|cellphone|responsive|responsive ba|gumawa ng e-commerce|kaya mo ba gumawa ng e-commerce)\b/i,
-      /\b(can you build an e-commerce|can you make mobile apps|online shop website)\b/i,
-    ],
-    keywords: [
-      "ecommerce",
-      "e-commerce",
-      "mobile",
-      "online shop",
-      "cart",
-      "checkout",
-      "store",
-      "responsive",
-    ],
+    keywords: ["projects", "proyekto", "mirams", "ncamis", "nobleclassics"],
     category: "projects",
-    en: "Kennu has demonstrated capability in e-commerce architecture through 'NobleClassics', a comprehensive digital bookstore incorporating shopping cart state management, multi-step transaction pipelines, dynamic catalog filters, and administrative inventory controls. In terms of mobile responsiveness, all interfaces adhere to strict mobile-first viewport benchmarks via Tailwind CSS, ensuring visual stability and touch ergonomics across iOS, Android, and desktop devices.",
-    tl: "Napatunayan ni Kennu ang kanyang kakayahan sa arkitektura ng e-commerce sa pamamagitan ng 'NobleClassics'—isang online platform na nagtatampok ng dynamic shopping cart, multi-step checkout workflow, pamamahala ng imbentaryo, at admin analytics. Lahat ng kanyang gawa ay sumusunod sa mahigpit na pamantayan ng mobile-first responsive design gamit ang Tailwind CSS upang tiyakin ang maayos na operasyon sa anumang mobile at desktop viewport.",
+    en: "I have 3 featured projects:\n1. MIRAMS (2026) – Manufacturing Internal Request & Asset Management System (React, TypeScript, Laravel 11, Spatie RBAC)\n2. NCAMIS (2025) – Senior High School MIS for Northills College of Asia (PHP, JavaScript, RBAC)\n3. NobleClassics (2024) – Curated E-Commerce Bookstore Platform (PHP, MySQL, Cart & Admin Panel)",
+    tl: "May 3 pangunahing proyekto ako:\n1. MIRAMS (2026) – Manufacturing Internal Request & Asset Management System (React, TypeScript, Laravel 11, Spatie RBAC)\n2. NCAMIS (2025) – Senior High School MIS para sa Northills College of Asia (PHP, JavaScript, RBAC)\n3. NobleClassics (2024) – Curated E-Commerce Bookstore Platform (PHP, MySQL, Cart at Admin Panel)",
   },
 
-  // 13. FAVORITE TECH STACK / LANGUAGES
-  {
-    id: "favorite_tech_stack",
-    patterns: [
-      /\b(favorite.*(tech|stack|language|framework|programming|tool)|paborito|anong pinakagusto mo|ano favorite mo)\b/i,
-      /\b(what is your favorite language|favorite tech stack|what do you prefer using)\b/i,
-    ],
-    keywords: [
-      "favorite",
-      "paborito",
-      "tech stack",
-      "programming language",
-      "preferred",
-    ],
-    category: "skills",
-    en: "Kennu's primary technical preference centers on the React, TypeScript, and Tailwind CSS ecosystem on the client tier, complemented by Laravel (PHP) or Node.js on the server layer. TypeScript is valued specifically for its static type guarantees, which mitigate runtime defects prior to compilation. In Quality Assurance, his preferred toolchain comprises Playwright for headless browser automation, Postman for API contract verification, and Chrome DevTools for runtime profiling.",
-    tl: "Ang pangunahing teknikal na pagpili ni Kennu ay nakasandig sa React, TypeScript, at Tailwind CSS sa client tier, katuwang ang Laravel (PHP) o Node.js sa backend. Pinahahalagahan niya ang TypeScript dahil sa kakayahan nitong sumala ng mga type errors bago pa man mag-execute ang aplikasyon. Sa larangan naman ng QA, pinipili niya ang Playwright para sa automated browser testing, Postman para sa API validation, at Chrome DevTools para sa malalimang inspeksyon ng DOM at network performance.",
-  },
-
-  // 14. HARDEST BUG ENCOUNTERED / TECHNICAL TRIAGE
-  {
-    id: "hardest_bug_encountered",
-    patterns: [
-      /\b(pinakamahirap na bug|pinakamalalang bug|hardest bug|toughest bug|worst bug|tricky bug|nakakabaliw na bug)\b/i,
-      /\b(what is the hardest bug you solved|biggest bug you found|debugging experience)\b/i,
-    ],
-    keywords: [
-      "pinakamahirap na bug",
-      "hardest bug",
-      "toughest bug",
-      "tricky bug",
-      "debugging",
-    ],
-    category: "qa",
-    en: "During the of MIRAMS, Kennu encountered a race condition involving asynchronous session token invalidation within Spatie RBAC during rapid multi-tab navigation. Authorized personnel received intermittent HTTP 403 Forbidden responses. Kennu isolated the fault by profiling network payloads, inspecting stale middleware cache headers, and authoring an automated reproduction scenario in Playwright. He refactored the permission validation pipeline, proving that the most severe defects stem from state synchronization rather than trivial syntax errors.",
-    tl: "Sa pagbuo ng enterprise system na MIRAMS, nasaksihan ni Kennu ang isang asynchronous race condition sa Spatie RBAC kung saan ang mabilisang paglipat ng mga tabs ay nagdudulot ng pasumpol-sumpong na HTTP 403 Forbidden sa mga awtorisadong gumagamit. Tinukoy niya ang depekto sa pamamagitan ng masusing network packet profiling sa DevTools at pagsulat ng automated script sa Playwright upang kopyahin ang bug. Inayos niya ang middleware cache synchronization, na nagpatunay na ang mga pinakamalulubhang depekto ay nagmumula sa estado at timing ng data.",
-  },
-
-  // 15. PORTFOLIO MINIMALIST THEME / AESTHETIC PHILOSOPHY
-  {
-    id: "website_design_theme",
-    patterns: [
-      /\b(bakit ganito.*(theme|design|itsura|kulay|style|hitsura)|minimalist|black and white|monochrome)\b/i,
-      /\b(why is the design like this|why minimalist|why black and white|design philosophy of this site)\b/i,
-    ],
-    keywords: [
-      "theme",
-      "design",
-      "minimalist",
-      "black and white",
-      "monochrome",
-      "aesthetic",
-      "itsura",
-    ],
-    category: "about",
-    en: "This portfolio employs a high-contrast editorial aesthetic governed by typographic discipline and monochrome neutrality. The visual restraint eliminates superfluous ornamentation, ensuring that architectural data, test artifacts, and technical proficiencies remain the focal point. This clean execution directly reflects the professional ethos of Quality Assurance: clarity, precision, and structural rigor.",
-    tl: "Ang portfoliong ito ay dinisenyo gamit ang high-contrast editorial aesthetic na nakabatay sa disiplina ng tipograpiya at monochrome neutrality. Ang pag-aalis ng mga hindi kinakailangang palamuti ay sinasadya upang mabigyang-diin ang teknikal na nilalaman, arkitektura ng mga sistema, at kasanayan sa pagsusuri. Ang malinis na biswal na anyo ay direktang sumasalamin sa disiplina ng Quality Assurance: kalinawan, katumpakan, at estruktural na kaayusan.",
-  },
-
-  // 16. LEARNING TRAJECTORY / SELF-TAUGHT OR FORMAL
-  {
-    id: "how_did_you_learn",
-    patterns: [
-      /\b(paano ka natuto|self-taught ka ba|paano ka nag-aral|saan ka natuto|how did you learn|self taught)\b/i,
-      /\b(how did you learn to code|learning journey|how did you get into qa)\b/i,
-    ],
-    keywords: [
-      "natuto",
-      "self-taught",
-      "learning",
-      "aral",
-      "how did you learn",
-      "journey",
-    ],
-    category: "about",
-    en: "Kennu's competence is forged through a dual trajectory: structured academic instruction in Information Systems combined with rigorous autodidactic software development. Beyond academic theory, his applied mastery in React, TypeScript, and Playwright automation was developed through real-world system architecture, continuous analysis of open-source standards, and hands-on defect triage in production-grade codebases.",
-    tl: "Ang kahusayan ni Kennu ay nagmula sa pagsasama ng pormal na akademikong pundasyon sa Information Systems at disiplinadong sariling pagsasanay (autodidactic learning). Bukod sa teorya sa unibersidad, ang kanyang praktikal na kasanayan sa React, TypeScript, at Playwright automation ay nahasa sa pamamagitan ng aktwal na pagbuo ng mga kumplikadong sistema at malawakang pagsusuri ng mga depekto sa software.",
-  },
-
-  // 17. TEAM COLLABORATION & SOLO AUTONOMY
-  {
-    id: "teamwork_vs_solo",
-    patterns: [
-      /\b(solo ka ba|marunong ka ba sa team|team player|teamwork|kaya mo ba mag-work with a team|solo developer)\b/i,
-      /\b(can you work in a team|teamwork skills|do you work alone or in a team|collaboration)\b/i,
-    ],
-    keywords: [
-      "team",
-      "solo",
-      "teamwork",
-      "team player",
-      "collaboration",
-      "samahan",
-    ],
-    category: "about",
-    en: "Kennu operates effectively both as an autonomous individual contributor and as an integrated member of multidisciplinary agile teams. He is proficient in Git pull-request workflows, code review etiquette, precise acceptance criteria formulation, and constructive defect documentation that fosters seamless developer collaboration without friction.",
-    tl: "Epektibong nakapagtatrabaho si Kennu bilang independiyenteng tagapagpatupad at bilang katuwang sa loob ng isang agile development team. Kabisado niya ang mga standard sa Git branching, peer code reviews, malinaw na dokumentasyon ng bug reports, at propesyonal na pakikipag-ugnayan sa mga kapwa developer, product manager, at UI/UX designers nang may respeto at linaw.",
-  },
-
-  // 18. IMMEDIATE AVAILABILITY / ONBOARDING
-  {
-    id: "availability_start_date",
-    patterns: [
-      /\b(kailan ka pwede magsimula|available ka ba agad|start date|kailan ka pwede mag-start|immediately available)\b/i,
-      /\b(when can you start|are you available immediately|start immediately|earliest start date)\b/i,
-    ],
-    keywords: [
-      "start date",
-      "magsimula",
-      "available agad",
-      "immediately",
-      "when can you start",
-    ],
-    category: "contact",
-    en: "Kennu is available for immediate operational onboarding. His development workstation and continuous integration testing tools are fully provisioned, enabling rapid integration into ongoing sprint cycles for either Quality Assurance verification or front-end implementation. Formal onboarding inquiries should be directed to elnarkennu16@gmail.com.",
-    tl: "Nakahanda si Kennu para sa agarang onboarding (immediate availability). Ang kanyang development workstation at mga kagamitan sa pagsusuri ay kumpleto at naka-setup na, na nagbibigay-daan sa mabilis na pagpasok sa mga umiiral na sprint cycle para sa QA verification o front-end development. Maaaring magpadala ng pormal na abiso sa elnarkennu16@gmail.com.",
-  },
-
-  // 19. HOBBIES & OFF-DUTY PURSUITS
-  {
-    id: "hobbies_free_time",
-    patterns: [
-      /\b(free time|hobbies|libangan|anong ginagawa mo kapag walang coding|weekend|ano pinagkakaabalahan|trip mo gawin)\b/i,
-      /\b(what do you do in your free time|what are your hobbies|interests outside coding)\b/i,
-    ],
-    keywords: [
-      "free time",
-      "hobbies",
-      "libangan",
-      "weekend",
-      "interes",
-      "outside coding",
-    ],
-    category: "about",
-    en: "Outside active hours, Kennu engages in analytical gaming, monitors advancements in software architectures, explores emerging UI paradigms, and maintains physical balance. Structured cognitive decompression ensures peak mental acuity during rigorous test cycles and code reviews.",
-    tl: "Sa labas ng kanyang oras sa inhinyeriya, pinapanatili ni Kennu ang talas ng pag-iisip sa pamamagitan ng pagsubaybay sa mga pinakabagong pag-unlad sa teknolohiya, mga bagong arkitektura sa UI, at analytical gaming. Ang tamang balanse sa buhay ay nagtitiyak na nananatiling matalas ang kanyang paningin sa pagsusuri ng mga kumplikadong test cases.",
-  },
-
-  // 20. PERFORMANCE UNDER PRESSURE & DEADLINES
-  {
-    id: "pressure_and_deadlines",
-    patterns: [
-      /\b(pressure|tight deadline|under pressure|stress|nagpa-panic ka ba|kaya mo ba mag-handle ng pressure)\b/i,
-      /\b(can you work under pressure|tight deadlines|how do you handle stress|fast-paced)\b/i,
-    ],
-    keywords: [
-      "pressure",
-      "deadline",
-      "stress",
-      "panic",
-      "under pressure",
-      "fast-paced",
-    ],
-    category: "about",
-    en: "Kennu manages high-pressure scenarios through systematic triage and objective risk analysis. In critical deployment windows, emotional reaction is replaced with structured execution: identifying critical blockers, validating smoke test suites, and communicating transparent status metrics to project stakeholders.",
-    tl: "Hinaharap ni Kennu ang mga sitwasyong may mataas na presyon sa pamamagitan ng sistematikong pagsala ng mga panganib at lohikal na pagpapasya. Sa mga kritikal na sandali bago ang release, pinaiiral niya ang obhetibong pamamaraan: pagtukoy sa mga pinakamalulubhang blocker, pagsasagawa ng mahahalagang smoke tests, at malinaw na pakikipag-ugnayan sa mga kinauukulan.",
-  },
-
-  // 21. WORKING HOURS / TIMEZONES / SHIFTS
-  {
-    id: "working_hours_shifts",
-    patterns: [
-      /\b(flexible ba ang oras|night shift|working hours|shifting|oras mo|timezone|kaya mo ba panggabi)\b/i,
-      /\b(are your hours flexible|can you work night shifts|timezone flexibility|working schedule)\b/i,
-    ],
-    keywords: [
-      "flexible",
-      "oras",
-      "night shift",
-      "shifting",
-      "timezone",
-      "schedule",
-      "panggabi",
-    ],
-    category: "contact",
-    en: "Kennu's operational schedule accommodates global timezones. Located in the Philippines (GMT+8), he offers flexible scheduling arrangements, including overlap with North American, European, or Asia-Pacific business hours, as well as night-shift rotations depending on contractual mandates.",
-    tl: "Ang oras ng pagtatrabaho ni Kennu ay umaangkop sa iba't ibang timezone sa buong mundo. Bagamat nakabase siya sa Pilipinas (GMT+8), handa siyang magtrabaho sa ilalim ng flexible hours, kabilang ang pakikipagsabayan sa mga kliyente sa Hilagang Amerika, Europa, o Asya-Pasipiko, maging sa night shift kung kinakailangan.",
-  },
-
-  // 22. COMPETITIVE EDGE / WHY HIRE KENNU
-  {
-    id: "why_choose_kennu_edge",
-    patterns: [
-      /\b(pinagkaiba mo sa iba|bakit ikaw|bakit ikaw ang dapat piliin|edge mo|advantage mo|bakit ka namin tatanggapin)\b/i,
-      /\b(why should we hire you|what makes you unique|why choose you over others|your competitive advantage)\b/i,
-    ],
-    keywords: [
-      "pinagkaiba",
-      "bakit ikaw",
-      "edge",
-      "advantage",
-      "unique",
-      "why choose you",
-    ],
-    category: "about",
-    en: "Kennu's distinct value proposition lies in his dual-competency profile. While pure developers may fail to predict edge-case anomalies and pure QA testers may struggle to comprehend framework internals, Kennu bridges both domains. He isolates software anomalies directly to their underlying code construct and develops web components with built-in defensive validation.",
-    tl: "Ang natatanging kalamangan ni Kennu ay ang kanyang pinagsamang kakayahan sa development at quality assurance. Habang ang ibang developer ay posibleng hindi makakita ng mga boundary failure, at ang ilang testers ay limitado sa panlabas na UI, kayang tukuyin ni Kennu ang mismong dahilan ng sira sa loob ng code at magpatupad ng defensive programming bago pa man magkaroon ng problema.",
-  },
-
-  // 23. RESPONSE TIME & FASTEST CONTACT CHANNELS
-  {
-    id: "fastest_contact_reply",
-    patterns: [
-      /\b(mabilis ka ba mag-reply|saan ka pinakamabilis ma-contact|saan kita kakausapin|active ka ba|reply time)\b/i,
-      /\b(how fast do you reply|fastest way to reach you|how to contact you quickly|response time)\b/i,
-    ],
-    keywords: [
-      "mabilis mag-reply",
-      "saan ma-contact",
-      "response time",
-      "fastest way",
-      "reply time",
-    ],
-    category: "contact",
-    en: "The expedited route for professional contact is direct email via elnarkennu16@gmail.com, which is monitored continuously during operational hours. For urgent business inquiries, telephonic contact or SMS via +63 09453870032 yields immediate verification.",
-    tl: "Ang pinakamabilis na paraan ng pakikipag-ugnayan kay Kennu ay sa pamamagitan ng kanyang opisyal na email sa elnarkennu16@gmail.com, na regular na binabantayan. Para sa mga agarang tawag o beripikasyon, maaaring direktang tumawag o mag-text sa +63 09453870032.",
-  },
-
-  // 24. PROJECT NOMENCLATURE & BACKSTORY
-  {
-    id: "project_names_backstory",
-    patterns: [
-      /\b(saan nanggaling ang.*(mirams|ncamis|nobleclassics|pangalan))\b/i,
-      /\b(meaning ng.*(mirams|ncamis|nobleclassics)|ano ibig sabihin ng mirams|ano meaning ng ncamis)\b/i,
-      /\b(what does mirams stand for|what does ncamis mean|origins of project names)\b/i,
-    ],
-    keywords: [
-      "meaning ng mirams",
-      "ncamis meaning",
-      "nobleclassics",
-      "saan galing ang pangalan",
-    ],
-    category: "projects",
-    en: "The project designations reflect their systemic objectives:\n• MIRAMS: Manufacturing Internal Request & Asset Management System—an enterprise management solution for industrial hardware tracking.\n• NCAMIS: Northills College of Asia Management Information System—an academic institutional database.\n• NobleClassics: Derived from timeless literary titles, embodying an elegant, frictionless digital bookstore.",
-    tl: "Ang mga pangalan ng proyekto ay sumasalamin sa kanilang partikular na layunin:\n• MIRAMS: Acronym para sa 'Manufacturing Internal Request & Asset Management System'—dinisenyo para sa enterprise hardware lifecycle at IT helpdesk.\n• NCAMIS: 'Northills College of Asia Management Information System'—isang plataporma para sa academic records at enrollment.\n• NobleClassics: Hango sa mga walang-kupas na obrang pampanitikan, binuo bilang isang modernong e-commerce bookstore.",
-  },
-
-  // 25. GEOGRAPHIC LOCATION & REMOTE INFRASTRUCTURE
-  {
-    id: "exact_location_ph",
-    patterns: [
-      /\b(saan ka exact.*nakatira|taga-saan ka sa pilipinas|taga saan ka|anong probinsya|saan lugar mo)\b/i,
-      /\b(where in the philippines are you|exact location|which city do you live in)\b/i,
-    ],
-    keywords: [
-      "nakatira",
-      "taga saan",
-      "probinsya",
-      "lugar",
-      "location",
-      "pilipinas",
-    ],
-    category: "about",
-    en: "Kennu is situated in the Philippines and operates from a fully configured private workspace equipped with high-bandwidth fiber internet and redundant power contingency. His infrastructure is optimized for 100% remote asynchronous and synchronous global collaboration.",
-    tl: "Si Kennu ay nakabase sa Pilipinas at nagpapatakbo ng kanyang mga gawain mula sa isang modernong workstation na may mabilis na fiber internet at backup power. Ang kanyang imprastraktura ay ganap na nakahanda para sa 100% remote na pakikipagtulungan sa mga kumpanya sa buong mundo.",
-  },
-
-  // 26. NON-DISCLOSURE AGREEMENTS (NDA) & CONFIDENTIALITY
-  {
-    id: "nda_confidentiality",
-    patterns: [
-      /\b(nda|non-disclosure|confidentiality|mag-sign ng nda|sikreto ng kumpanya|privacy)\b/i,
-      /\b(can you sign an nda|non disclosure agreement|data privacy|confidential)\b/i,
-    ],
-    keywords: ["nda", "non-disclosure", "confidentiality", "privacy", "secret"],
-    category: "contact",
-    en: "Kennu strictly complies with industry confidentiality protocols and intellectual property safeguards. He executes standard Non-Disclosure Agreements (NDAs) prior to inspecting proprietary software repositories or internal business documentation.",
-    tl: "Mahigpit na itinataguyod ni Kennu ang mga pamantayan sa data security at proteksyon ng intellectual property. Handa siyang lumagda sa mga pormal na Non-Disclosure Agreement (NDA) bago suriin ang anumang proprietary code o kompidensyal na dokumentasyon ng kliyente.",
-  },
-
-  // 27. SOURCE CODE REPOSITORIES & LIVE PROOFS
-  {
-    id: "github_demo_links",
-    patterns: [
-      /\b(live demo|github link|san makikita ang gawa|source code|makikita ang code|open source)\b/i,
-      /\b(where can i see your code|github profile link|live demo link|repositories)\b/i,
-    ],
-    keywords: ["live demo", "github", "source code", "repositories", "links"],
-    category: "projects",
-    en: "Kennu's primary software systems and architectural commits are publicly inspectable via his GitHub profile (https://github.com/elnarkennu16-440):\n• MIRAMS: github.com/elnarkennu16-440/MIRAMS-ENTERPRISE-SYSTEM\n• NCAMIS: github.com/elnarkennu16-440/NCAMIS-SHS\n• NobleClassics: github.com/elnarkennu16-440/E-COMMERCE-NOBLECLASSICS",
-    tl: "Ang lahat ng pangunahing proyekto at commit history ni Kennu ay bukas para sa pagsusuri sa kanyang opisyal na GitHub (https://github.com/elnarkennu16-440):\n• MIRAMS: github.com/elnarkennu16-440/MIRAMS-ENTERPRISE-SYSTEM\n• NCAMIS: github.com/elnarkennu16-440/NCAMIS-SHS\n• NobleClassics: github.com/elnarkennu16-440/E-COMMERCE-NOBLECLASSICS",
-  },
-
-  // 28. CAREER ASPIRATIONS & LONG-TERM OBJECTIVES
-  {
-    id: "career_goals_aspirations",
-    patterns: [
-      /\b(pangarap|future goals|aspirations|ambisyon|ano pangarap mo|5 years from now|long term goal)\b/i,
-      /\b(what are your career goals|where do you see yourself|future aspirations|career dream)\b/i,
-    ],
-    keywords: [
-      "pangarap",
-      "future goals",
-      "ambisyon",
-      "aspirations",
-      "long term",
-    ],
-    category: "about",
-    en: "Kennu's long-term objective is progression toward Lead Quality and Enterprise Systems Architect roles. He aims to architect resilient, mission-critical digital infrastructures, institute high-velocity continuous automated QA pipelines, and mentor emerging technical talent.",
-    tl: "Ang pangmatagalang layunin ni Kennu ay umangat patungo sa posisyon ng Lead Quality at Enterprise Systems Architect. Nais niyang magdisenyo ng mga matitibay na sistemang ginagamit sa malalaking industriya, magtayo ng automated CI/CD testing pipelines, at magbahagi ng kaalaman sa kapwa inhinyero.",
-  },
-
-  // 29. MANUAL TESTING VS AUTOMATION STRATEGY
-  {
-    id: "manual_vs_automation_qa",
-    patterns: [
-      /\b(manual test lang|puro automation ka ba|kaya mo ba manual testing|manual vs automation)\b/i,
-      /\b(do you only do manual testing|do you only do automation|manual testing capabilities)\b/i,
-    ],
-    keywords: [
-      "manual test",
-      "automation",
-      "exploratory",
-      "playwright",
-      "manual testing",
-    ],
-    category: "qa",
-    en: "Kennu advocates for a balanced testing pyramid. Manual exploratory testing remains indispensable for identifying qualitative UX friction, edge-case logical anomalies, and visual regressions. Concurrently, automated suites via Playwright and Postman handle repetitive regression verification, optimizing both velocity and test depth.",
-    tl: "Itinataguyod ni Kennu ang balanseng diskarte sa pagsubok ng software. Ang manual exploratory testing ay hindi mapapalitan pagdating sa pagsusuri ng visual UX issues at kakaibang gawi ng gumagamit. Kasabay nito, ginagamit niya ang Playwright at Postman upang i-automate ang mga regression test at matiyak ang mabilisang beripikasyon sa bawat update.",
-  },
-
-  // 30. CONSTRUCTIVE CRITICISM & CODE REVIEWS
-  {
-    id: "handling_feedback_rejection",
-    patterns: [
-      /\b(feedback|criticism|rejection|paano ka mag-handle ng feedback|napagsasabihan|growth mindset)\b/i,
-      /\b(how do you handle feedback|constructive criticism|how do you deal with mistakes|growth mindset)\b/i,
-    ],
-    keywords: [
-      "feedback",
-      "criticism",
-      "rejection",
-      "growth mindset",
-      "pagkakamali",
-    ],
-    category: "about",
-    en: "Kennu approaches technical feedback with analytical objectivity and zero ego. In Quality Assurance, critique constitutes an essential instrument for software hardening. Peer reviews and architectural critiques are treated as actionable data points to refine implementation standards and permanently prevent recurrence.",
-    tl: "Tinatanggap ni Kennu ang teknikal na puna at feedback nang may mataas na antas ng obhetibismo at walang personal na emosyon. Sa larangan ng QA, ang pagsusuri at puna ang pundasyon ng pagpapatibay ng software. Ang bawat mungkahi ay agad na sinusuri at ipinapatupad upang maiangat ang kalidad ng sistema.",
-  },
-
-  // 31. DETAILED SKILLS & TECH ARSENAL
-  {
-    id: "skills_and_stack",
-    patterns: [
-      /\b(skills|technologies|tech stack|what can you do|capabilities|programming languages|tools|ano ang kakayahan|mga skills|ano gamit mong tools)\b/i,
-    ],
-    keywords: [
-      "skills",
-      "kakayahan",
-      "tech stack",
-      "tools",
-      "languages",
-      "technologies",
-    ],
-    category: "skills",
-    en: "Kennu's technical competencies include:\n\n• Web Languages & Frameworks: HTML5, CSS3, JavaScript (ES6+), React, TypeScript, Tailwind CSS, Python\n• Quality Assurance: Manual Exploratory Testing, Functional & Regression Testing, Defect Lifecycle Documentation, Playwright E2E Automation, Postman API Testing, Chrome DevTools\n• Infrastructure & Tooling: Git, GitHub, VS Code, Cursor, Vite, Laravel 11, Spatie RBAC, MySQL, PostgreSQL",
-    tl: "Ang mga teknikal na kasanayan ni Kennu ay kinabibilangan ng:\n\n• Web Development: HTML5, CSS3, JavaScript (ES6+), React, TypeScript, Tailwind CSS, Python\n• Quality Assurance: Manual Exploratory Testing, Functional & Regression Testing, Defect Documentation, Playwright E2E Automation, Postman API Verification, Chrome DevTools\n• Tooling at Database: Git, GitHub, VS Code, Cursor, Vite, Laravel 11, Spatie RBAC, MySQL, PostgreSQL",
-  },
-
-  // 32. QA METHODOLOGY & DEFECT REPORTING STANDARDS
-  {
-    id: "qa_methodology",
-    patterns: [
-      /\b(qa|testing|test case|tester|quality assurance|bug report|defect|playwright|regression|exploratory|manual test|paano ka mag-test|paano mag-qa)\b/i,
-    ],
-    keywords: [
-      "qa",
-      "testing",
-      "test case",
-      "bug report",
-      "defect",
-      "playwright",
-      "exploratory",
-    ],
-    category: "qa",
-    en: "Kennu executes quality assurance through a disciplined tripartite framework:\n1. Exploratory Testing: Rigorous boundary value probing to uncover layout distortions and unhandled exceptions.\n2. Defect Specification: Logging actionable defect tickets containing exact reproduction sequences, environmental parameters, actual vs. expected results, and console network logs.\n3. Regression Automation: Crafting Playwright end-to-end test suites and validating RESTful endpoints via Postman.",
-    tl: "Isinasagawa ni Kennu ang quality assurance gamit ang sistematikong balangkas:\n1. Exploratory Testing: Masusing pagsubok sa mga limitasyon ng system upang makita ang mga hindi inaasahang error.\n2. Defect Documentation: Pagsulat ng malinaw na bug reports na naglalaman ng eksaktong hakbang sa pag-reproduce, environment data, inaasahang resulta kumpara sa aktwal, at console network logs.\n3. Automation & Verification: Pagbuo ng Playwright regression scripts at pagsubok sa REST API endpoints gamit ang Postman.",
-  },
-
-  // 33. PROJECTS PORTFOLIO OVERVIEW
-  {
-    id: "projects_overview",
-    patterns: [
-      /\b(projects|works|portfolio|project|gawa mong system|mga gawa mo|systems|past work)\b/i,
-    ],
-    keywords: [
-      "projects",
-      "mga gawa",
-      "portfolio",
-      "systems",
-      "past work",
-      "proyekto",
-    ],
-    category: "projects",
-    en: "Kennu has developed and tested three flagship systems:\n1. MIRAMS (2026): Enterprise Manufacturing Internal Request & Asset Management System with 8 distinct user tiers, IT ticketing, and Spatie RBAC (React, TypeScript, Laravel 11).\n2. NCAMIS (2025): College Management Information System managing grading structures and student records.\n3. NobleClassics (2024): Digital bookstore platform featuring shopping cart workflows, checkout processing, and inventory controls.",
-    tl: "Tatlong pangunahing sistema ang binuo at sinuri ni Kennu:\n1. MIRAMS (2026): Isang enterprise platform para sa electronics manufacturing na nagtatampok ng 8 operational roles, IT helpdesk, at Spatie RBAC (React, TypeScript, Laravel 11).\n2. NCAMIS (2025): Management Information System para sa Northills College of Asia na namamahala sa enrollment at student records.\n3. NobleClassics (2024): E-commerce bookstore na nagtatampok ng dynamic cart, order processing, at inventory administration.",
-  },
-
-  // 34. MIRAMS SYSTEM ARCHITECTURE
+  // 22. MIRAMS PROJECT
   {
     id: "project_mirams",
     patterns: [
-      /\b(mirams|manufacturing|asset management|laravell 11|spatie)\b/i,
+      /\b(mirams|tell me about mirams|what is mirams|mirams project)\b/i,
+      /\b(tungkol sa mirams|ano ang mirams|proyektong mirams)\b/i,
     ],
-    keywords: [
-      "mirams",
-      "manufacturing",
-      "asset management",
-      "spatie",
-      "laravel 11",
-    ],
+    keywords: ["mirams", "asset management", "internal request"],
     category: "projects",
-    en: "MIRAMS (Manufacturing Internal Request & Asset Management System) is an enterprise application in 2026. It tracks industrial equipment lifecycles, maintenance requests, and inter-department requisitions across 8 operational roles enforced by Spatie RBAC. Tech stack: React, TypeScript, Laravel 11, PostgreSQL/MySQL. Repository: github.com/elnarkennu16-440/MIRAMS-ENTERPRISE-SYSTEM",
-    tl: "Ang MIRAMS ay isang enterprise asset management system na binuo noong 2026. Pinangangasiwaan nito ang lifecycle ng kagamitan sa pagawaan, IT requests, at supply maintenance sa ilalim ng 8 operational roles na pinangangalagaan ng Spatie RBAC. Binuo gamit ang React, TypeScript, Laravel 11, at PostgreSQL/MySQL. Repository: github.com/elnarkennu16-440/MIRAMS-ENTERPRISE-SYSTEM",
+    en: "MIRAMS is an enterprise web system built for electronics manufacturing. It handles hardware tracking, IT helpdesk ticketing, equipment maintenance, and department supply requisitions across 8 operational tiers with Spatie RBAC using React, TypeScript, and Laravel 11.",
+    tl: "Ang MIRAMS ay isang enterprise web system para sa electronics manufacturing. Pinangangasiwaan nito ang hardware tracking, IT ticketing, equipment maintenance, at supply requisitions sa 8 operational tiers gamit ang React, TypeScript, Laravel 11, at Spatie RBAC.",
   },
 
-  // 35. NCAMIS SYSTEM SPECIFICS
+  // 23. NCAMIS PROJECT
   {
     id: "project_ncamis",
-    patterns: [/\b(ncamis|school|northills|senior high|student)\b/i],
-    keywords: [
-      "ncamis",
-      "school",
-      "northills",
-      "senior high",
-      "student records",
+    patterns: [
+      /\b(ncamis|tell me about ncamis|what is ncamis|ncamis project|northills)\b/i,
+      /\b(tungkol sa ncamis|ano ang ncamis|proyektong ncamis)\b/i,
     ],
+    keywords: ["ncamis", "northills", "school mis"],
     category: "projects",
-    en: "NCAMIS is an institutional academic management system designed for Northills College of Asia (2025). It consolidates student admission files, instructor grading submissions, and institutional administrative pipelines within a secure database architecture. Repository: github.com/elnarkennu16-440/NCAMIS-SHS",
-    tl: "Ang NCAMIS ay isang academic management information system na ginawa para sa Northills College of Asia (2025). Pinagsasama-sama nito ang mga talaan ng admission ng estudyante, grading portals ng guro, at administrative workflows sa isang secure na database. Repository: github.com/elnarkennu16-440/NCAMIS-SHS",
+    en: "NCAMIS is a Management Information System built for Northills College of Asia. It streamlines student records, faculty information, and admissions workflows with dedicated role-based portals for admins, teachers, students, and parents using PHP and JavaScript.",
+    tl: "Ang NCAMIS ay isang Management Information System para sa Northills College of Asia. Pinapadali nito ang pamamahala ng student records, faculty data, at admissions gamit ang role-based portals para sa admin, guro, estudyante, at magulang gamit ang PHP at JavaScript.",
   },
 
-  // 36. NOBLECLASSICS SPECIFICS
+  // 24. NOBLECLASSICS PROJECT / ECOMMERCE
   {
     id: "project_nobleclassics",
-    patterns: [/\b(nobleclassics|bookstore|ecommerce|e-commerce|books)\b/i],
-    keywords: ["nobleclassics", "bookstore", "books", "ecommerce", "cart"],
+    patterns: [
+      /\b(nobleclassics|noble classics|tell me about nobleclassics|what is nobleclassics)\b/i,
+      /\b(tungkol sa nobleclassics|ano ang nobleclassics|proyektong nobleclassics)\b/i,
+    ],
+    keywords: ["nobleclassics", "noble classics", "bookstore", "ecommerce"],
     category: "projects",
-    en: "NobleClassics is a literary digital commerce platform (2024) with PHP, MySQL, JavaScript, and CSS3. It features shopping cart logic, multi-stage checkout flows, order confirmation tracking, and comprehensive inventory management. Repository: github.com/elnarkennu16-440/E-COMMERCE-NOBLECLASSICS",
-    tl: "Ang NobleClassics ay isang online literary bookstore (2024) na binuo gamit ang PHP, MySQL, JavaScript, at CSS3. Nagtatampok ito ng shopping cart logic, checkout validation, real-time inventory management, at sales administration. Repository: github.com/elnarkennu16-440/E-COMMERCE-NOBLECLASSICS",
+    en: "NobleClassics is a literary e-commerce bookstore featuring a dynamic shopping cart, multi-step checkout, and order status tracking, backed by an admin dashboard for inventory and stock management using PHP, MySQL, and JavaScript.",
+    tl: "Ang NobleClassics ay isang online bookstore platform na may dynamic shopping cart, multi-step checkout, order tracking, at administrative dashboard para sa stock at order management gamit ang PHP, MySQL, at JavaScript.",
   },
 
-  // 37. CURRICULUM VITAE / RESUME RETRIEVAL
+  // 25. TECH STACK GENERAL
   {
-    id: "resume_download",
+    id: "tech_stack",
     patterns: [
-      /\b(resume|cv|curriculum vitae|download cv|download resume|biodata|resume file|saan madodownload ang resume|paano i-download ang cv)\b/i,
+      /\b(what is your (tech stack|technology stack|stack|technologies)|what tools do you use)\b/i,
+      /\b(ano(ng)? (tech stack|teknolohiya|stack) mo|anong mga ginagamit mo sa coding)\b/i,
     ],
-    keywords: [
-      "resume",
-      "cv",
-      "download cv",
-      "biodata",
-      "curriculum vitae",
-      "download resume",
-    ],
-    category: "resume",
-    en: "Kennu's official Curriculum Vitae is available for immediate download directly from the Capabilities section of this portfolio in both DOCX and PDF formats. Alternatively, an official copy can be requested via elnarkennu16@gmail.com.",
-    tl: "Ang opisyal na Curriculum Vitae ni Kennu ay maaaring direktang ma-download mula sa seksyon ng Capabilities ng portfoliong ito sa mga format na DOCX at PDF. Maaari ring humiling ng direktang kopya sa pamamagitan ng email sa elnarkennu16@gmail.com.",
+    keywords: ["tech stack", "technologies", "stack mo", "tools"],
+    category: "skills",
+    en: "My tech stack revolves primarily around the MERN stack (MongoDB, Express.js, React, Node.js), with a versatile toolkit that includes TypeScript, JavaScript (ES6+), Next.js, HTML5, CSS3, Tailwind CSS, PHP, Laravel 11, and MySQL.",
+    tl: "Ang tech stack na ginagamit ko ay nakasentro sa MERN stack (MongoDB, Express.js, React, Node.js), kasama ang iba pang kasanayan sa TypeScript, JavaScript (ES6+), Next.js, HTML5, CSS3, Tailwind CSS, PHP, Laravel 11, at MySQL.",
   },
 
-  // 38. CONTACT DETAILS & RECRUITMENT
+  // 26. QA TESTING SKILLS & TOOLS
   {
-    id: "contact_info",
+    id: "qa_skills_tools",
     patterns: [
-      /\b(contact|email|phone|reach|hire|get in touch|message|usap|paano ka makokontak|numero|telepono|kontak|address)\b/i,
+      /\b(what are your qa (skills|tools|testing tools)|qa skills|how do you test in general|how do you test software|testing skills)\b/i,
+      /\b(ano(ng)? mga qa (skills|tools)|testing tools mo|paano ka mag-?test|kasanayan sa qa)\b/i,
     ],
-    keywords: [
-      "contact",
-      "email",
-      "phone",
-      "reach",
-      "hire",
-      "kontak",
-      "makakausap",
-    ],
-    category: "contact",
-    en: "Professional contact channels for Kennu Elnar:\n• Email: elnarkennu16@gmail.com\n• Telephone / SMS: +63 09453870032\n• GitHub: https://github.com/elnarkennu16-440\n• Navigation Contact Interface: Accessible via the header bar for direct dispatch.",
-    tl: "Mga opisyal na linya ng komunikasyon para kay Kennu Elnar:\n• Email: elnarkennu16@gmail.com\n• Telepono / SMS: +63 09453870032\n• GitHub: https://github.com/elnarkennu16-440\n• Contact Interface: Maaaring gamitin ang Contact button sa itaas upang mag-iwan ng agarang mensahe.",
-  },
-
-  // 39. EMPLOYMENT AVAILABILITY & CONTRACT TYPES
-  {
-    id: "available_for_work",
-    patterns: [
-      /\b(available|open for work|hire you|internship|full time|part time|freelance|looking for a job|puwede ka bang kunin|tumatanggap ka ba ng trabaho)\b/i,
-    ],
-    keywords: [
-      "available",
-      "open for work",
-      "hire",
-      "freelance",
-      "full time",
-      "trabaho",
-      "job",
-    ],
-    category: "contact",
-    en: "Kennu is actively available for professional hiring. He accepts inquiries for full-time roles, contractual QA engagements, and specialized front-end web development projects. Formal employment discussions can be arranged via elnarkennu16@gmail.com.",
-    tl: "Aktibong bukas si Kennu para sa mga propesyonal na alok sa trabaho. Tumatanggap siya ng full-time employment, contractual QA audits, at front-end development projects. Maaaring magsumite ng panukala o makipag-ugnayan sa elnarkennu16@gmail.com.",
-  },
-
-  // 40. ACADEMIC CREDENTIALS & IT DEGREE
-  {
-    id: "education",
-    patterns: [
-      /\b(education|degree|school|course|study|graduate|nag-aral|paaralan|kurso|kolehiyo)\b/i,
-    ],
-    keywords: [
-      "education",
-      "degree",
-      "school",
-      "kurso",
-      "nag-aral",
-      "kolehiyo",
-      "course",
-    ],
-    category: "about",
-    en: "Kennu holds formal educational training in Information Systems, focusing on software systems analysis, web development, and database architecture. Comprehensive institutional records are documented within his downloadable CV.",
-    tl: "Nagtapos si Kennu ng pormal na pagsasanay sa Information Systems na nakatuon sa pagsusuri ng software systems, web development, at database administration. Ang buong talaan ng kanyang mga kredensyal ay nakalakip sa kanyang opisyal na CV sa Capabilities section.",
-  },
-
-  // 41. POSTMAN & REST API VERIFICATION
-  {
-    id: "api_testing_postman",
-    patterns: [
-      /\b(api testing|postman|rest api|endpoints|status code|json payload|api test)\b/i,
-    ],
-    keywords: ["api", "postman", "endpoints", "status code", "rest api"],
+    keywords: ["qa skills", "testing tools", "qa tools", "paano ka mag test"],
     category: "qa",
-    en: "Kennu conducts API testing utilizing Postman to validate backend integrity prior to client-tier integration. His testing protocols encompass HTTP status code verification, schema validation, payload serialization, authentication header inspection, and boundary testing against invalid query parameters.",
-    tl: "Isinasagawa ni Kennu ang API testing gamit ang Postman upang patunayan ang integridad ng server bago ito ikabit sa client interface. Kabilang sa kanyang sinusuri ang HTTP status codes, schema validation, token authentication, at pagsusuri ng tugon ng system laban sa maling data inputs.",
+    en: "My QA toolkit includes manual and exploratory testing, test case design, defect reporting, Postman for API testing, Chrome DevTools for DOM/network inspection. But Im still learning QA, so I can utilize these tools to ensure software quality and reliability.",
+    tl: "Kabilang sa aking QA toolkit ang manual at exploratory testing, test case design, defect reporting, Postman para sa API testing, Chrome DevTools para sa inspeksyon ng DOM at network. Ngunit pinag-aaralan ko pa rin ang QA, kaya kaya kong gamitin ang mga tools na ito upang masiguro ang kalidad at pagiging maaasahan ng software.",
   },
 
-  // 42. PLAYWRIGHT AUTOMATION SUITE
+  // 27. FAVORITE TECH STACK
+  {
+    id: "favorite_tech_stack",
+    patterns: [
+      /\b(what is your favorite (tech stack|language|framework|tool)|favorite stack|what do you prefer using)\b/i,
+      /\b(ano(ng)? favorite (tech stack|language|tool) mo|paborito mong tech stack|paborito mong language)\b/i,
+    ],
+    keywords: ["favorite", "paborito", "favorite stack", "prefer"],
+    category: "skills",
+    en: "My favorite stack is MERN (MongoDB, Express.js, React, Node.js), with TypeScript, and Tailwind CSS on the frontend, paired with Laravel or Node.js on the backend.",
+    tl: "Ang paborito kong stack ay MERN (MongoDB, Express.js, React, Node.js), kasama ang TypeScript at Tailwind CSS sa frontend, katuwang ang Laravel o Node.js sa backend.",
+  },
+
+  // 28. PLAYWRIGHT & AUTOMATION
   {
     id: "playwright_automation",
     patterns: [
-      /\b(playwright|selenium|cypress|e2e testing|end-to-end testing|automation suite|automated test)\b/i,
+      /\b(do you know (playwright|automation|automated testing)|can you do automated testing|playwright testing)\b/i,
+      /\b(marunong ka ba ng (playwright|automation|automated testing)|nag-?a-?automate ka ba)\b/i,
     ],
-    keywords: [
-      "playwright",
-      "e2e",
-      "automation",
-      "end to end",
-      "headless browser",
-    ],
+    keywords: ["playwright", "automation", "automated testing"],
     category: "qa",
-    en: "Kennu leverages Playwright for robust end-to-end browser automation. His test scripts automate critical user workflows, including authentication flows, form submissions, dynamic state changes, and multi-viewport regression checks, ensuring zero visual and operational drift across releases.",
-    tl: "Gumagamit si Kennu ng Playwright para sa matatag na end-to-end browser automation. Ang kanyang mga script ay awtomatikong sumusubok sa mga kritikal na daloy tulad ng login authentication, form submissions, at pagbabago ng estado ng UI upang matiyak na walang sira sa bawat update ng software.",
+    en: "Yes, I use Playwright for automated end-to-end (E2E) testing across modern web browsers to catch regressions.",
+    tl: "Oo, gumagamit ako ng Playwright para sa automated end-to-end (E2E) testing upang masigurong walang sirang features sa bawat update.",
   },
 
-  // 43. CROSS-BROWSER AND DEVICE TESTING
+  // 29. REACT & TYPESCRIPT
   {
-    id: "cross_browser_testing",
+    id: "react_typescript",
     patterns: [
-      /\b(cross browser|cross-browser|chrome.*firefox|safari.*edge|compatibility|iba ibang browser)\b/i,
+      /\b(do you know (react|typescript)|can you build in (react|typescript)|react skills|typescript skills)\b/i,
+      /\b(marunong ka ba mag-?(react|typescript)|alam mo ba ang (react|typescript))\b/i,
     ],
-    keywords: ["cross browser", "chrome", "firefox", "safari", "compatibility"],
-    category: "qa",
-    en: "Cross-browser validation is systematically executed across Chromium (Chrome, Edge), WebKit (Safari), and Gecko (Firefox) rendering engines. Kennu verifies layout fidelity, JavaScript execution parity, CSS flex/grid rendering, and touch target accessibility across varied physical screen resolutions.",
-    tl: "Sistematikong isinasagawa ang cross-browser testing sa Chrome, Edge, Safari, at Firefox. Sinusuri ni Kennu ang visual fidelity ng layout, tamang pagtakbo ng JavaScript, at accessibility sa iba't ibang screen resolutions at mga mobile device.",
-  },
-
-  // 44. SMOKE TESTING VS SANITY TESTING
-  {
-    id: "smoke_vs_sanity_testing",
-    patterns: [
-      /\b(smoke test.*sanity test|difference.*smoke.*sanity|smoke testing|sanity testing)\b/i,
-    ],
-    keywords: ["smoke test", "sanity test", "testing types", "pinagkaiba"],
-    category: "qa",
-    en: "Kennu distinguishes these methodologies with technical rigor:\n• Smoke Testing verifies foundational build stability across critical paths immediately following compilation.\n• Sanity Testing focuses narrowly on verifying that specific defect patches or incremental features function correctly without unintended side-effects.",
-    tl: "Matalas na ipinagkakaiba ni Kennu ang dalawang prosesong ito:\n• Smoke Testing: Sinusuri ang pangunahing katatagan ng buong build agad pagkatapos ng deployment upang matiyak na operational ang core flows.\n• Sanity Testing: Nakatutok sa partikular na feature o bug fix upang patunayan na naayos ang depekto nang hindi sinisira ang ibang bahagi ng code.",
-  },
-
-  // 45. REGRESSION TESTING PROTOCOLS
-  {
-    id: "regression_testing",
-    patterns: [
-      /\b(regression testing|regression suite|paano sinisiguro walang bagong sira|regression test)\b/i,
-    ],
-    keywords: ["regression", "regression test", "regression suite"],
-    category: "qa",
-    en: "Regression testing is executed using prioritized test cases to confirm that recent code modifications have not compromised pre-existing functionality. Kennu maintains automated regression suites via Playwright for critical paths and supplements them with manual smoke sweeps across adjacent modules.",
-    tl: "Isinasagawa ang regression testing gamit ang prioritized test matrix upang tiyakin na ang mga bagong code changes ay hindi nagdulot ng sira sa mga dati nang gumaganang feature. Gumagamit si Kennu ng automated Playwright test suites kasabay ng focused manual testing sa mga kaugnay na bahagi ng system.",
-  },
-
-  // 46. DEFECT SEVERITY VS PRIORITY
-  {
-    id: "defect_severity_vs_priority",
-    patterns: [
-      /\b(severity vs priority|severity.*priority|paano i-classify ang bugs|defect classification)\b/i,
-    ],
-    keywords: ["severity", "priority", "bug classification", "triage"],
-    category: "qa",
-    en: "Kennu strictly separates technical impact from business urgency:\n• Severity defines the technical impact of the defect on system operation (e.g., Fatal crash vs. cosmetic misalignment).\n• Priority dictates the scheduling urgency of the fix relative to business deliverables and user exposure.",
-    tl: "Malinaw na pinaghihiwalay ni Kennu ang teknikal na epekto at pangangailangan sa negosyo:\n• Severity: Ang antas ng teknikal na pinsala ng depekto sa operasyon ng software (halimbawa: system crash laban sa maling kulay ng text).\n• Priority: Ang bilis o pagkakasunod-sunod kung kailan dapat kumpunihin ang bug batay sa iskedyul ng release at epekto sa gumagamit.",
-  },
-
-  // 47. SPATIE RBAC & ACCESS CONTROL
-  {
-    id: "spatie_rbac_security",
-    patterns: [
-      /\b(spatie|rbac|role based access control|permissions|roles and permissions|security)\b/i,
-    ],
-    keywords: ["spatie", "rbac", "permissions", "security", "access control"],
-    category: "projects",
-    en: "In MIRAMS, Kennu an 8-tier role matrix utilizing Spatie RBAC in Laravel 11. The architecture enforces authorization at both routing and middleware layers, preventing privilege escalation and securing enterprise endpoints through strict permission token validations.",
-    tl: "Sa sistemang MIRAMS, nagpatupad si Kennu ng 8-tier role matrix gamit ang Spatie RBAC sa Laravel 11. Mahigpit na ipinapatupad ang authorization sa routing at middleware levels upang maiwasan ang unauthorized access at maprotektahan ang mga kumpidensyal na endpoint ng enterprise.",
-  },
-
-  // 48. LARAVEL 11 & BACKEND ARCHITECTURE
-  {
-    id: "laravel_php_backend",
-    patterns: [
-      /\b(laravel|laravel 11|php backend|eloquent orm|api controllers|blade)\b/i,
-    ],
-    keywords: ["laravel", "php", "eloquent", "backend", "laravel 11"],
+    keywords: ["react", "typescript", "frontend"],
     category: "skills",
-    en: "Kennu utilizes Laravel 11 for backend services, leveraging Eloquent ORM for structured database abstractions, dedicated Request validation classes for defensive input handling, and modular controllers communicating cleanly with decoupled React front-ends.",
-    tl: "Ginagamit ni Kennu ang Laravel 11 para sa backend services. Pinapakinabangan niya ang Eloquent ORM para sa structured database queries, Form Request classes para sa mahigpit na validation ng data bago pumasok sa database, at RESTful controllers para sa maayos na integrasyon sa React.",
+    en: "Yes, I build modern web applications using React and TypeScript with component-driven architecture and clean state management.",
+    tl: "Oo, gumagawa ako ng modernong web apps gamit ang React at TypeScript na may maayos na component architecture at malinis na state management.",
   },
 
-  // 49. REACT & TYPESCRIPT ECOSYSTEM
+  // 30. BACKEND & DATABASES
   {
-    id: "react_typescript_frontend",
+    id: "backend_database",
     patterns: [
-      /\b(react.*typescript|typescript.*react|bakit typescript|benefits of typescript|react components)\b/i,
+      /\b(do you know backend|can you do backend|databases|sql|mysql|postgresql|laravel|php)\b/i,
+      /\b(marunong ka ba ng (backend|database|mysql|postgresql|laravel|php)|alam mo ba ang backend)\b/i,
     ],
-    keywords: [
-      "react",
-      "typescript",
-      "frontend",
-      "components",
-      "static typing",
-    ],
+    keywords: ["backend", "database", "laravel", "php", "mysql", "postgresql"],
     category: "skills",
-    en: "Kennu standardizes on React paired with TypeScript. Static typing eliminates entire classes of runtime errors, enforces strict component props contracts, and enables predictable state mutation within complex web interfaces.",
-    tl: "Ipinapatupad ni Kennu ang React kasama ang TypeScript bilang pamantayan sa front-end. Ang static typing ay sumasala sa mga karaniwang runtime error, nagpapatupad ng mahigpit na kontrata sa component props, at nagtitiyak ng maayos at predictable na daloy ng data sa UI.",
+    en: "Yes, I develop backends using PHP and Laravel 11, working with MySQL and PostgreSQL databases, and implementing role-based access control (RBAC).",
+    tl: "Oo, nakakagawa ako ng backend gamit ang PHP at Laravel 11, katuwang ang MySQL at PostgreSQL databases, at may kakayahang magpatupad ng role-based access control (RBAC).",
   },
 
-  // 50. DATABASE ARCHITECTURES (MYSQL & POSTGRESQL)
+  // 31. WORK EXPERIENCE / OJT / INTERNSHIP
   {
-    id: "database_sql",
+    id: "internship_experience",
     patterns: [
-      /\b(mysql|postgresql|postgres|database schema|relational database|sql queries)\b/i,
+      /\b(what is your work experience|tell me about your internship|ojt experience|internship experience|rgs)\b/i,
+      /\b(saan ka nag-?internship|saan ka nag-?ojt|anong work experience mo|karanasan sa trabaho)\b/i,
     ],
-    keywords: ["mysql", "postgresql", "database", "sql", "schema"],
-    category: "skills",
-    en: "Kennu designs relational schemas adhering to Third Normal Form (3NF) principles, implementing primary/foreign key indexing, foreign key constraints, and transactional consistency across PostgreSQL and MySQL database engines.",
-    tl: "Nagdidisenyo si Kennu ng mga relational database schema na sumusunod sa mga pamantayan ng Third Normal Form (3NF). Tinitiyak niya ang integridad ng data sa pamamagitan ng foreign key constraints, wastong indexing, at transactional consistency sa PostgreSQL at MySQL.",
-  },
-
-  // 51. GIT & VERSION CONTROL WORKFLOWS
-  {
-    id: "ci_cd_docker_git",
-    patterns: [
-      /\b(git workflow|branching|pull request|github commits|merge conflicts|version control)\b/i,
-    ],
-    keywords: [
-      "git",
-      "github",
-      "branching",
-      "pull requests",
-      "version control",
-    ],
-    category: "process",
-    en: "Kennu enforces disciplined version control workflows: creating isolated feature branches, maintaining atomic semantic commit messages, executing pre-merge local test verifications, and conducting thorough code reviews to preserve trunk branch stability.",
-    tl: "Mahigpit na ipinapatupad ni Kennu ang maayos na Git version control: paggawa ng hiwalay na feature branches, paglalagay ng malinaw at atomic commit messages, pagsasagawa ng lokal na pagsusuri bago mag-merge, at pag-iwas sa conflicts upang mapanatiling matatag ang main branch.",
-  },
-
-  // 52. ENGLISH PROFICIENCY & INTERNATIONAL COMMUNICATION
-  {
-    id: "communication_english",
-    patterns: [
-      /\b(english.*fluency|foreign clients|international communication|marunong ka ba mag-english|english skills)\b/i,
-    ],
-    keywords: ["english", "fluency", "international", "communication"],
+    keywords: ["ojt", "internship", "experience", "rgs", "karanasan"],
     category: "about",
-    en: "Kennu maintains high-standard professional English proficiency across verbal and written communication channels, facilitating seamless alignment with global teams, cross-border stakeholders, and international client organizations.",
-    tl: "Mataas at matatas ang antas ng propesyonal na pakikipagtalastasan ni Kennu sa wikang Ingles sa pasulat at pasalita. Tinitiyak nito ang maayos na koordinasyon at pagkakaintindihan sa mga banyagang kliyente at pandaigdigang teams.",
+    en: "During my internship experience, I worked as an IT Support Intern at RGS Recovery Management and Collection Services Inc. (Feb 10 – May 15, 2026), where I handled workstation setups, network troubleshooting, and IT asset documentation.",
+    tl: "Sa panahon ng aking internship, naging IT Support Intern ako sa RGS Recovery Management and Collection Services Inc. (Feb 10 – May 15, 2026), kung saan tumulong ako sa setup ng workstations, network troubleshooting, at IT asset documentation.",
   },
 
-  // 53. TECHNICAL INTERVIEW & LIVE CODING READINESS
+  // 32. CAPSTONE PROJECT / THESIS
   {
-    id: "technical_interview_exam",
+    id: "capstone_project",
     patterns: [
-      /\b(technical interview|coding exam|live coding|technical exam|handa ka ba sa exam|interview exam)\b/i,
+      /\b(what was your capstone|what was your thesis|tell me about your capstone|college project)\b/i,
+      /\b(ano(ng)? capstone project mo|ano(ng)? thesis mo|proyekto sa kolehiyo)\b/i,
     ],
-    keywords: ["technical interview", "coding exam", "live coding", "exam"],
+    keywords: ["capstone", "thesis", "college project"],
+    category: "about",
+    en: "My college capstone at CNSC was a Web-Based Management Information System (MIS) designed and deployed with a 5-member team using React, Laravel, and MySQL.",
+    tl: "Ang aming college capstone project sa CNSC ay isang Web-Based Management Information System (MIS) na binuo namin ng aming 5-member team gamit ang React, Laravel, at MySQL.",
+  },
+
+  // 33. DOWNLOAD CV / RESUME
+  {
+    id: "download_resume",
+    patterns: [
+      /\b(where can i download your (cv|resume)|how to download (cv|resume)|can i see your (cv|resume)|give me your resume)\b/i,
+      /\b(paano ma-?download ang (cv|resume)|saan pwede i-?download ang (cv|resume)|pahingi ng (resume|cv)|patingin ng resume)\b/i,
+    ],
+    keywords: [
+      "download cv",
+      "download resume",
+      "resume",
+      "cv",
+      "pahingi resume",
+    ],
+    category: "resume",
+    en: "You can download my CV directly from the Hero section of this website in both PDF and Word (.docx) formats.",
+    tl: "Maaari mong i-download ang aking CV sa mismong Hero section ng website na ito sa PDF o Word (.docx) format.",
+  },
+
+  // 34. AVAILABLE FOR HIRE / FREELANCE
+  {
+    id: "available_for_hire",
+    patterns: [
+      /\b(are you (available|open) for (hire|work|freelance|job)|can i hire you|are you looking for a job)\b/i,
+      /\b(available ka ba (magtrabaho|for hire|mag-freelance)|pwede ka ba i-hire|tumatanggap ka ba ng trabaho)\b/i,
+    ],
+    keywords: ["hire", "freelance", "available", "trabaho", "job"],
     category: "contact",
-    en: "Kennu is thoroughly prepared for technical assessments, take-home assignments, live pair-programming sessions, and test-case documentation examinations across both frontend development and QA disciplines.",
-    tl: "Handang-handa si Kennu sumailalim sa mga teknikal na pagsusulit, live coding interviews, take-home development exams, at mga praktikal na pagsusuri sa pagsulat ng test cases at bug triage para sa QA at development.",
+    en: "Yes, I am available for junior QA roles, web development positions, and freelance projects. Reach out via elnarkennu16@gmail.com.",
+    tl: "Oo, bukas ako para sa junior QA roles, web development positions, at freelance projects. Maaari mo akong kontakin sa elnarkennu16@gmail.com.",
   },
 
-  // 54. ATTENTION TO DETAIL & THOROUGHNESS
+  // 35. RATES / PRICING / HOW MUCH
   {
-    id: "attention_to_detail",
+    id: "rates_pricing",
     patterns: [
-      /\b(attention to detail|mabusisi|detail oriented|thoroughness|maselan sa gawa)\b/i,
+      /\b(what are your (rates|prices|fees)|how much do you charge|project cost|hourly rate)\b/i,
+      /\b(magkano (ang singil|bayad|rate|presyo) mo|magkano ka sumingil|magkano ang bayad)\b/i,
     ],
-    keywords: [
-      "attention to detail",
-      "mabusisi",
-      "detail oriented",
-      "thorough",
+    keywords: ["rates", "pricing", "magkano", "singil", "presyo"],
+    category: "pricing",
+    en: "My rates depend on the project scope and deliverables. I'm flexible with hourly, milestone, or monthly setups—feel free to email elnarkennu16@gmail.com for an estimate.",
+    tl: "Depende ang aking singil sa saklaw at mga rekisito ng proyekto. Bukas ako sa hourly, per-milestone, o monthly na usapan—mag-email lang sa elnarkennu16@gmail.com.",
+  },
+
+  // 36. TIGHT BUDGET / DISCOUNTS
+  {
+    id: "tight_budget",
+    patterns: [
+      /\b(tight budget|low budget|small budget|can i get a discount|negotiable)\b/i,
+      /\b(maliit ang budget|kulang sa budget|pwede ba tawad|may discount ba|pwede ba makipagtawaran)\b/i,
     ],
+    keywords: ["budget", "discount", "tawad", "mura"],
+    category: "pricing",
+    en: "Yes, I can adjust the scope or work in phases (MVP first) to fit your budget. Let's discuss your project via email.",
+    tl: "Oo, maaari nating i-adjust ang scope o gawing pira-piraso (MVP muna) para umangkop sa iyong budget. Pag-usapan natin ito sa email.",
+  },
+
+  // 37. REMOTE WORK / LOCATION FLEXIBILITY
+  {
+    id: "remote_work",
+    patterns: [
+      /\b(can you work remotely|do you do remote work|are you open to remote|remote work)\b/i,
+      /\b(pwede ka ba mag-?remote|remote work ba|pwede wfh|work from home ka ba)\b/i,
+    ],
+    keywords: ["remote", "wfh", "work from home"],
     category: "about",
-    en: "Meticulous attention to detail constitutes Kennu's foundational professional trait. In QA, a single overlooked character in validation regex or a minor CSS clipping glitch can compromise production stability; thus, he reviews every component, network payload, and responsive breakpoint with exacting standards.",
-    tl: "Ang pagiging masusi at mapanuri ang pangunahing katangian ni Kennu. Sa QA, ang kahit isang nakaligtaang detalye sa validation regex o maliit na error sa layout ay maaaring magdulot ng depekto sa buong system; kung kaya't sinusuri niya ang bawat linya ng code at responsive breakpoint nang may mataas na pamantayan.",
+    en: "Yes, I am fully equipped and ready for remote work, as well as open to on-site roles.",
+    tl: "Oo, handa at kumpleto ako para sa remote work, at bukas din sa on-site opportunities.",
   },
 
-  // 55. CUSTOM VS NO-CODE / WORDPRESS
+  // 38. WORK UNDER PRESSURE / DEADLINES
   {
-    id: "custom_code_vs_wordpress",
+    id: "work_under_pressure",
     patterns: [
-      /\b(wordpress|wix|squarespace|no code|no-code|bakit custom code|custom)\b/i,
+      /\b(can you work under pressure|how do you handle pressure|tight deadlines|stress)\b/i,
+      /\b(kaya mo ba mag-?work under pressure|paano ka kapag stressed|kapag may deadline)\b/i,
     ],
-    keywords: ["wordpress", "wix", "no code", "custom code", "squarespace"],
+    keywords: ["under pressure", "deadline", "stress"],
     category: "about",
-    en: "Kennu prioritizes bespoke code architecture (React, TypeScript, Laravel) over generic website builders because custom delivers superior performance metrics, zero bloat, complete architectural control, and fine-grained testability essential for enterprise scalability.",
-    tl: "Pinipili ni Kennu ang pasadyang arkitektura ng code (React, TypeScript, Laravel) kaysa sa mga generic website builders tulad ng WordPress dahil ang custom code ay nagbibigay ng mataas na bilis, walang labis na bloat, ganap na kontrol sa seguridad, at madaling masubukan sa pamamagitan ng automated testing.",
+    en: "Yes, I handle pressure by staying organized, prioritizing key deliverables with checklists, and maintaining clear communication with the team.",
+    tl: "Oo, hinaharap ko ang pressure sa pamamagitan ng pagiging organisado, paggamit ng checklists, at maayos na pakikipag-ugnayan sa team.",
   },
 
-  // 56. WORKSTATION HARDWARE & DEV ENVIRONMENT
+  // 39. WHY SHOULD I HIRE YOU
   {
-    id: "workstation_setup",
+    id: "why_hire_me",
     patterns: [
-      /\b(workstation|setup|hardware specs|pc specs|laptop specs|gamit mong computer|dev environment)\b/i,
+      /\b(why should i hire you|why hire kennu|what makes you different|why should we choose you)\b/i,
+      /\b(bakit ka namin i-?hire|bakit ikaw ang pipiliin|ano ang bentahe mo|bakit ka namin kukunin)\b/i,
     ],
-    keywords: ["workstation", "setup", "specs", "hardware", "computer"],
+    keywords: ["why hire", "bakit ka kukunin", "pipiliin"],
     category: "about",
-    en: "Kennu operates on a high-throughput development setup equipped with multi-monitor workspaces, high-speed RAM for local virtualization and parallel container builds, and reliable dual-channel network redundancy to guarantee zero downtime during test runs.",
-    tl: "Gumagamit si Kennu ng isang mataas na kalidad na workstation na may multi-monitor setup, sapat na RAM para sa sabay-sabay na virtualization at build pipelines, at maaasahang internet connection upang matiyak ang tuloy-tuloy na trabaho sa pagsusuri ng software.",
+    en: "You get both a disciplined QA tester and a capable web developer in one person—meaning I build clean code, catch bugs before production, and communicate clearly.",
+    tl: "Makukuha mo ang isang masusing QA tester at maaasahang web developer sa iisang tao—gumagawa ako ng malinis na code, umiiwas sa bugs, at maayos makipagtulungan.",
   },
 
-  // 57. IDE & EDITORIAL TOOLING (VS CODE & CURSOR)
+  // 40. TESTING PROCESS / METHODOLOGY
   {
-    id: "ide_tools_cursor",
+    id: "testing_process",
     patterns: [
-      /\b(ide|code editor|vs code|cursor|anong editor gamit|text editor)\b/i,
+      /\b(what is your testing process|how do you test software|qa process|testing workflow)\b/i,
+      /\b(paano ang proseso mo sa testing|anong testing process mo|paraan ng pag-?test)\b/i,
     ],
-    keywords: ["ide", "editor", "vs code", "cursor", "text editor"],
+    keywords: ["testing process", "workflow", "paraan ng test"],
+    category: "qa",
+    en: "My process has 4 steps: 1. Understand user requirements, 2. Plan test cases and edge scenarios, 3. Execute manual and automated tests, and 4. Document bugs with exact reproduction steps.",
+    tl: "May 4 na hakbang ang aking proseso: 1. Intindihin ang requirements, 2. Magplano ng test cases at edge cases, 3. Isagawa ang manual at automated tests, at 4. Mag-ulat ng bugs na may kumpletong reproduction steps.",
+  },
+
+  // 41. HARDEST BUG ENCOUNTERED
+  {
+    id: "hardest_bug",
+    patterns: [
+      /\b(hardest bug|toughest bug|worst bug|tricky bug|most difficult bug you solved)\b/i,
+      /\b(pinakamahirap na bug|pinakamalalang bug|mahirap na bug na naayos mo)\b/i,
+    ],
+    keywords: ["hardest bug", "pinakamahirap na bug", "debugging"],
+    category: "qa",
+    en: "In MIRAMS, I solved an asynchronous session token race condition in Spatie RBAC that caused random 403 Forbidden errors during multi-tab use by fixing middleware caching and adding Playwright checks.",
+    tl: "Sa MIRAMS, naayos ko ang isang token race condition sa Spatie RBAC sa mabilisang multi-tab navigation sa pamamagitan ng pag-profile sa network headers at pagdagdag ng Playwright regression checks.",
+  },
+
+  // 42. CAN YOU BUILD E-COMMERCE / ONLINE STORE
+  {
+    id: "build_ecommerce",
+    patterns: [
+      /\b(can you build an e-?commerce|can you build an online (store|shop)|e-?commerce website)\b/i,
+      /\b(kaya mo ba gumawa ng e-?commerce|kaya mo ba gumawa ng online shop|tindahan online)\b/i,
+    ],
+    keywords: ["ecommerce", "online shop", "store"],
+    category: "projects",
+    en: "Yes! I built NobleClassics, a full e-commerce bookstore with product search, a dynamic cart, checkout, and an admin inventory management panel.",
+    tl: "Oo! Nagawa ko na ang NobleClassics, isang online bookstore na may cart, checkout, order tracking, at admin inventory panel.",
+  },
+
+  // 43. MOBILE RESPONSIVE DESIGN
+  {
+    id: "mobile_responsive",
+    patterns: [
+      /\b(are your websites responsive|mobile responsive|works on phone|mobile friendly)\b/i,
+      /\b(responsive ba ang mga gawa mo|mobile friendly ba|gumagana ba sa cellphone)\b/i,
+    ],
+    keywords: ["responsive", "mobile friendly", "cellphone"],
     category: "skills",
-    en: "Kennu's primary integrated development environments are Visual Studio Code and Cursor, configured with strict ESLint rules, Prettier formatting hooks, and automated TypeScript compiler diagnostics for high productivity and continuous linting.",
-    tl: "Ang mga pangunahing code editor ni Kennu ay Visual Studio Code at Cursor, na nilagyan ng mahihigpit na ESLint rules, automated formatting, at TypeScript type-checking upang mapanatili ang kalinisan at kaayusan ng code sa bawat linya.",
+    en: "Yes, all my web projects are mobile-responsive and tested across phone, tablet, and desktop screens using Tailwind CSS.",
+    tl: "Oo, lahat ng gawa kong website ay mobile-responsive at sinubukan sa iba't ibang laki ng screen mula cellphone hanggang desktop.",
   },
 
-  // 58. CRITICAL PRODUCTION INCIDENT RESPONSE
+  // 44. WHY IS THIS PORTFOLIO MINIMALIST / BLACK AND WHITE
   {
-    id: "critical_production_bug",
+    id: "website_minimalist_theme",
     patterns: [
-      /\b(critical bug|production bug|incident response|hotfix|kapag may nasira sa live|system down)\b/i,
+      /\b(why (is this website|is the portfolio) (minimalist|black and white|monochrome)|design theme)\b/i,
+      /\b(bakit (minimalist|black and white|monochrome) ang (website|portfolio|theme)|bakit ganito hitsura)\b/i,
     ],
-    keywords: [
-      "critical bug",
-      "production",
-      "hotfix",
-      "incident",
-      "system down",
-    ],
-    category: "process",
-    en: "Upon detection of a critical production anomaly, Kennu executes rapid incident triage: isolating logs via server telemetry, creating an exact local reproduction script in Playwright, issuing an emergency hotfix on a dedicated hotfix branch, and verifying integrity before deploying with minimal user impact.",
-    tl: "Kapag nagkaroon ng kritikal na depekto sa live production, agad na kumikilos si Kennu: sinusuri ang server logs, ginagawa ang reproduction script sa Playwright, naglalabas ng hotfix mula sa hiwalay na branch, at nagsasagawa ng smoke testing bago ito i-release nang mabilis at ligtas.",
-  },
-
-  // 59. PERSPECTIVE ON ARTIFICIAL INTELLIGENCE TOOLS
-  {
-    id: "ai_tools_stance",
-    patterns: [
-      /\b(ai tools|chatgpt|copilot|pananaw sa ai|ai sa programming|artificial intelligence)\b/i,
-    ],
-    keywords: [
-      "ai",
-      "copilot",
-      "chatgpt",
-      "artificial intelligence",
-      "automation",
-    ],
+    keywords: ["minimalist", "black and white", "monochrome", "theme"],
     category: "about",
-    en: "Kennu views artificial intelligence as an assistive force multiplier. While AI augments boilerplates and exploratory test generation, critical human validation, edge-case architectural judgment, and rigorous verification remain strictly essential for robust software.",
-    tl: "Itinuturing ni Kennu ang artificial intelligence bilang isang katuwang na nagpapabilis ng routine tasks. Bagamat nakatutulong ang AI sa pagbuo ng boilerplate code, ang kritikal na pagpapasya sa arkitektura, lohika, at masusing beripikasyon ng mga edge cases ay nananatiling nakasalalay sa mapanuring mata ng tao.",
+    en: "I chose a clean, high-contrast monochrome design so visitors can focus directly on the projects, skills, and code without distractions.",
+    tl: "Pinili ko ang malinis at minimalist na black-and-white theme para nakatutok agad ang mga bisita sa mga proyekto, kasanayan, at code nang walang abala.",
   },
 
-  // 60. CREATION & ARCHITECTURE OF THIS CHATBOT
+  // 45. LANGUAGES SPOKEN / COMMUNICATION
   {
-    id: "who_made_this_chatbot",
+    id: "languages_spoken",
     patterns: [
-      /\b(sino gumawa.*chatbot|paano gumagana.*chatbot|who built this chatbot|architecture ng chatbot)\b/i,
+      /\b(what languages do you speak|can you speak (english|tagalog|filipino)|language proficiency)\b/i,
+      /\b(anong salita ang (alam|kaya) mo|marunong ka ba mag-?english|marunong ka mag-?tagalog)\b/i,
     ],
-    keywords: [
-      "sino gumawa",
-      "chatbot",
-      "architecture",
-      "who built",
-      "assistant",
-    ],
-    category: "general",
-    en: "This interactive knowledge assistant was directly by Kennu Elnar as a component of his web portfolio. It runs client-side with deterministic intent parsing, multilingual translation mappings, and immediate local inference for high-speed response delivery.",
-    tl: "Ang interactive knowledge assistant na ito ay personal na binuo at dinisenyo ni Kennu Elnar bilang bahagi ng kanyang portfolio. Tumatakbo ito sa client-side gamit ang mabilis na intent parsing at bilingual translation mapping upang magbigay ng kagyat at tumpak na mga tugon.",
+    keywords: ["languages", "salita", "english", "tagalog", "bikol"],
+    category: "about",
+    en: "I speak and write effectively both English and Tagalog.",
+    tl: "Maayos at komportable akon sa pagsasalita at pagsusulat sa parehong English at Tagalog.",
   },
 
-  // 61. EXPRESSIONS OF GRATITUDE / COURTESY
+  // 46. MANUAL TESTING SKILLS
+  {
+    id: "manual_testing",
+    patterns: [
+      /\b(can you do manual testing|manual testing experience|manual tester)\b/i,
+      /\b(marunong ka ba ng manual testing|manual testing skills mo|nag-?mamanual test ka ba)\b/i,
+    ],
+    keywords: ["manual testing", "functional testing", "exploratory"],
+    category: "qa",
+    en: "Yes, manual testing is one of my fashion skills—including functional, UI, exploratory, and regression testing with detailed bug reports.",
+    tl: "Oo, isa sa mga pangunahing lakas ko ang manual testing—kasama ang functional, UI, exploratory, at regression testing na may detalyadong bug reports.",
+  },
+
+  // 47. API TESTING / POSTMAN
+  {
+    id: "api_testing",
+    patterns: [
+      /\b(do you know api testing|postman|can you test apis|rest api testing)\b/i,
+      /\b(marunong ka ba ng api testing|nag-?popostman ka ba|paano ka mag-?test ng api)\b/i,
+    ],
+    keywords: ["api testing", "postman", "rest api"],
+    category: "qa",
+    en: "Yes, I test REST API endpoints, request headers, payload validation, and HTTP status codes using Postman.",
+    tl: "Oo, sinusuri ko ang REST API endpoints, headers, payload responses, at HTTP status codes gamit ang Postman.",
+  },
+
+  // 48. SEMINARS AND TRAININGS
+  {
+    id: "seminars_trainings",
+    patterns: [
+      /\b(what seminars have you attended|trainings attended|certifications|certificates)\b/i,
+      /\b(anong mga seminar ang nadaluhan mo|trainings mo|mga certificate mo)\b/i,
+    ],
+    keywords: ["seminars", "trainings", "certificates", "bitscon", "web 3.0"],
+    category: "about",
+    en: "I attended 'IS WEB 3.0: Exploring Innovation in Web Development' (May 2025) and 'BITSCON: Bicol IT Student Congress' (April 2024) at CNSC.",
+    tl: "Lumahok ako sa 'IS WEB 3.0: Exploring Innovation in Web Development' (May 2025) at 'BITSCON: Bicol IT Student Congress' (April 2024) sa CNSC.",
+  },
+
+  // 49. TOOLS USED
+  {
+    id: "dev_tools_used",
+    patterns: [
+      /\b(what developer tools do you use|what editor do you use|ide|tools)\b/i,
+      /\b(anong gamit mong editor|tools mo sa paggawa ng code|anong ide gamit mo)\b/i,
+    ],
+    keywords: ["vs code", "cursor", "devtools", "tools"],
+    category: "skills",
+    en: "I work with VS Code, Cursor, Chrome DevTools, Git/GitHub, Postman, and modern terminal tooling.",
+    tl: "Gumagamit ako ng VS Code, Cursor, Chrome DevTools, Git/GitHub, Postman, at terminal tools sa aking araw-araw na paggawa.",
+  },
+
+  // 50. TEAMWORK AND COLLABORATION
+  {
+    id: "teamwork_collaboration",
+    patterns: [
+      /\b(how are you with teamwork|do you work well in a team|team player|collaboration)\b/i,
+      /\b(marunong ka ba makipag-?teamwork|paano ka sa team|team player ka ba)\b/i,
+    ],
+    keywords: ["teamwork", "collaboration", "team player"],
+    category: "about",
+    en: "Yes, I collaborate well with developers and designers using Git feature branches, pull requests, clear documentation, and proactive communication. Sharing ideas and feedback is part of my workflow.",
+    tl: "Oo, maayos akong makipagtulungan sa mga developers at designers gamit ang Git branching, pull requests, at malinaw na komunikasyon. Ang pagbabahagi ng ideya at feedback ay bahagi ng aking workflow.",
+  },
+
+  // 51. HOBBIES AND INTERESTS
+  {
+    id: "hobbies_interests",
+    patterns: [
+      /\b(what are your hobbies|what do you do for fun|interests|free time)\b/i,
+      /\b(ano(ng)? mga hobbies mo|anong hilig mo|ano ginagawa mo kapag walang pasok|libangan mo)\b/i,
+    ],
+    keywords: ["hobbies", "hilig", "libangan"],
+    category: "general",
+    en: "Aside from coding and testing web apps, I enjoy exploring new tech tools, reading documentation, and casual gaming. how about you? What are your hobbies and interests?",
+    tl: "Bukod sa coding at testing ng web apps, hilig ko ang mag-explore ng bagong tech tools, magbasa ng documentation, at mag-gaming paminsan-minsan.",
+  },
+
+  // 52. THANK YOU
   {
     id: "thank_you",
-    patterns: [
-      /\b(thank you|thanks|salamat|maraming salamat|ok thank you|ty|appreciate it|salamat po)\b/i,
-    ],
-    keywords: [
-      "thank you",
-      "thanks",
-      "salamat",
-      "appreciate",
-      "maraming salamat",
-    ],
+    patterns: [/\b(thank you|thanks|salamat|maraming salamat|ty|thx)\b/i],
+    keywords: ["thank you", "thanks", "salamat"],
     category: "general",
-    en: "You are welcome. Should you require further data regarding Kennu Elnar's technical competencies or project architectures, I remain at your service. Direct inquiries can also be routed to elnarkennu16@gmail.com.",
-    tl: "Walang anuman. Kung mayroon ka pang karagdagang katanungan hinggil sa mga kasanayan o proyekto ni Kennu Elnar, maaari kang magtanong anumang oras. Maaari ka ring direktang magpadala ng mensahe sa elnarkennu16@gmail.com.",
+    en: "You're very welcome! Let me know if you need anything else.",
+    tl: "Walang anuman! Sabihin mo lang kung may kailangan ka pa.",
   },
 
-  // 62. DEPARTURE & FAREWELL
+  // 53. GOODBYE
   {
-    id: "farewell",
-    patterns: [
-      /\b(goodbye|bye|paalam|sige alis na|see you|alis na ako|ingat)\b/i,
-    ],
-    keywords: ["goodbye", "bye", "paalam", "see you"],
+    id: "goodbye",
+    patterns: [/\b(goodbye|bye|paalam|ingat|see you|cya)\b/i],
+    keywords: ["goodbye", "bye", "paalam", "ingat"],
     category: "general",
-    en: "Acknowledged. Thank you for examining Kennu Elnar's portfolio. You may re-engage this interface at any time.",
-    tl: "Nabatid. Maraming salamat sa pagbisita sa portfolio ni Kennu Elnar. Maaari kang magbalik at sumangguni muli anumang oras.",
+    en: "Thank you for visiting my portfolio! Have a great day.",
+    tl: "Salamat sa pagbisita sa aking portfolio! Ingat ka palagi.",
+  },
+
+  // 54. HOW TO CONTACT / HIRE
+  {
+    id: "how_to_contact",
+    patterns: [
+      /\b(how do i get in touch|how to contact you|how can i reach you|contact info)\b/i,
+      /\b(paano kita makontak|paano makipag-?ugnayan|contact information mo)\b/i,
+    ],
+    keywords: ["contact", "reach", "makipag-ugnayan", "makontak"],
+    category: "contact",
+    en: "You can email me at elnarkennu16@gmail.com, call +63 945 387 0032, or use the message form on this site.",
+    tl: "Maaari mo akong i-email sa elnarkennu16@gmail.com, tawagan sa +63 945 387 0032, o gamitin ang message form sa website na ito.",
+  },
+  // =========================================================================
+  // 55. PROJECT SETUP & VS CODE FILE STRUCTURE (REACT / VITE / TYPESCRIPT)
+  // =========================================================================
+  {
+    id: "project_setup_web_app",
+    patterns: [
+      /\b(how do you plan or setup|how do you (setup|plan|structure) (when developing|a web app|a website|an app)|project structure|file structure|folder structure|setup kapag nagdedevelop|paano ka mag-?setup)\b/i,
+      /\b(paano mo (inaayos|sinisimulan|planado|inaayos ang folder|sine-?setup) kapag nagdedevelop|vscode file structure|paano mag-?setup ng website|file structure mo)\b/i,
+    ],
+    keywords: [
+      "project structure",
+      "file structure",
+      "folder structure",
+      "setup",
+      "vscode",
+      "plan development",
+      "architecture",
+    ],
+    category: "process",
+    en: `When planning and setting up a web application, I follow a clean, modular architecture. I configure TypeScript strict mode, ESLint, Prettier, Tailwind CSS, and organize directories by responsibility.
+
+Here is my standard VS Code project structure:
+
+my-web-app/
+├── public/
+│   ├── favicon.ico
+│   └── robots.txt
+├── src/
+│   ├── assets/              # Static media, icons, and svgs
+│   ├── components/          # Reusable UI component library
+│   │   ├── common/          # Buttons, Inputs, Modals, Badges
+│   │   └── layout/          # Navbar, Footer, Sidebar, Shell
+│   ├── pages/               # Route views and page components
+│   │   ├── Home/
+│   │   ├── Dashboard/
+│   │   └── NotFound/
+│   ├── hooks/               # Custom React hooks (useAuth, useDebounce)
+│   ├── services/            # API clients, axios/fetch instances
+│   ├── context/             # Global React state providers
+│   ├── types/               # TypeScript interfaces, types, schemas
+│   ├── utils/               # Pure helper functions & formatters
+│   ├── App.tsx              # Root router & layout container
+│   ├── main.tsx             # DOM mount & providers entry point
+│   └── index.css            # Tailwind directives & theme tokens
+├── .env.example             # Documented environment variables
+├── package.json             # Dependencies and npm scripts
+├── tsconfig.json            # Strict TypeScript configuration
+└── vite.config.ts           # Bundler plugins, paths, and build settings`,
+    tl: `Kapag nagpaplano at nagse-setup ako ng web application, sumusunod ako sa modular at scalable na arkitektura. Sinisimulan ko ito sa pag-configure ng TypeScript strict mode, ESLint/Prettier, Tailwind CSS, at maayos na pag-organisa ng mga files.
+
+Ito ang aking karaniwang VS Code project file structure:
+
+my-web-app/
+├── public/
+│   ├── favicon.ico
+│   └── robots.txt
+├── src/
+│   ├── assets/              # Static media, icons, at svgs
+│   ├── components/          # Reusable UI component library
+│   │   ├── common/          # Buttons, Inputs, Modals, Badges
+│   │   └── layout/          # Navbar, Footer, Sidebar, Shell
+│   ├── pages/               # Route views at page components
+│   │   ├── Home/
+│   │   ├── Dashboard/
+│   │   └── NotFound/
+│   ├── hooks/               # Custom React hooks (useAuth, useDebounce)
+│   ├── services/            # API clients, axios/fetch instances
+│   ├── context/             # Global React state providers
+│   ├── types/               # TypeScript interfaces, types, schemas
+│   ├── utils/               # Pure helper functions at formatters
+│   ├── App.tsx              # Root router at layout container
+│   ├── main.tsx             # DOM mount at providers entry point
+│   └── index.css            # Tailwind directives at theme tokens
+├── .env.example             # Naka-dokyumentong environment variables
+├── package.json             # Dependencies at npm scripts
+├── tsconfig.json            # Strict TypeScript configuration
+└── vite.config.ts           # Bundler plugins, paths, at build settings`,
+  },
+
+  // =========================================================================
+  // 56. FULL-STACK WEB ARCHITECTURE SETUP
+  // =========================================================================
+  {
+    id: "fullstack_architecture_setup",
+    patterns: [
+      /\b(how do you setup full[- ]?stack|fullstack project structure|full stack architecture|backend and frontend setup)\b/i,
+      /\b(paano ang fullstack setup|paano mo pinagsasama ang frontend at backend|arkitektura ng buong app)\b/i,
+    ],
+    keywords: [
+      "fullstack",
+      "architecture",
+      "client server",
+      "backend frontend",
+    ],
+    category: "process",
+    en: `For full-stack applications, I decouple the presentation layer from the business logic and database layer. This ensures independent testing, security, and scalability.
+
+Here is my standard full-stack multi-service file structure:
+
+fullstack-system/
+├── client/                  # Frontend SPA (React + TypeScript)
+│   ├── src/
+│   │   ├── api/             # API client calls & query hooks
+│   │   ├── components/      # UI components
+│   │   └── pages/           # Pages & routing
+│   └── package.json
+├── server/                  # Backend REST API (Node/Express or Laravel)
+│   ├── src/
+│   │   ├── controllers/     # Request handlers & HTTP responses
+│   │   ├── middlewares/     # JWT Auth, CORS, Request Validator
+│   │   ├── models/          # Database ORM entities / schemas
+│   │   ├── routes/          # API route definitions
+│   │   ├── services/        # Business logic & 3rd-party integrations
+│   │   └── config/          # Database connection & env loader
+│   ├── server.ts
+│   └── package.json
+├── database/                # Database versioning
+│   ├── migrations/          # Schema changes history
+│   └── seeders/             # Initial demo & lookup data
+├── docker-compose.yml       # Local MySQL, Redis, & App container setup
+└── .env.example             # Shared environment configuration`,
+    tl: `Para sa full-stack applications, inihihiwalay ko ang presentation layer mula sa business logic at database layer para madaling i-test, ligtas, at scalable.
+
+Ito ang aking karaniwang full-stack project structure:
+
+fullstack-system/
+├── client/                  # Frontend SPA (React + TypeScript)
+│   ├── src/
+│   │   ├── api/             # API client calls at query hooks
+│   │   ├── components/      # UI components
+│   │   └── pages/           # Pages at routing
+│   └── package.json
+├── server/                  # Backend REST API (Node/Express o Laravel)
+│   ├── src/
+│   │   ├── controllers/     # Request handlers at HTTP responses
+│   │   ├── middlewares/     # JWT Auth, CORS, Request Validator
+│   │   ├── models/          # Database ORM entities / schemas
+│   │   ├── routes/          # API route definitions
+│   │   ├── services/        # Business logic at integrations
+│   │   └── config/          # Database connection at env loader
+│   ├── server.ts
+│   └── package.json
+├── database/                # Database versioning
+│   ├── migrations/          # Schema changes history
+│   └── seeders/             # Initial demo at lookup data
+├── docker-compose.yml       # Local MySQL, Redis, at App containers
+└── .env.example             # Shared environment configuration`,
+  },
+
+  // =========================================================================
+  // 57. QA TEST AUTOMATION FRAMEWORK SETUP (PLAYWRIGHT)
+  // =========================================================================
+  {
+    id: "qa_automation_playwright_setup",
+    patterns: [
+      /\b(how do you setup playwright|qa automation structure|test automation framework|playwright project structure|how do you organize tests)\b/i,
+      /\b(paano mo sine-?setup ang playwright|structure ng automated tests|paano ang automation framework mo)\b/i,
+    ],
+    keywords: [
+      "playwright setup",
+      "automation framework",
+      "page object model",
+      "pom",
+      "qa structure",
+    ],
+    category: "qa",
+    en: `For automated end-to-end (E2E) testing with Playwright, I implement the Page Object Model (POM) pattern. This separates test logic from page selectors, minimizing test maintenance when UI layouts change.
+
+Here is my Playwright test framework folder structure:
+
+playwright-automation/
+├── playwright.config.ts     # Global timeouts, base URL, browsers (Chromium, WebKit, Firefox)
+├── tests/
+│   ├── e2e/                 # User journey flows
+│   │   ├── auth.spec.ts     # Login, Register, Forgot Password
+│   │   ├── checkout.spec.ts # Cart, Shipping, Payment flows
+│   │   └── rbac.spec.ts     # Role-based access control tests
+│   ├── api/                 # Headless API tests
+│   │   └── health.spec.ts   # Endpoint status & response schema
+│   └── smoke/               # Fast critical path regression tests
+│       └── smoke.spec.ts
+├── pages/                   # Page Object Model (POM) classes
+│   ├── BasePage.ts          # Common waits, clicks, and navigation
+│   ├── LoginPage.ts         # Selectors & actions for Login
+│   ├── DashboardPage.ts     # Selectors & actions for Dashboard
+│   └── CheckoutPage.ts      # Selectors & actions for Checkout
+├── fixtures/                # Mock datasets & user credentials
+│   └── testUsers.json
+├── utils/                   # Test helpers (token generators, DB reset)
+│   └── testHelpers.ts
+└── reports/                 # Auto-generated HTML execution reports`,
+    tl: `Para sa automated end-to-end (E2E) testing gamit ang Playwright, ipinapatupad ko ang Page Object Model (POM) pattern. Inihihiwalay nito ang test logic mula sa page selectors para madaling i-maintain kahit magbago ang hitsura ng UI.
+
+Ito ang aking Playwright test framework structure:
+
+playwright-automation/
+├── playwright.config.ts     # Global timeouts, base URL, browsers (Chromium, WebKit, Firefox)
+├── tests/
+│   ├── e2e/                 # User journey flows
+│   │   ├── auth.spec.ts     # Login, Register, Forgot Password
+│   │   ├── checkout.spec.ts # Cart, Shipping, Payment flows
+│   │   └── rbac.spec.ts     # Role-based access control tests
+│   ├── api/                 # Headless API tests
+│   │   └── health.spec.ts   # Endpoint status at response schema
+│   └── smoke/               # Mabilisang critical path regression tests
+│       └── smoke.spec.ts
+├── pages/                   # Page Object Model (POM) classes
+│   ├── BasePage.ts          # Common waits, clicks, at navigation
+│   ├── LoginPage.ts         # Selectors at actions sa Login
+│   ├── DashboardPage.ts     # Selectors at actions sa Dashboard
+│   └── CheckoutPage.ts      # Selectors at actions sa Checkout
+├── fixtures/                # Mock datasets at user credentials
+│   └── testUsers.json
+├── utils/                   # Test helpers (token generators, DB reset)
+│   └── testHelpers.ts
+└── reports/                 # Nabuong HTML execution reports`,
+  },
+
+  // =========================================================================
+  // 58. PROFESSIONAL BUG REPORT FORMAT & TEMPLATE
+  // =========================================================================
+  {
+    id: "bug_report_format",
+    patterns: [
+      /\b(how do you write a bug report|bug report template|bug report format|sample bug report|what is in your bug report)\b/i,
+      /\b(paano ka gumawa ng bug report|format ng bug report|sample na report ng bug|ano nilalagay mo sa bug report)\b/i,
+    ],
+    keywords: [
+      "bug report",
+      "defect report",
+      "steps to reproduce",
+      "actual result",
+      "expected result",
+      "severity",
+    ],
+    category: "qa",
+    en: `A great bug report allows developers to reproduce and resolve the issue immediately without back-and-forth questions.
+
+Here is the exact bug report format I use in Jira / GitHub Issues:
+
+---
+BUG REPORT TEMPLATE
+• Defect ID: BUG-2026-104
+• Title: [Checkout] Submitting order with decimal coupon code triggers HTTP 500
+• Severity: High (Blocking payment flow)
+• Priority: P1 (Immediate fix required)
+• Environment: Staging | Chrome v124 (macOS Sonoma & Windows 11) | Viewport 1440x900
+• Preconditions:
+  - User logged in with items in shopping cart (Total: ₱1,250.00)
+  - Active promo code "SUMMER20" valid for 20% discount
+• Steps to Reproduce:
+  1. Open /cart and proceed to /checkout
+  2. Enter coupon code "SUMMER20" in the promotional input field
+  3. Click the "Apply Discount" button
+  4. Fill in shipping address and click "Confirm Payment"
+• Expected Result:
+  Discount calculated correctly (₱250.00 off), total updated to ₱1,000.00, and checkout completes.
+• Actual Result:
+  Page displays unhandled HTTP 500 error banner. Database throws numeric precision overflow error.
+• Visual Evidence:
+  Attached screenshot_error_500.png and network_trace_payload.har
+• Console / Logs:
+  TypeError: Cannot parse Decimal value in CheckoutTransactionHandler.php line 84
+---`,
+    tl: `Ang isang mahusay na bug report ay nagbibigay-daan sa mga developer na agad itong ma-reproduce at maayos nang walang paulit-ulit na pagtatanong.
+
+Ito ang eksaktong format ng bug report na ginagamit ko sa Jira o GitHub Issues:
+
+---
+BUG REPORT TEMPLATE
+• Defect ID: BUG-2026-104
+• Title: [Checkout] Submitting order with decimal coupon code triggers HTTP 500
+• Severity: High (Nakaharang sa pagbabayad)
+• Priority: P1 (Kailangang maayos agad)
+• Environment: Staging | Chrome v124 (macOS at Windows 11) | Viewport 1440x900
+• Preconditions:
+  - Naka-login ang user na may laman ang cart (Total: ₱1,250.00)
+  - May aktibong discount code na "SUMMER20"
+• Steps to Reproduce:
+  1. Buksan ang /cart at pumunta sa /checkout
+  2. I-type ang "SUMMER20" sa promo code box
+  3. Pindutin ang "Apply Discount" button
+  4. Ilagay ang address at pindutin ang "Confirm Payment"
+• Expected Result:
+  Mababawasan ng ₱250 ang total (magiging ₱1,000), at matagumpay na matatapos ang bayad.
+• Actual Result:
+  Lumabas ang HTTP 500 Error banner. Nagka-database numeric overflow error.
+• Ebidensya / Attachments:
+  screenshot_error_500.png at network_trace_payload.har
+• Error Log:
+  TypeError: Cannot parse Decimal value in CheckoutTransactionHandler.php line 84
+---`,
+  },
+
+  // =========================================================================
+  // 59. QA TEST CASE TEMPLATE & SPECIFICATION
+  // =========================================================================
+  {
+    id: "test_case_spec_format",
+    patterns: [
+      /\b(how do you write test cases|test case template|test case format|sample test case|test case specification)\b/i,
+      /\b(paano ka sumulat ng test case|format ng test case|sample ng test case|paano gumawa ng test case)\b/i,
+    ],
+    keywords: [
+      "test case",
+      "test case template",
+      "test specification",
+      "preconditions",
+      "test steps",
+    ],
+    category: "qa",
+    en: `I write structured test cases covering positive, negative, boundary, and edge-case scenarios.
+
+Here is my standard QA Test Case specification structure:
+
+---
+TEST CASE SPECIFICATION
+• Test Case ID: TC-AUTH-008
+• Module / Feature: User Authentication & Role Authorization
+• Test Objective: Verify session expiration redirects unauthorized user to login
+• Test Type: Security / Functional Testing
+• Preconditions:
+  - User account created with role "Staff"
+  - JWT Access token lifespan configured to 15 minutes
+• Test Steps:
+  1. Log in to the application at /login with valid staff credentials
+  2. Navigate to /dashboard/inventory
+  3. Wait 15 minutes until JWT token expires (or manually invalidate token in devtools)
+  4. Click on "Create New Stock Request" button
+• Expected Result:
+  User is immediately redirected to /login with notification "Session expired. Please sign in again."
+  No confidential inventory data is leaked or cached in DOM.
+• Actual Result:
+  Redirected to /login with toast notification; local token cleared.
+• Status: PASS
+• Executed By: Kennu Elnar
+---`,
+    tl: `Sumusulat ako ng maayos na test cases na sumasaklaw sa positive, negative, boundary, at edge-case scenarios.
+
+Ito ang aking karaniwang test case structure:
+
+---
+TEST CASE SPECIFICATION
+• Test Case ID: TC-AUTH-008
+• Module / Feature: User Authentication & Role Authorization
+• Test Objective: Tiyaking nai-redirect sa login ang user kapag nag-expire ang session
+• Test Type: Security / Functional Testing
+• Preconditions:
+  - May "Staff" user account
+  - Ang token lifespan ay 15 minuto
+• Test Steps:
+  1. Mag-login sa /login gamit ang staff credentials
+  2. Pumunta sa /dashboard/inventory
+  3. Maghintay hanggang mag-expire ang token (o alisin ang token sa devtools)
+  4. Pindutin ang "Create New Stock Request" button
+• Expected Result:
+  Direktang ire-redirect ang user sa /login na may mensaheng "Session expired. Please sign in again."
+  Walang confidential na data ang maiiwan sa screen.
+• Actual Result:
+  Nai-redirect sa /login na may notification; nabura ang lumang token.
+• Status: PASS
+• Executed By: Kennu Elnar
+---`,
+  },
+
+  // =========================================================================
+  // 60. LARAVEL MVC ARCHITECTURE STRUCTURE (MIRAMS BACKEND)
+  // =========================================================================
+  {
+    id: "laravel_mvc_structure",
+    patterns: [
+      /\b(how do you structure laravel|laravel file structure|laravel mvc setup|laravel architecture)\b/i,
+      /\b(paano ang structure mo sa laravel|paano mo inaayos ang laravel|laravel setup mo)\b/i,
+    ],
+    keywords: [
+      "laravel structure",
+      "laravel mvc",
+      "laravel setup",
+      "backend structure",
+    ],
+    category: "skills",
+    en: `In Laravel projects (like MIRAMS), I maintain strict separation of concerns using Request validation classes, Service classes for business operations, and Resource classes for JSON serialization.
+
+Here is the Laravel directory structure I utilize:
+
+laravel-backend/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/       # AssetController, AuthController
+│   │   ├── Middleware/        # EnsureRolePermission, Authenticate
+│   │   ├── Requests/          # StoreAssetRequest (Validation rules)
+│   │   └── Resources/         # AssetResource (API JSON transformer)
+│   ├── Models/                # Eloquent models (Asset, User, Department)
+│   ├── Policies/              # Authorization rules (AssetPolicy)
+│   └── Services/              # AssetAuditService, TicketNotificationService
+├── database/
+│   ├── migrations/            # Table creation & schema updates
+│   ├── seeders/               # Roles, Permissions, Admin accounts
+│   └── factories/             # Fake data generators for automated tests
+├── routes/
+│   ├── api.php                # REST API routes consumed by React
+│   └── web.php
+├── tests/
+│   ├── Feature/               # API endpoint feature tests
+│   └── Unit/                  # Business logic unit tests
+├── .env.example
+└── composer.json`,
+    tl: `Sa Laravel projects (tulad ng MIRAMS), pinananatili ko ang separation of concerns gamit ang Form Requests para sa validation, Service classes para sa business logic, at API Resources para sa malinis na JSON formatting.
+
+Ito ang aking ginagamit na Laravel directory structure:
+
+laravel-backend/
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/       # AssetController, AuthController
+│   │   ├── Middleware/        # EnsureRolePermission, Authenticate
+│   │   ├── Requests/          # StoreAssetRequest (Validation rules)
+│   │   └── Resources/         # AssetResource (API JSON transformer)
+│   ├── Models/                # Eloquent models (Asset, User, Department)
+│   ├── Policies/              # Authorization rules (AssetPolicy)
+│   └── Services/              # AssetAuditService, TicketNotificationService
+├── database/
+│   ├── migrations/            # Table creation at schema updates
+│   ├── seeders/               # Roles, Permissions, Admin accounts
+│   └── factories/             # Fake data generators para sa tests
+├── routes/
+│   ├── api.php                # REST API routes para sa React frontend
+│   └── web.php
+├── tests/
+│   ├── Feature/               # API endpoint feature tests
+│   └── Unit/                  # Business logic unit tests
+├── .env.example
+└── composer.json`,
+  },
+
+  // =========================================================================
+  // 61. POSTMAN API TESTING SETUP & TEST SCRIPTS
+  // =========================================================================
+  {
+    id: "postman_api_testing_setup",
+    patterns: [
+      /\b(how do you write postman tests|sample postman script|postman test scripts|how do you test apis in postman)\b/i,
+      /\b(paano ka mag-?test sa postman|postman scripts mo|sample postman test|paano mo sinusuri ang api sa postman)\b/i,
+    ],
+    keywords: [
+      "postman",
+      "postman scripts",
+      "api tests",
+      "status code test",
+      "environment variables",
+    ],
+    category: "qa",
+    en: `In Postman, I organize requests into collections by domain, configure dynamic environment variables, and write JavaScript test assertions for status codes, schema validity, and response speed.
+
+Here is a sample Postman test script I attach to API endpoints:
+
+\`\`\`javascript
+// 1. Verify HTTP Status Code
+pm.test("Status code is 200 OK", function () {
+    pm.response.to.have.status(200);
+});
+
+// 2. Validate Response Time is acceptable (< 300ms)
+pm.test("Response time is under 300ms", function () {
+    pm.expect(pm.response.responseTime).to.be.below(300);
+});
+
+// 3. Verify JSON Schema & save Auth Token dynamically
+pm.test("Response contains valid auth token and user profile", function () {
+    const data = pm.response.json();
+    pm.expect(data).to.have.property("token");
+    pm.expect(data.user).to.have.property("email");
+    pm.expect(data.user.role).to.eql("admin");
+
+    // Persist token for subsequent authorized requests
+    pm.environment.set("auth_token", data.token);
+});
+\`\`\``,
+    tl: `Sa Postman, inaayos ko ang mga requests sa collections, nagse-set up ng environment variables, at sumusulat ng JavaScript assertions para suriin ang status code, schema, at response time.
+
+Ito ang sample Postman test script na inilalagay ko sa mga endpoints:
+
+\`\`\`javascript
+// 1. Suriin ang HTTP Status Code
+pm.test("Status code is 200 OK", function () {
+    pm.response.to.have.status(200);
+});
+
+// 2. Siguruhing mabilis ang response (< 300ms)
+pm.test("Response time is under 300ms", function () {
+    pm.expect(pm.response.responseTime).to.be.below(300);
+});
+
+// 3. I-validate ang data at i-save ang token
+pm.test("Response contains valid auth token and user profile", function () {
+    const data = pm.response.json();
+    pm.expect(data).to.have.property("token");
+    pm.expect(data.user).to.have.property("email");
+    pm.expect(data.user.role).to.eql("admin");
+
+    // I-save ang token para magamit sa susunod na requests
+    pm.environment.set("auth_token", data.token);
+});
+\`\`\``,
+  },
+
+  // =========================================================================
+  // 62. DATABASE SCHEMA DESIGN (SQL DDL EXAMPLE)
+  // =========================================================================
+  {
+    id: "database_schema_design_example",
+    patterns: [
+      /\b(how do you design a database|sample database schema|sql schema example|how do you model tables|database design)\b/i,
+      /\b(paano ka mag-?design ng database|sample ng sql schema|paano mo ginagawa ang mga tables|database modeling)\b/i,
+    ],
+    keywords: [
+      "database design",
+      "sql schema",
+      "ddl",
+      "foreign keys",
+      "tables",
+      "normalization",
+    ],
+    category: "skills",
+    en: `When designing relational databases, I follow 3rd Normal Form (3NF) to eliminate data redundancy, index foreign keys for query speed, and enforce cascade constraints for integrity.
+
+Here is a sample SQL DDL schema for a user asset management system:
+
+\`\`\`sql
+-- 1. Users Table
+CREATE TABLE users (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    email VARCHAR(191) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'manager', 'technician', 'employee') DEFAULT 'employee',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_user_role (role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. Assets Table with Foreign Key
+CREATE TABLE assets (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    asset_tag VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(150) NOT NULL,
+    assigned_user_id BIGINT UNSIGNED NULL,
+    status ENUM('available', 'in_use', 'maintenance', 'retired') DEFAULT 'available',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_asset_user FOREIGN KEY (assigned_user_id)
+        REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_asset_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+\`\`\``,
+    tl: `Sa pagdidisenyo ng relational databases, sumusunod ako sa 3rd Normal Form (3NF) para iwas redundancy, naglalagay ng indexes sa foreign keys para mabilis ang query, at may strict constraints.
+
+Ito ang sample SQL DDL schema para sa asset management:
+
+\`\`\`sql
+-- 1. Users Table
+CREATE TABLE users (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(120) NOT NULL,
+    email VARCHAR(191) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'manager', 'technician', 'employee') DEFAULT 'employee',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_user_role (role)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 2. Assets Table na may Foreign Key
+CREATE TABLE assets (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    asset_tag VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(150) NOT NULL,
+    assigned_user_id BIGINT UNSIGNED NULL,
+    status ENUM('available', 'in_use', 'maintenance', 'retired') DEFAULT 'available',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_asset_user FOREIGN KEY (assigned_user_id)
+        REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_asset_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+\`\`\``,
+  },
+
+  // =========================================================================
+  // 63. SAMPLE PLAYWRIGHT TEST SCRIPT CODE
+  // =========================================================================
+  {
+    id: "sample_playwright_code",
+    patterns: [
+      /\b(sample playwright code|show me playwright code|playwright test example|how do you write a playwright test)\b/i,
+      /\b(sample ng playwright code|patingin ng playwright script|halimbawa ng test sa playwright)\b/i,
+    ],
+    keywords: [
+      "playwright code",
+      "playwright script",
+      "test example",
+      "automation code",
+    ],
+    category: "qa",
+    en: `Here is a clean, practical Playwright test in TypeScript verifying a form submission and UI feedback:
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('Authentication Security Suite', () => {
+  test('rejects login with invalid password and displays alert', async ({ page }) => {
+    // 1. Navigate to target page
+    await page.goto('/login');
+
+    // 2. Fill credentials
+    await page.fill('input[name="email"]', 'kennu@example.com');
+    await page.fill('input[name="password"]', 'WrongPassword123');
+
+    // 3. Submit
+    await page.click('button[type="submit"]');
+
+    // 4. Assert error message is visible and URL has not changed
+    const alert = page.locator('[role="alert"]');
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText('Invalid email or password');
+    await expect(page).toHaveURL('/login');
+  });
+});
+\`\`\``,
+    tl: `Ito ang malinis at praktikal na Playwright test sa TypeScript na sumusuri sa login form at UI validation:
+
+\`\`\`typescript
+import { test, expect } from '@playwright/test';
+
+test.describe('Authentication Security Suite', () => {
+  test('hindi pinapapasok ang maling password at nagpapakita ng alert', async ({ page }) => {
+    // 1. Pumunta sa login page
+    await page.goto('/login');
+
+    // 2. Ilagay ang credentials
+    await page.fill('input[name="email"]', 'kennu@example.com');
+    await page.fill('input[name="password"]', 'WrongPassword123');
+
+    // 3. Pindutin ang submit
+    await page.click('button[type="submit"]');
+
+    // 4. Tiyaking lumabas ang error at hindi umalis sa /login
+    const alert = page.locator('[role="alert"]');
+    await expect(alert).toBeVisible();
+    await expect(alert).toContainText('Invalid email or password');
+    await expect(page).toHaveURL('/login');
+  });
+});
+\`\`\``,
+  },
+
+  // =========================================================================
+  // 64. SAMPLE REACT CUSTOM HOOK CODE (useDebounce)
+  // =========================================================================
+  {
+    id: "sample_react_custom_hook",
+    patterns: [
+      /\b(sample react hook|show me a custom hook|custom hook example|how do you write a custom hook)\b/i,
+      /\b(sample ng custom hook|halimbawa ng react hook|paano gumawa ng custom hook sa react)\b/i,
+    ],
+    keywords: ["custom hook", "react hook", "usedebounce", "typescript hook"],
+    category: "skills",
+    en: `Here is a reusable TypeScript custom hook \`useDebounce\` that optimizes search input to prevent firing redundant API requests on every keystroke:
+
+\`\`\`typescript
+import { useState, useEffect } from 'react';
+
+/**
+ * Delays updating a value until user stops typing for 'delay' ms.
+ */
+export function useDebounce<T>(value: T, delay: number = 300): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+\`\`\``,
+    tl: `Ito ang isang reusable custom hook sa TypeScript (\`useDebounce\`) na nagpapatagal sa search query para maiwasan ang sobrang daming API requests habang nagta-type ang user:
+
+\`\`\`typescript
+import { useState, useEffect } from 'react';
+
+/**
+ * Inaantala ang value update hanggang tumigil mag-type ang user ng 'delay' ms.
+ */
+export function useDebounce<T>(value: T, delay: number = 300): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+\`\`\``,
+  },
+
+  // =========================================================================
+  // 65. CI/CD GITHUB ACTIONS WORKFLOW SETUP
+  // =========================================================================
+  {
+    id: "cicd_github_actions_workflow",
+    patterns: [
+      /\b(how do you setup ci cd|github actions workflow|ci cd pipeline|continuous integration)\b/i,
+      /\b(paano mag-?setup ng ci cd|pipeline sa github actions|paano i-automate ang build at test)\b/i,
+    ],
+    keywords: [
+      "ci cd",
+      "github actions",
+      "pipeline",
+      "continuous integration",
+      "yaml",
+    ],
+    category: "process",
+    en: `For continuous integration, I configure GitHub Actions to run linters, type checks, and automated tests automatically on every Pull Request before code can be merged into \`main\`.
+
+Here is my standard CI workflow (\`.github/workflows/test.yml\`):
+
+\`\`\`yaml
+name: CI Test & Build Pipeline
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run ESLint & TypeCheck
+        run: |
+          npm run lint
+          npx tsc --noEmit
+
+      - name: Run Playwright Tests
+        run: npx playwright test
+
+      - name: Build Production Assets
+        run: npm run build
+\`\`\``,
+    tl: `Para sa CI/CD, nagse-set up ako ng GitHub Actions na awtomatikong nagpapatakbo ng linter, typecheck, at automated tests sa bawat Pull Request bago ito ma-merge sa \`main\`.
+
+Ito ang aking CI workflow file (\`.github/workflows/test.yml\`):
+
+\`\`\`yaml
+name: CI Test & Build Pipeline
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run ESLint & TypeCheck
+        run: |
+          npm run lint
+          npx tsc --noEmit
+
+      - name: Run Playwright Tests
+        run: npx playwright test
+
+      - name: Build Production Assets
+        run: npm run build
+\`\`\``,
+  },
+
+  // =========================================================================
+  // 66. GIT WORKFLOW & BRANCHING STRATEGY
+  // =========================================================================
+  {
+    id: "git_branching_workflow",
+    patterns: [
+      /\b(what is your git workflow|git branching strategy|how do you use git|git flow commands)\b/i,
+      /\b(paano ang git workflow mo|paano ka mag-?branch sa git|git commands na gamit mo)\b/i,
+    ],
+    keywords: [
+      "git workflow",
+      "branching",
+      "git flow",
+      "pull request",
+      "conventional commits",
+    ],
+    category: "process",
+    en: `I follow a Feature Branch workflow with semantic commit messages (Conventional Commits: feat, fix, chore, docs, test):
+
+\`\`\`bash
+# 1. Update local develop branch
+git checkout develop && git pull origin develop
+
+# 2. Branch out with descriptive feature name
+git checkout -b feat/add-checkout-coupon-validator
+
+# 3. Stage and commit with clear intent
+git add .
+git commit -m "feat(checkout): add promo code validation and error handling"
+
+# 4. Push and open Pull Request for review
+git push -u origin feat/add-checkout-coupon-validator
+\`\`\``,
+    tl: `Gumagamit ako ng Feature Branch workflow kasama ang Conventional Commits para malinis ang git history:
+
+\`\`\`bash
+# 1. I-update ang local develop branch
+git checkout develop && git pull origin develop
+
+# 2. Gumawa ng bagong branch para sa feature
+git checkout -b feat/add-checkout-coupon-validator
+
+# 3. I-commit nang may malinaw na mensahe
+git add .
+git commit -m "feat(checkout): add promo code validation and error handling"
+
+# 4. I-push at gumawa ng Pull Request
+git push -u origin feat/add-checkout-coupon-validator
+\`\`\``,
+  },
+
+  // =========================================================================
+  // 67. SMOKE TESTING VS SANITY TESTING VS REGRESSION TESTING
+  // =========================================================================
+  {
+    id: "smoke_vs_sanity_vs_regression",
+    patterns: [
+      /\b(smoke vs sanity|smoke vs regression|difference between smoke sanity and regression|explain smoke and regression)\b/i,
+      /\b(pagkakaiba ng smoke at regression|ano ang smoke testing|ano ang sanity testing|ano ang regression testing)\b/i,
+    ],
+    keywords: [
+      "smoke testing",
+      "sanity testing",
+      "regression testing",
+      "differences",
+    ],
+    category: "qa",
+    en: `Here is the clear distinction between the three:
+1. Smoke Testing ("Build Verification"): Shallow & wide test on a fresh build to verify critical functionalities (e.g. app boots, can login, database connects). If it fails, the build is rejected immediately.
+2. Sanity Testing: Narrow & deep test performed after a bug fix to verify that the specific defect is resolved and directly related flows work.
+3. Regression Testing: Comprehensive suite verifying that recent code updates or fixes did NOT break existing, previously working features.`,
+    tl: `Ito ang malinaw na pagkakaiba ng tatlo:
+1. Smoke Testing ("Build Verification"): Mabilisang pagsusuri sa bagong build para tiyaking buhay ang pinaka-kritikal na bahagi (naglo-load ang site, gumagana ang login). Kapag pumalya, ire-reject agad ang build.
+2. Sanity Testing: Nakatutok na pagsusuri pagkatapos maayos ang isang partikular na bug para patunayang gumagana na ito.
+3. Regression Testing: Malawakang pagsusuri para siguruhing ang mga bagong code o pagbabago ay HINDI nakasira sa mga dati nang gumaganang bahagi ng website.`,
+  },
+
+  // =========================================================================
+  // 68. BOUNDARY VALUE ANALYSIS (BVA) EXPLAINED WITH NUMBERS
+  // =========================================================================
+  {
+    id: "boundary_value_analysis_example",
+    patterns: [
+      /\b(boundary value analysis|what is bva|explain bva with example|boundary testing)\b/i,
+      /\b(ano ang boundary value analysis|paano ginagawa ang bva|sample ng boundary testing)\b/i,
+    ],
+    keywords: ["boundary value analysis", "bva", "boundary testing", "min max"],
+    category: "qa",
+    en: `Boundary Value Analysis (BVA) tests the edge boundaries where defects most commonly occur (off-by-one errors).
+
+Example: If an age input accepts values from 18 to 65:
+• Minimum boundary: 17 (Just below - Invalid), 18 (Exact boundary - Valid), 19 (Just above - Valid)
+• Maximum boundary: 64 (Just below - Valid), 65 (Exact boundary - Valid), 66 (Just above - Invalid)
+• Extreme values: 0, -1, 999 (Invalid edge cases)
+
+Testing these exact values exposes arithmetic and condition check bugs (> vs >=) quickly.`,
+    tl: `Ang Boundary Value Analysis (BVA) ay sumusubok sa eksaktong hangganan ng mga inputs kung saan pinakamadalas mangyari ang mga bug (off-by-one errors).
+
+Halimbawa: Kung ang age field ay tumatanggap ng 18 hanggang 65:
+• Minimum boundary: 17 (Invalid), 18 (Valid), 19 (Valid)
+• Maximum boundary: 64 (Valid), 65 (Valid), 66 (Invalid)
+• Extreme values: 0, -1, 999 (Invalid edge cases)
+
+Sa ganitong paraan, madaling mahuhuli ang mga maling kondisyon sa code (> vs >=).`,
+  },
+
+  // =========================================================================
+  // 69. EQUIVALENCE CLASS PARTITIONING (ECP) EXPLAINED
+  // =========================================================================
+  {
+    id: "equivalence_partitioning_example",
+    patterns: [
+      /\b(equivalence partitioning|what is ecp|equivalence class|explain equivalence partitioning)\b/i,
+      /\b(ano ang equivalence partitioning|paano ang ecp|sample ng equivalence class)\b/i,
+    ],
+    keywords: [
+      "equivalence partitioning",
+      "ecp",
+      "valid partition",
+      "invalid partition",
+    ],
+    category: "qa",
+    en: `Equivalence Class Partitioning (ECP) divides input data into equivalent groups where the software is expected to behave identically, allowing you to test one representative sample per partition instead of hundreds of inputs.
+
+Example: A discount code accepting 1 to 50 items:
+1. Valid Partition: Numbers from 1 to 50 (e.g. test 25).
+2. Invalid Partition (Too low): Numbers <= 0 (e.g. test 0, -5).
+3. Invalid Partition (Too high): Numbers > 50 (e.g. test 55).
+4. Invalid Partition (Non-numeric): Characters, symbols (e.g. test "abc", "@#$").`,
+    tl: `Ang Equivalence Class Partitioning (ECP) ay naghahati ng input data sa magkakaparehong grupo para hindi mo kailangang subukan ang bawat numero—isang kinatawan lang sa bawat grupo ang kailangan subukan.
+
+Halimbawa: Discount para sa 1 hanggang 50 items:
+1. Valid Partition: 1 hanggang 50 (subukan ang 25).
+2. Invalid Partition (Masyadong mababa): <= 0 (subukan ang 0 o -5).
+3. Invalid Partition (Masyadong mataas): > 50 (subukan ang 55).
+4. Invalid Partition (Hindi numero): Letra o simbolo (subukan ang "abc", "@#$").`,
+  },
+
+  // =========================================================================
+  // 70. BLACK BOX VS WHITE BOX TESTING
+  // =========================================================================
+  {
+    id: "black_box_vs_white_box",
+    patterns: [
+      /\b(black box vs white box|difference between black box and white box|white box testing|black box testing)\b/i,
+      /\b(pagkakaiba ng black box at white box|ano ang black box testing|ano ang white box testing)\b/i,
+    ],
+    keywords: ["black box", "white box", "internal code", "functional"],
+    category: "qa",
+    en: `The distinction:
+• Black-Box Testing: Testing software from an end-user perspective without examining the underlying source code (e.g. UI testing, exploratory testing, boundary testing).
+• White-Box Testing: Testing with full visibility into the source code, logic paths, and internal structure (e.g. unit testing, code coverage analysis, mutation testing).
+
+Because I code in TypeScript and PHP, I can perform black-box tests as a user and white-box inspections directly in the codebase.`,
+    tl: `Ang pagkakaiba:
+• Black-Box Testing: Pagsusuri mula sa pananaw ng gumagamit nang hindi tinitingnan ang source code (hal. UI testing, exploratory testing).
+• White-Box Testing: Pagsusuri na may direktang access at kaalaman sa loob ng source code at logic paths (hal. unit testing, code coverage).
+
+Dahil marunong akong mag-code sa TypeScript at PHP, kaya kong mag-black-box testing bilang user at mag-white-box analysis sa mismong code.`,
+  },
+
+  // =========================================================================
+  // 71. HOW DO YOU TEST AN E-COMMERCE CHECKOUT FLOW
+  // =========================================================================
+  {
+    id: "how_to_test_ecommerce_checkout",
+    patterns: [
+      /\b(how do you test.*(checkout|e-?commerce)|how to test.*(checkout|e-?commerce)|testing checkout flow|ecommerce test cases|how do you test an e-?commerce)\b/i,
+      /\b(paano mo tine-?test ang.*(checkout|online shop|tindahan)|paano mag-?test ng online shop|test cases sa cart at checkout)\b/i,
+    ],
+    keywords: [
+      "checkout testing",
+      "ecommerce test",
+      "cart testing",
+      "payment testing",
+    ],
+    category: "qa",
+    en: `When testing an e-commerce checkout flow, I verify:
+1. Cart Calculations: Subtotal, shipping fees, tax rates, and voucher discounts.
+2. Inventory Concurrency: Attempting to purchase the last item simultaneously in two tabs to ensure no negative stock or race condition.
+3. Form Validation: Required address fields, phone number formatting, zip code boundaries.
+4. Payment Gateways: Success, cancelled transactions, card declines, timeout edge cases.
+5. Idempotency: Double-clicking "Place Order" must never create duplicate charges or double orders.`,
+    tl: `Kapag sinusuri ang e-commerce checkout flow, tinitiyak ko ang mga sumusunod:
+1. Kwenta sa Cart: Subtotal, shipping fee, buwis, at promo vouchers.
+2. Stock Concurrency: Pagbili sa huling piraso ng item sa magkahiwalay na tabs para masigurong hindi magnenegatibo ang imbentaryo.
+3. Form Validation: Kumpletong delivery address, format ng cellphone number, at zip code.
+4. Payment Gateways: Matagumpay na bayad, kinanselang transaksyon, at declined cards.
+5. Idempotency: Ang dobleng pagpindot sa "Place Order" ay hindi dapat magdulot ng dobleng kaltas o dobleng order.`,
+  },
+
+  // =========================================================================
+  // 72. HOW DO YOU TEST LOGIN & REGISTRATION FORMS
+  // =========================================================================
+  {
+    id: "how_to_test_login_forms",
+    patterns: [
+      /\b(how do you test login|testing login form|how to test authentication|login test cases)\b/i,
+      /\b(paano mo tine-?test ang login|test cases sa login at register|paano i-test ang sign in)\b/i,
+    ],
+    keywords: [
+      "login testing",
+      "authentication test",
+      "login test cases",
+      "security test",
+    ],
+    category: "qa",
+    en: `My authentication test checklist includes:
+1. Positive Paths: Valid username & password redirect correctly with active session cookies/JWT.
+2. Negative Paths: Empty fields, whitespace-only, wrong passwords, non-existent accounts.
+3. Security Checks: SQL injection payloads (' OR 1=1 --), XSS scripts in input fields, password masking, paste disabling check.
+4. Rate Limiting / Brute Force: Verifying account lockout or captcha after 5 consecutive failed attempts.
+5. Session Integrity: Back-button behavior after logout must not expose cached user data.`,
+    tl: `Ang aking checklist sa pagsusuri ng login at registration:
+1. Positive Paths: Tamang credentials ay maayos na pumapasok sa dashboard.
+2. Negative Paths: Blangkong fields, maling password, hindi umiiral na email.
+3. Security Checks: SQL injection payloads (' OR 1=1 --), XSS script attempts, nakatagong password bullets.
+4. Brute Force Protection: Lockout o captcha pagkatapos ng 5 sunod-sunod na maling subok.
+5. Session Behavior: Pagpindot sa browser back button pagkatapos mag-logout ay hindi dapat magpakita ng dating data.`,
+  },
+
+  // =========================================================================
+  // 73. HTTP STATUS CODES EXPLANATION IN QA
+  // =========================================================================
+  {
+    id: "http_status_codes_explanation",
+    patterns: [
+      /\b(http status codes|explain 401 vs 403|what is 422|http status in qa|status codes)\b/i,
+      /\b(ano ang http status codes|pagkakaiba ng 401 at 403|ano ang 422 status code)\b/i,
+    ],
+    keywords: ["http status codes", "401", "403", "422", "500", "200"],
+    category: "qa",
+    en: `In QA API testing, standard HTTP status codes verify correct server behavior:
+• 200 OK: Successful request with response body.
+• 201 Created: New resource successfully created (e.g. POST /assets).
+• 204 No Content: Successful operation with no return payload (e.g. DELETE).
+• 400 Bad Request: Malformed JSON or syntax error.
+• 401 Unauthorized: Missing or invalid authentication token (not logged in).
+• 403 Forbidden: Authenticated user lacks permission for this role.
+• 404 Not Found: Target endpoint or entity does not exist.
+• 422 Unprocessable Entity: Validation error (e.g. invalid email format).
+• 500 Internal Server Error: Unhandled code exception or crash on backend.`,
+    tl: `Sa QA API testing, sinusuri ang mga sumusunod na HTTP status codes:
+• 200 OK: Matagumpay na request na may response body.
+• 201 Created: Matagumpay na nagawa ang bagong resource (hal. POST /assets).
+• 204 No Content: Matagumpay ang aksyon nang walang ibinabalik na body (hal. DELETE).
+• 400 Bad Request: Maling format ng JSON o syntax error.
+• 401 Unauthorized: Walang token o expired ang login session.
+• 403 Forbidden: Naka-login ngunit walang karapatan sa role na iyon.
+• 404 Not Found: Hindi umiiral ang URL o hinahanap na record.
+• 422 Unprocessable Entity: Bumagsak sa form validation (hal. maling email format).
+• 500 Internal Server Error: May nag-crash o unhandled exception sa backend server.`,
+  },
+
+  // =========================================================================
+  // 74. QA METRICS AND KPIS
+  // =========================================================================
+  {
+    id: "qa_metrics_and_kpis",
+    patterns: [
+      /\b(what qa metrics do you track|qa kpis|defect density|bug leakage|test metrics)\b/i,
+      /\b(anong qa metrics ang alam mo|paano sinusukat ang qa quality|defect leakage)\b/i,
+    ],
+    keywords: [
+      "qa metrics",
+      "defect density",
+      "bug leakage",
+      "kpis",
+      "test execution",
+    ],
+    category: "qa",
+    en: `I track key QA metrics to gauge release quality:
+1. Defect Density: Number of defects confirmed per 1,000 lines of code or per module.
+2. Defect Leakage: Bugs discovered by end-users in production versus those caught during QA cycles.
+3. Test Execution Rate: Percentage of planned test cases executed per sprint.
+4. Defect Rejection Rate: Percentage of reported bugs flagged as invalid or duplicate (aiming < 5%).
+5. Mean Time to Detect (MTTD) & Resolve (MTTR): Speed at which bugs are caught and patched.`,
+    tl: `Sumusubaybay ako sa mahahalagang QA metrics upang masukat ang kalidad ng software:
+1. Defect Density: Dami ng bugs kada 1,000 linya ng code o bawat module.
+2. Defect Leakage: Bugs na nakalusot sa production kumpara sa mga nahuli sa testing phase.
+3. Test Execution Rate: Bahagdan ng natapos na test cases sa bawat sprint.
+4. Defect Rejection Rate: Bahagdan ng iniulat na bugs na minarkahang duplicate o invalid (target ay < 5%).
+5. Mean Time to Detect & Resolve: Bilis ng pagtuklas at pag-aayos ng mga depekto.`,
+  },
+
+  // =========================================================================
+  // 75. HOW DO YOU HANDLE A REJECTED BUG (DEV SAYS "NOT A BUG")
+  // =========================================================================
+  {
+    id: "handling_rejected_bugs",
+    patterns: [
+      /\b(developer says not a bug|developer rejects bug|disagreement with developer|what if dev refuses to fix)\b/i,
+      /\b(paano kapag sinabi ng dev na hindi bug|kapag nag-?disagree ang developer sa bug|paano makipagtalo sa dev)\b/i,
+    ],
+    keywords: [
+      "rejected bug",
+      "not a bug",
+      "disagreement",
+      "developer pushback",
+    ],
+    category: "qa",
+    en: `When a developer marks a bug as "Not a Bug" or "Working as Intended":
+1. I stay objective and professional, avoiding emotional arguments.
+2. I re-test and provide a screen recording and browser logs showing the exact user impact.
+3. I compare the behavior directly with the approved Product Requirement Document (PRD) or Figma spec.
+4. If the spec was ambiguous, I schedule a quick 5-minute sync with the Product Owner / Tech Lead to confirm the intended business logic.`,
+    tl: `Kapag sinabi ng developer na "Hindi ito bug" o "Ganyan talaga ang behavior":
+1. Nanatili akong kalmado at propesyonal nang walang emosyon.
+2. Inilalatag ko ang screen recording, network logs, at patunay kung paano naaapektuhan ang user.
+3. Ikinukumpara ko ito sa opisyal na Product Requirements Document (PRD) o Figma design.
+4. Kung malabo ang naunang dokumento, nakikipag-ugnayan ako sa Product Owner o Tech Lead upang linawin ang tamang business requirement.`,
+  },
+
+  // =========================================================================
+  // 76. PRODUCTION BUG / HOTFIX PROTOCOL
+  // =========================================================================
+  {
+    id: "production_bug_hotfix_flow",
+    patterns: [
+      /\b(how do you handle production bugs|critical bug in production|hotfix process|production incident)\b/i,
+      /\b(paano kapag may bug sa production|emergency hotfix|kapag nasira ang live website)\b/i,
+    ],
+    keywords: ["production bug", "hotfix", "incident", "live bug"],
+    category: "qa",
+    en: `When a critical issue reaches production:
+1. Triage & Impact Assessment: Determine how many users are affected and whether to roll back or patch forward.
+2. Reproduce in Staging: Replicate the bug in a staging environment with matching data to isolate the root cause.
+3. Targeted Hotfix Verification: Test the developer's hotfix branch exclusively for the defect plus immediate regression paths.
+4. Post-Deployment Smoke Test: Run live smoke tests immediately after production deployment.
+5. Post-Mortem: Document why the bug bypassed QA and write automated test cases to prevent recurrence.`,
+    tl: `Kapag may kritikal na bug sa production:
+1. Pagsusuri ng Epekto: Tiyakin kung gaano karaming users ang apektado at kung kailangang mag-rollback o mag-hotfix.
+2. Pag-reproduce sa Staging: Subukan ito sa staging server upang matiyak ang ugat ng problema.
+3. Hotfix Testing: Suriin ang hotfix branch at magsagawa ng mabilisang regression testing sa apektadong bahagi.
+4. Live Smoke Testing: Mag-test agad sa live site pagkatapos ng deployment.
+5. Post-Mortem: Alamin kung bakit nakalusot ang bug at gumawa ng automated test para hindi na ito maulit.`,
+  },
+
+  // =========================================================================
+  // 77. HARDWARE SPECS & WORKSTATION SETUP
+  // =========================================================================
+  {
+    id: "workstation_specs",
+    patterns: [
+      /\b(what are your pc specs|computer specs|what machine do you use|workstation setup|hardware specs)\b/i,
+      /\b(anong specs ng computer mo|pc specs mo|anong laptop gamit mo|setup ng computer mo)\b/i,
+    ],
+    keywords: [
+      "pc specs",
+      "hardware",
+      "computer",
+      "ram",
+      "processor",
+      "workstation",
+    ],
+    category: "about",
+    en: `My development and QA testing setup consists of:
+• Processor: High-performance multi-core processor capable of virtualization & Docker
+• RAM: 16 GB high-speed RAM for running concurrent browser instances & dev servers
+• Storage: 512 GB NVMe SSD for fast compilation and test execution
+• Display: Dual monitor configuration for simultaneous code editing and DevTools inspection
+• Peripherals: Reliable mechanical keyboard, high-DPI mouse, and HD webcam for team standups.`,
+    tl: `Ang aking development at testing workstation setup:
+• Processor: Multi-core processor na kayang magpatakbo ng Docker at virtual environments
+• RAM: 16 GB high-speed RAM para sa sabay-sabay na browser testing at servers
+• Storage: 512 GB NVMe SSD para sa mabilisang compilation at test execution
+• Display: Dual monitors para sabay ang code editor at browser devtools
+• Peripherals: Maaasahang mechanical keyboard, mouse, at webcam para sa standups.`,
+  },
+
+  // =========================================================================
+  // 78. INTERNET SPEED & POWER BACKUP
+  // =========================================================================
+  {
+    id: "internet_and_power_backup",
+    patterns: [
+      /\b(what is your internet speed|do you have backup internet|power outage backup|power interruption)\b/i,
+      /\b(mabilis ba internet mo|anong internet connection mo|paano kapag nawalan ng kuryente|backup power)\b/i,
+    ],
+    keywords: [
+      "internet speed",
+      "fiber",
+      "backup power",
+      "brownout",
+      "wfh setup",
+    ],
+    category: "about",
+    en: `I have a resilient remote work infrastructure:
+• Primary Internet: High-speed Fiber connection with low latency (50-100+ Mbps).
+• Secondary Internet: Mobile 5G hotspot ready for instant failover during ISP disruptions.
+• Power Backup: Laptop battery backup and powerbank units ensuring uninterrupted communication during local outages.`,
+    tl: `May maaasahan akong remote work setup:
+• Pangunahing Internet: High-speed Fiber connection na may mababang latency (50-100+ Mbps).
+• Backup Internet: Mobile 5G hotspot para sa agarang backup sakaling magka-aberya ang linya.
+• Power Backup: May sapat na battery backup at powerbank para sa tuluy-tuloy na trabaho at komunikasyon.`,
+  },
+
+  // =========================================================================
+  // 79. WORKING HOURS & TIMEZONE FLEXIBILITY
+  // =========================================================================
+  {
+    id: "working_hours_timezones",
+    patterns: [
+      /\b(what time zone are you in|working hours|can you work us hours|timezone flexibility|night shift)\b/i,
+      /\b(anong oras ka nagtatrabaho|pwede ka ba panggabi|timezone mo|kaya mo ba us time|oras ng trabaho)\b/i,
+    ],
+    keywords: [
+      "timezone",
+      "working hours",
+      "pht",
+      "est",
+      "pst",
+      "night shift",
+      "flexible",
+    ],
+    category: "about",
+    en: `My base timezone is Philippine Time (PHT / UTC+8). However, I am flexible and comfortable working in overlapping shifts with international teams, including US EST/PST, European CET, or Australian AEST.`,
+    tl: `Ang aking base timezone ay Philippine Time (PHT / UTC+8). Gayunpaman, flexible ako at bukas sa pakikipagtrabaho sa international schedules tulad ng US EST/PST, European CET, o Australian AEST.`,
+  },
+
+  // =========================================================================
+  // 80. NOTICE PERIOD & IMMEDIATE AVAILABILITY
+  // =========================================================================
+  {
+    id: "notice_period_start_date",
+    patterns: [
+      /\b(when can you start|what is your notice period|immediate start|can you start immediately|start date)\b/i,
+      /\b(kailan ka pwede magsimula|pwede ka ba mag-umpisa agad|may notice period ka ba|kailan ka available)\b/i,
+    ],
+    keywords: [
+      "start date",
+      "notice period",
+      "immediate",
+      "available now",
+      "kailan pwede magsimula",
+    ],
+    category: "about",
+    en: `I have no ongoing employer notice period and am available to start immediately for full-time, part-time, or contract opportunities.`,
+    tl: `Wala akong notice period at handa akong magsimula agad para sa full-time, part-time, o contractual na posisyon.`,
+  },
+
+  // =========================================================================
+  // 81. FIGMA TO PIXEL-PERFECT CODE
+  // =========================================================================
+  {
+    id: "figma_to_code_handoff",
+    patterns: [
+      /\b(can you convert figma to code|figma to react|pixel perfect|figma design implementation)\b/i,
+      /\b(kaya mo ba mag-?code galing sa figma|figma to html|pixel perfect ka ba gumawa)\b/i,
+    ],
+    keywords: ["figma", "pixel perfect", "figma to code", "figma to react"],
+    category: "skills",
+    en: `Yes! I regularly inspect Figma design files—extracting typography tokens, spacing values, SVGs, and responsive auto-layouts—and translate them into pixel-perfect, accessible React and Tailwind CSS components.`,
+    tl: `Oo! Sanay akong magbasa ng Figma designs—kinukuha ang typography, spacing, kulay, at responsive auto-layout—at ginagawang pixel-perfect na React at Tailwind CSS components.`,
+  },
+
+  // =========================================================================
+  // 82. HOW DO YOU LEARN NEW TECHNOLOGIES QUICKLY
+  // =========================================================================
+  {
+    id: "learning_new_technologies",
+    patterns: [
+      /\b(how do you learn new (technologies|frameworks|tools)|fast learner|learning curve)\b/i,
+      /\b(paano ka nag-?aaral ng bagong technology|mabilis ka ba matuto|paano ka mag-aral ng bagong framework)\b/i,
+    ],
+    keywords: ["learn new tech", "fast learner", "matuto", "framework"],
+    category: "about",
+    en: `I learn rapidly through hands-on building:
+1. I read the official documentation to understand core architectural concepts.
+2. I build a small working proof-of-concept (CRUD app) to test state, routing, and error boundaries.
+3. I inspect production open-source implementations to learn community best practices.
+This enables me to be productive in a new stack within 1 to 2 weeks.`,
+    tl: `Mabilis akong matuto sa pamamagitan ng aktwal na pagbuo:
+1. Binabasa ko ang opisyal na documentation para makuha ang core architecture.
+2. Gumagawa ako ng maliit na proof-of-concept project (CRUD app) para maranasan ang data flow at errors.
+3. Nagsusuri ako ng open-source projects para matutunan ang industry standards.
+Dahil dito, nagiging produktibo ako sa bagong framework sa loob ng 1 hanggang 2 linggo.`,
+  },
+
+  // =========================================================================
+  // 83. FIVE-YEAR CAREER VISION
+  // =========================================================================
+  {
+    id: "five_year_career_goal",
+    patterns: [
+      /\b(where do you see yourself in 5 years|5 year plan|future career goals|career aspiration)\b/i,
+      /\b(saan mo nakikita ang sarili mo sa 5 taon|anong plano mo sa future|career goals mo)\b/i,
+    ],
+    keywords: ["5 years", "career goals", "future", "aspiration"],
+    category: "about",
+    en: `In 5 years, I see myself as a Senior QA Automation Engineer or Lead Full-Stack Software Engineer, designing enterprise test architecture, mentoring junior engineers, and driving resilient CI/CD pipelines.`,
+    tl: `Sa loob ng 5 taon, nakikita ko ang aking sarili bilang isang Senior QA Automation Engineer o Lead Full-Stack Engineer na nagdidisenyo ng enterprise test frameworks at tumutulong sa mas batang mga developers.`,
+  },
+
+  // =========================================================================
+  // 84. ADVICE FOR FRESH GRADUATES & JUNIOR DEVS
+  // =========================================================================
+  {
+    id: "advice_for_fresh_grads_qa",
+    patterns: [
+      /\b(what advice do you have for (fresh grads|juniors|beginners)|tips for junior qa|advice for aspiring devs)\b/i,
+      /\b(anong payo mo sa mga fresh graduate|tips sa nagsisimula pa lang sa qa|payo sa beginner)\b/i,
+    ],
+    keywords: ["advice", "tips", "fresh grads", "beginners", "payo"],
+    category: "general",
+    en: `My top tips:
+1. Focus on core fundamentals first (DOM, HTTP protocols, JavaScript, SQL) before chasing shiny frameworks.
+2. Build real, deployable projects rather than following passive video tutorials.
+3. Write clean, readable code and practice descriptive bug reporting early.`,
+    tl: `Ang aking mga payo:
+1. Tutukan muna ang fundamentals (DOM, HTTP protocols, JavaScript, SQL) bago tumalon sa napakaraming frameworks.
+2. Gumawa ng tunay at gumaganang mga proyekto sa halip na manood lang ng tutorials.
+3. Ugaliing sumulat ng malinis na code at malinaw na bug reports mula pa sa simula.`,
+  },
+
+  // =========================================================================
+  // 85. COFFEE OR TEA
+  // =========================================================================
+  {
+    id: "coffee_or_tea",
+    patterns: [
+      /\b(coffee or tea|do you like coffee|favorite coffee|kape o tsaa)\b/i,
+      /\b(umiinom ka ba ng kape|kape ka ba o tsaa|paborito mong kape)\b/i,
+    ],
+    keywords: ["coffee", "tea", "kape", "tsaa"],
+    category: "general",
+    en: `Coffee! A good brewed black coffee or iced latte fuels my focus during long debugging and coding sessions.`,
+    tl: `Kape! Mas gusto ko ang brewed black coffee o iced latte para manatiling gising at tutok sa pagko-code at debugging.`,
+  },
+
+  // =========================================================================
+  // 86. CODING MUSIC & PLAYLIST
+  // =========================================================================
+  {
+    id: "coding_music_playlist",
+    patterns: [
+      /\b(what music do you listen to while coding|coding playlist|favorite music|do you listen to music)\b/i,
+      /\b(anong tugtog pinapakinggan mo habang nagko-?code|playlist mo sa coding|anong music mo)\b/i,
+    ],
+    keywords: ["music", "playlist", "lo-fi", "synthwave", "tugtog"],
+    category: "general",
+    en: `I listen to Lo-Fi beats, synthwave, and ambient instrumentals. Instrumental music helps me enter a flow state without lyrical distractions.`,
+    tl: `Nakikinig ako sa Lo-Fi beats, synthwave, at instrumental ambient music para mabilis pumasok sa focus mode nang walang nakakadistrang lyrics.`,
+  },
+
+  // =========================================================================
+  // 87. FAVORITE VS CODE EXTENSIONS
+  // =========================================================================
+  {
+    id: "vscode_extensions_used",
+    patterns: [
+      /\b(what vscode extensions do you use|favorite extensions|vscode plugins)\b/i,
+      /\b(anong mga vscode extension gamit mo|paboritong extensions sa vscode)\b/i,
+    ],
+    keywords: [
+      "vscode extensions",
+      "plugins",
+      "prettier",
+      "eslint",
+      "tailwind extension",
+    ],
+    category: "skills",
+    en: `My go-to VS Code extensions are:
+• Tailwind CSS IntelliSense (instant autocomplete & linting)
+• ESLint & Prettier (code standardization and auto-formatting)
+• GitLens (blame annotations and branch visualization)
+• Playwright Test for VSCode (running and debugging tests directly in editor)
+• Error Lens (inline error diagnostics)`,
+    tl: `Ang aking mga paboritong VS Code extensions:
+• Tailwind CSS IntelliSense (mabilisang autocomplete at linting)
+• ESLint & Prettier (awtimatikong formatting at pamantayan sa code)
+• GitLens (pagsusuri sa git commits at branches)
+• Playwright Test for VSCode (direktang pagpapatakbo at debug ng tests)
+• Error Lens (mabilisang pagpapakita ng error sa linya ng code)`,
+  },
+
+  // =========================================================================
+  // 88. CODE REVIEW CHECKLIST
+  // =========================================================================
+  {
+    id: "code_review_process",
+    patterns: [
+      /\b(how do you review code|code review checklist|what do you look for in code review)\b/i,
+      /\b(paano ka mag-?code review|checklist mo sa code review|ano tinitingnan mo sa code ng iba)\b/i,
+    ],
+    keywords: [
+      "code review",
+      "pull request review",
+      "pr checklist",
+      "clean code",
+    ],
+    category: "process",
+    en: `During Pull Request reviews, I evaluate:
+1. Logic & Edge Cases: Does the code handle null/undefined, network failures, and empty states?
+2. Security: Are inputs sanitized? Any SQL injection or exposed secrets?
+3. Performance: Are there unnecessary re-renders or unindexed queries?
+4. Maintainability: Is naming descriptive and follows existing architectural patterns?
+5. Test Coverage: Are corresponding automated tests provided?`,
+    tl: `Kapag nag-susuri ng Pull Request, sinusuri ko ang:
+1. Logic at Edge Cases: Paano kung null, undefined, o mawalan ng internet?
+2. Seguridad: Ligtas ba ang inputs laban sa SQL injection o XSS?
+3. Bilis at Performance: May mga redundant ba na re-renders o mabagal na queries?
+4. Kalinisan ng Code: Madali bang basahin at sumusunod ba sa standards ng team?
+5. Test Coverage: May kasama bang tests para sa bagong feature?`,
+  },
+
+  // =========================================================================
+  // 89. HOW DO YOU AVOID BURNOUT
+  // =========================================================================
+  {
+    id: "avoid_burnout",
+    patterns: [
+      /\b(how do you avoid burnout|burnout management|work life balance|taking breaks)\b/i,
+      /\b(paano mo iniiwasan ang burnout|work life balance mo|paano ka magpahinga)\b/i,
+    ],
+    keywords: ["burnout", "work life balance", "pahinga", "breaks"],
+    category: "general",
+    en: `I maintain balance by practicing the Pomodoro technique, taking screen breaks, walking outdoors in my coastal hometown of Mercedes, and completely unplugging after working hours.`,
+    tl: `Iniiwasan ko ang burnout sa pamamagitan ng panandaliang pagpahinga gamit ang Pomodoro, paglalakad sa labas dito sa baybayin ng Mercedes, at pagpapahinga sa gabi pagkatapos ng oras ng trabaho.`,
+  },
+
+  // =========================================================================
+  // 90. HOW DO YOU HANDLE MERGE CONFLICTS IN GIT
+  // =========================================================================
+  {
+    id: "git_merge_conflicts",
+    patterns: [
+      /\b(how do you resolve merge conflicts|merge conflicts in git|git conflict resolution)\b/i,
+      /\b(paano ka nag-?aayos ng merge conflict|kapag may conflict sa git|paano ayusin ang conflict)\b/i,
+    ],
+    keywords: ["merge conflict", "git conflict", "diff", "rebase"],
+    category: "process",
+    en: `I resolve merge conflicts systematically:
+1. Pull the latest target branch into my feature branch (\`git merge origin/main\`).
+2. Use VS Code's 3-way merge editor to compare incoming changes against current changes.
+3. Communicate with the teammate who wrote the conflicting code to preserve both functionalities.
+4. Run automated tests locally to verify no regressions before committing the merge.`,
+    tl: `Inaayos ko ang merge conflicts sa maayos na paraan:
+1. I-pull ang pinakabagong bersyon ng branch sa aking feature branch (\`git merge origin/main\`).
+2. Gamitin ang VS Code 3-way merge editor para suriin ang nagtutunggaling code.
+3. Kausapin ang kasamahan sa team kung kinakailangan para masigurong walang mawawalang feature.
+4. Patakbuhin ang tests sa local machine bago i-commit ang naayos na code.`,
+  },
+
+  // =========================================================================
+  // 91. HOW DO YOU DEAL WITH UNCLEAR REQUIREMENTS
+  // =========================================================================
+  {
+    id: "handling_unclear_requirements",
+    patterns: [
+      /\b(how do you deal with unclear requirements|ambiguous specs|vague requirements)\b/i,
+      /\b(paano kapag malabo ang requirements|kapag hindi malinaw ang pinapagawa|unclear specs)\b/i,
+    ],
+    keywords: [
+      "unclear requirements",
+      "ambiguous",
+      "requirements gathering",
+      "clarification",
+    ],
+    category: "process",
+    en: `When requirements are vague:
+1. I do NOT guess or make unverified assumptions.
+2. I write down specific clarification questions highlighting expected edge cases.
+3. I schedule a brief sync or leave documented comments on the Jira card for the Product Owner.
+4. Once clarified, I update the ticket with explicit acceptance criteria before implementation.`,
+    tl: `Kapag malabo ang requirements:
+1. Hindi ako nanghuhula o gumagawa batay sa sariling haka-haka.
+2. Isinusulat ko ang mga partikular na katanungan lalo na sa mga edge cases.
+3. Nakikipag-ugnayan ako sa Product Owner o Team Lead upang linawin ang nais nilang mangyari.
+4. Kapag malinaw na, inilalagay ko ang acceptance criteria sa ticket bago magsimula sa pagbuo o pag-test.`,
+  },
+
+  // =========================================================================
+  // 92. HOW DO YOU SCHEDULE AN INTERVIEW WITH KENNU
+  // =========================================================================
+  {
+    id: "schedule_interview",
+    patterns: [
+      /\b(how to schedule an interview|book an interview|set up an interview|interview kennu)\b/i,
+      /\b(paano mag-?schedule ng interview|paano ka maka-?interview|interview invite)\b/i,
+    ],
+    keywords: [
+      "interview",
+      "schedule interview",
+      "book call",
+      "meeting",
+      "google meet",
+    ],
+    category: "contact",
+    en: `To schedule an interview, email me directly at elnarkennu16@gmail.com with your proposed date, time, and meeting link (Google Meet / Zoom). I respond promptly within 24 hours.`,
+    tl: `Para mag-schedule ng interview, mag-email lang sa elnarkennu16@gmail.com kasama ang iyong petsa, oras, at meeting link (Google Meet / Zoom). Agad akong sumasagot sa loob ng 24 oras.`,
+  },
+
+  // =========================================================================
+  // 93. WEB PERFORMANCE & CORE WEB VITALS
+  // =========================================================================
+  {
+    id: "web_performance_optimization",
+    patterns: [
+      /\b(how do you optimize web performance|core web vitals|page speed|website performance)\b/i,
+      /\b(paano mo pinapabilis ang website|performance optimization|pampabilis ng loading)\b/i,
+    ],
+    keywords: [
+      "performance",
+      "core web vitals",
+      "lcp",
+      "cls",
+      "lazy loading",
+      "page speed",
+    ],
+    category: "skills",
+    en: `I optimize web performance by:
+1. Code Splitting & Dynamic Imports: Loading JavaScript bundles only when needed.
+2. Image Optimization: Serving WebP/AVIF formats with explicit width/height to eliminate Cumulative Layout Shift (CLS).
+3. Asset Compression & Caching: Using gzip/brotli compression and long-lived cache headers.
+4. Minimizing Re-renders: Memoizing expensive computations with React.memo and useMemo.`,
+    tl: `Pinapabilis ko ang web performance sa pamamagitan ng:
+1. Code Splitting: Pagkarga lamang ng kinakailangang JavaScript sa bawat pahina.
+2. Image Optimization: Paggamit ng WebP/AVIF formats at saktong sukat para iwas Cumulative Layout Shift (CLS).
+3. Compression at Caching: Paggamit ng gzip/brotli at browser caching.
+4. Minimizing Re-renders: Paggamit ng useMemo at malinis na state architecture sa React.`,
+  },
+
+  // =========================================================================
+  // 94. ACCESSIBILITY & WCAG 2.1 COMPLIANCE
+  // =========================================================================
+  {
+    id: "accessibility_wcag_guidelines",
+    patterns: [
+      /\b(accessibility in web|wcag guidelines|how do you test accessibility|a11y)\b/i,
+      /\b(paano mo tine-?test ang accessibility|accessibility sa website|wcag compliance)\b/i,
+    ],
+    keywords: ["accessibility", "a11y", "wcag", "screen reader", "aria"],
+    category: "qa",
+    en: `I test accessibility (WCAG 2.1 AA) by:
+1. Keyboard Navigation: Ensuring all interactive elements can be focused and triggered with Tab, Enter, and Space without focus traps.
+2. Color Contrast: Verifying a minimum 4.5:1 text-to-background contrast ratio for readability.
+3. Screen Readers: Testing aria-labels and semantic HTML tags (nav, main, button vs div).`,
+    tl: `Sinusuri ko ang web accessibility (WCAG 2.1 AA) sa pamamagitan ng:
+1. Keyboard Navigation: Tinitiyak na ang lahat ng buttons at links ay napipindot gamit lamang ang Tab, Enter, at Space nang walang focus traps.
+2. Color Contrast: Sinisigurong may sapat na contrast (4.5:1) ang teksto laban sa background.
+3. Screen Readers: Paggamit ng tamang semantic HTML (nav, main, button) at aria-labels para sa visually impaired users.`,
+  },
+
+  // =========================================================================
+  // 95. WILLINGNESS TO RELOCATE
+  // =========================================================================
+  {
+    id: "willingness_to_relocate",
+    patterns: [
+      /\b(are you willing to relocate|willing to move|relocation to manila|can you relocate)\b/i,
+      /\b(willing ka ba mag-?relocate|pwede ka ba lumipat sa manila|relocation mo)\b/i,
+    ],
+    keywords: ["relocate", "relocation", "manila", "move"],
+    category: "about",
+    en: `Yes, I am open to relocating to Metro Manila or other primary tech hubs for favorable full-time or hybrid opportunities.`,
+    tl: `Oo, bukas ako sa paglipat sa Metro Manila o iba pang tech hubs para sa magandang full-time o hybrid na trabaho.`,
+  },
+
+  // =========================================================================
+  // 96. THOUGHTS ON AI TOOLS (CURSOR, CHATGPT, CLAUDE)
+  // =========================================================================
+  {
+    id: "thoughts_on_ai_tools",
+    patterns: [
+      /\b(how do you use ai tools|do you use chatgpt or cursor|thoughts on ai in coding)\b/i,
+      /\b(gumagamit ka ba ng ai|paano mo ginagamit ang cursor o chatgpt|pananaw mo sa ai)\b/i,
+    ],
+    keywords: ["ai tools", "cursor", "chatgpt", "claude", "copilot"],
+    category: "skills",
+    en: `I utilize AI tools (Cursor, ChatGPT, Claude) as force multipliers—accelerating boilerplate writing, exploring test edge cases, and drafting regexes. However, I always inspect, understand, and rigorously test every single line of generated code before committing.`,
+    tl: `Ginagamit ko ang AI tools (Cursor, ChatGPT, Claude) bilang katuwang—nagpapabilis sa pagsulat ng boilerplate, pag-explore ng edge cases, at pag-draft ng regex. Gayunpaman, masusi kong sinusuri at tine-test ang bawat linya ng code bago ito i-commit.`,
+  },
+
+  // =========================================================================
+  // 97. LOCAL SPECIALTIES / BICOL FOOD
+  // =========================================================================
+  {
+    id: "favorite_food_bicol",
+    patterns: [
+      /\b(favorite food|bicol express|what food do you like|anong paborito mong pagkain)\b/i,
+      /\b(anong paborito mong pagkain|mahilig ka ba sa maanghang|ulam mo)\b/i,
+    ],
+    keywords: ["food", "bicol express", "laing", "pagkain", "ulam"],
+    category: "general",
+    en: `Being from Bicol, I love spicy coconut-milk dishes like authentic Bicol Express and Laing, along with fresh seafood from the port of Mercedes.`,
+    tl: `Bilang taga-Bicol, paborito ko ang maanghang na Bicol Express, Laing na may gata, at sariwang isda at seafood mula sa pantalan ng Mercedes.`,
+  },
+
+  // =========================================================================
+  // 98. EXPERIENCE WITH TAILWIND VS BOOTSTRAP
+  // =========================================================================
+  {
+    id: "tailwind_vs_bootstrap",
+    patterns: [
+      /\b(tailwind vs bootstrap|why do you prefer tailwind|tailwind or bootstrap)\b/i,
+      /\b(bakit tailwind gamit mo|anong mas gusto mo tailwind o bootstrap)\b/i,
+    ],
+    keywords: ["tailwind", "bootstrap", "css", "styling"],
+    category: "skills",
+    en: `I prefer Tailwind CSS over Bootstrap because it provides fine-grained utility classes without bloated pre-packaged CSS, enables faster custom designs without fighting component overrides, and produces tiny production bundles via PurgeCSS.`,
+    tl: `Mas gusto ko ang Tailwind CSS kaysa Bootstrap dahil nagbibigay ito ng mabilisang utility classes nang walang sobrang laking CSS file, madaling i-customize ang design, at napakaliit ng production bundle size.`,
+  },
+
+  // =========================================================================
+  // 99. DEALING WITH FLAKY AUTOMATED TESTS
+  // =========================================================================
+  {
+    id: "dealing_with_flaky_tests",
+    patterns: [
+      /\b(how do you fix flaky tests|flaky automated tests|test flakiness|unstable tests)\b/i,
+      /\b(paano mo inaayos ang flaky tests|paano kapag pabago-?bago ang resulta ng test)\b/i,
+    ],
+    keywords: [
+      "flaky tests",
+      "flakiness",
+      "playwright waits",
+      "race condition",
+    ],
+    category: "qa",
+    en: `To eliminate flaky automated tests:
+1. I replace hardcoded sleep timeouts (e.g. \`sleep(3000)\`) with explicit condition-based assertions (e.g. \`waitForSelector\`, \`toBeVisible\`).
+2. I isolate test states using fresh test fixtures and unique data to prevent tests from depending on each other.
+3. I mock third-party network requests that have variable latency.`,
+    tl: `Para alisin ang flaky tests:
+1. Tinatanggal ko ang mga hardcoded sleep timeouts at pinapalitan ng explicit assertions tulad ng \`waitForSelector\` at \`toBeVisible\`.
+2. Inihihiwalay ko ang bawat test gamit ang sariwang test data para walang test na umaasa sa naunang resulta.
+3. Mina-mock ko ang mabagal na third-party network calls na nagdudulot ng race condition.`,
+  },
+
+  // =========================================================================
+  // 100. WHAT MOTIVATES KENNU DAILY
+  // =========================================================================
+  {
+    id: "daily_motivation",
+    patterns: [
+      /\b(what motivates you|what keeps you going|inspiration in tech|daily motivation)\b/i,
+      /\b(ano nagmo-?motivate sa iyo|anong inspirasyon mo|bakit ka masipag mag-?code)\b/i,
+    ],
+    keywords: ["motivation", "inspiration", "goals", "passion"],
+    category: "general",
+    en: `The feeling of taking a complex idea, building it into a clean, intuitive application, and verifying that it works flawlessly for real people is what excites and drives me every day.`,
+    tl: `Ang pakiramdam na makabuo ng malinis at maaasahang software mula sa isang ideya, at masigurong walang bugs para sa mga tunay na tao ang nagbibigay sa akin ng sigla araw-araw.`,
+  },
+
+  // =========================================================================
+  // 101. REACT STATE MANAGEMENT STRATEGY
+  // =========================================================================
+  {
+    id: "state_management_strategy",
+    patterns: [
+      /\b(how do you manage state in react|state management in react|zustand vs redux|react state management)\b/i,
+      /\b(paano ka mag-?handle ng state sa react|anong gamit mo sa state management|zustand o context)\b/i,
+    ],
+    keywords: [
+      "state management",
+      "zustand",
+      "context api",
+      "react query",
+      "usestate",
+    ],
+    category: "skills",
+    en: `I choose state management based on scope:
+• Component State: useState & useReducer for local toggles, forms, and modals.
+• Shared UI State: Zustand or lightweight React Context for theme, sidebar, or global toasts.
+• Server / Cache State: TanStack Query (React Query) for API data caching, pagination, and background refetching.
+This avoids monolithic Redux bloat while keeping state clean and testable.`,
+    tl: `Pinipili ko ang state management batay sa saklaw:
+• Component State: useState at useReducer para sa lokal na forms at modals.
+• Shared UI State: Zustand o React Context para sa theme, sidebar, at global notifications.
+• Server Cache State: TanStack Query para sa API caching, background refetching, at data sync.
+Naiiwasan nito ang sobrang laking Redux setup habang nananatiling malinis at madaling i-test ang code.`,
+  },
+
+  // =========================================================================
+  // 102. SQL JOINS EXPLAINED WITH REAL EXAMPLES
+  // =========================================================================
+  {
+    id: "sql_joins_explanation",
+    patterns: [
+      /\b(explain sql joins|inner join vs left join|sql joins explained|difference between left join and inner join)\b/i,
+      /\b(ano ang pagkakaiba ng inner join at left join|paano gumamit ng sql join|mga uri ng join sa sql)\b/i,
+    ],
+    keywords: [
+      "sql joins",
+      "inner join",
+      "left join",
+      "right join",
+      "sql queries",
+    ],
+    category: "skills",
+    en: `SQL Joins combine data across related tables:
+• INNER JOIN: Returns only rows where there is a match in both tables (e.g. users who have at least one asset).
+• LEFT JOIN: Returns ALL rows from the left table, plus matched rows from the right table (NULL if no asset assigned).
+• RIGHT JOIN: Returns ALL rows from the right table, plus matched rows from the left.
+• FULL JOIN: Returns rows when there is a match in either left or right table.`,
+    tl: `Ang SQL Joins ay nagdurugtong ng data mula sa magkaibang tables:
+• INNER JOIN: Ibinabalik lamang ang mga records na may tugma sa parehong tables (hal. mga users na may hawak na asset).
+• LEFT JOIN: Ibinabalik ang LAHAT ng records mula sa kaliwang table, at ang katugmang data sa kanan (NULL kung walang asset).
+• RIGHT JOIN: Ibinabalik ang LAHAT ng records mula sa kanang table.
+• FULL JOIN: Ibinabalik ang lahat kapag may tugma sa alinmang table.`,
+  },
+
+  // =========================================================================
+  // 103. JWT AUTHENTICATION FLOW & SECURITY
+  // =========================================================================
+  {
+    id: "jwt_authentication_flow",
+    patterns: [
+      /\b(how does jwt authentication work|jwt flow|access token vs refresh token|jwt security)\b/i,
+      /\b(paano gumagana ang jwt|jwt authentication flow|access token at refresh token)\b/i,
+    ],
+    keywords: [
+      "jwt",
+      "authentication flow",
+      "refresh token",
+      "access token",
+      "security",
+    ],
+    category: "skills",
+    en: `I implement secure token-based authentication using short-lived Access Tokens and HttpOnly Refresh Tokens:
+1. Client submits credentials via HTTPS POST /login.
+2. Server validates password hash and issues a short-lived Access Token (15 mins) and sets an HttpOnly, Secure, SameSite Refresh Token cookie (7 days).
+3. Client attaches Access Token in \`Authorization: Bearer <token>\` for API requests.
+4. When Access Token expires (HTTP 401), client silently hits /refresh using the cookie to get a fresh Access Token without logging the user out.`,
+    tl: `Nagpapatupad ako ng ligtas na token-based authentication gamit ang panandaliang Access Token at HttpOnly Refresh Token:
+1. Nagpapadala ang user ng credentials sa /login.
+2. Sinusuri ng server ang password at nagbibigay ng 15-minutong Access Token, kasama ang HttpOnly Cookie na Refresh Token (7 araw).
+3. Ipinapasa ng frontend ang token sa header na \`Authorization: Bearer <token>\`.
+4. Kapag nag-expire ang Access Token (401), awtomatikong humihingi ang frontend ng bagong token sa /refresh gamit ang cookie nang hindi kailangang mag-login ulit ang user.`,
+  },
+
+  // =========================================================================
+  // 104. OWASP TOP 10 WEB DEFENSES
+  // =========================================================================
+  {
+    id: "owasp_top_10_defenses",
+    patterns: [
+      /\b(owasp top 10|how do you prevent sql injection|xss prevention|csrf protection|web security best practices)\b/i,
+      /\b(paano protektahan ang website sa hacker|owasp guidelines|sql injection protection|xss defense)\b/i,
+    ],
+    keywords: [
+      "owasp",
+      "sql injection",
+      "xss",
+      "csrf",
+      "security",
+      "prepared statements",
+    ],
+    category: "skills",
+    en: `I defend against top OWASP vulnerabilities:
+1. SQL Injection: Use PDO Prepared Statements and ORMs exclusively; never concatenate raw strings into queries.
+2. Cross-Site Scripting (XSS): Escape output in React DOM, sanitize rich text with DOMPurify, set strict Content Security Policy (CSP).
+3. Cross-Site Request Forgery (CSRF): Validate anti-CSRF tokens on state-changing requests and use SameSite=Strict cookies.
+4. Broken Access Control: Enforce server-side role and policy checks (RBAC) on every controller method.`,
+    tl: `Pinoprotektahan ko ang web apps laban sa mga panganib ng OWASP:
+1. SQL Injection: Paggamit ng PDO Prepared Statements at ORM; bawal ang pagsasama ng raw user strings sa SQL query.
+2. XSS (Cross-Site Scripting): Awtomatikong pag-sanitize ng React at DOMPurify sa inputs, at Content Security Policy (CSP).
+3. CSRF: Pagsuri sa CSRF tokens sa POST/PUT/DELETE requests at paggamit ng SameSite cookies.
+4. Broken Access Control: Mahigpit na pagpapatupad ng role-based access checks (RBAC) sa backend controllers.`,
+  },
+
+  // =========================================================================
+  // 105. MOBILE RESPONSIVENESS BREAKPOINTS (TAILWIND)
+  // =========================================================================
+  {
+    id: "responsive_breakpoints_tailwind",
+    patterns: [
+      /\b(tailwind breakpoints|responsive design strategy|mobile first approach|screen sizes)\b/i,
+      /\b(paano mo ginagawang responsive|breakpoints sa tailwind|mobile first development)\b/i,
+    ],
+    keywords: [
+      "breakpoints",
+      "mobile first",
+      "tailwind responsive",
+      "media queries",
+    ],
+    category: "skills",
+    en: `I build with a strict Mobile-First philosophy using Tailwind CSS default breakpoints:
+• Default (Base): Mobile screens (< 640px)
+• sm: 640px (Large phones / small tablets)
+• md: 768px (Tablets & iPads in portrait)
+• lg: 1024px (Laptops & desktop screens)
+• xl: 1280px (Wide desktop monitors)
+• 2xl: 1536px (Ultra-wide displays)
+
+Mobile styles are applied as baseline classes, while larger layout adjustments are wrapped in sm:, md:, and lg: prefixes.`,
+    tl: `Bumubuo ako gamit ang Mobile-First approach sa Tailwind CSS:
+• Base / Default: Para sa cellphone screen (< 640px)
+• sm: 640px (Malalaking phones at maliit na tablet)
+• md: 768px (Tablets tulad ng iPad)
+• lg: 1024px (Laptops at standard desktop)
+• xl: 1280px (Malalaking desktop screens)
+• 2xl: 1536px (Ultra-wide monitors)
+
+Ang baseline classes ay para sa cellphone, at saka lamang ina-adjust sa mas malalaking screen gamit ang sm:, md:, at lg: prefixes.`,
+  },
+
+  // =========================================================================
+  // 106. CROSS-BROWSER TESTING TOOLS & PROCESS
+  // =========================================================================
+  {
+    id: "cross_browser_testing_tools",
+    patterns: [
+      /\b(cross browser testing|how do you test across browsers|browser compatibility|safari chrome firefox)\b/i,
+      /\b(paano mo tine-?test sa iba-?ibang browser|cross browser compatibility|testing sa safari at chrome)\b/i,
+    ],
+    keywords: [
+      "cross browser",
+      "browser compatibility",
+      "webkit",
+      "chromium",
+      "firefox",
+      "safari",
+    ],
+    category: "qa",
+    en: `For cross-browser compatibility, I test on:
+1. Chromium (Google Chrome, Microsoft Edge, Brave)
+2. Gecko (Mozilla Firefox)
+3. WebKit (Apple Safari desktop & iOS mobile viewports)
+
+I use Playwright's multi-browser execution matrix locally and in CI to catch browser-specific CSS layout quirks, date picker inconsistencies, and JavaScript engine deviations.`,
+    tl: `Para sa cross-browser compatibility, sumusuri ako sa:
+1. Chromium (Chrome, Edge, Brave)
+2. Gecko (Firefox)
+3. WebKit (Safari sa macOS at iOS mobile)
+
+Ginagamit ko ang multi-browser matrix ng Playwright sa CI upang mahuli ang mga browser-specific rendering bugs, date picker bugs, at CSS differences.`,
+  },
+
+  // =========================================================================
+  // 107. PROFESSIONAL TEST PLAN DOCUMENT STRUCTURE
+  // =========================================================================
+  {
+    id: "test_plan_document_structure",
+    patterns: [
+      /\b(test plan template|how do you write a test plan|test plan structure|sample test plan)\b/i,
+      /\b(paano gumawa ng test plan|structure ng test plan|sample ng test plan document)\b/i,
+    ],
+    keywords: [
+      "test plan",
+      "test plan template",
+      "scope",
+      "deliverables",
+      "strategy",
+    ],
+    category: "qa",
+    en: `A professional QA Test Plan includes 7 core sections:
+1. Objectives & Scope: Features included vs features out-of-scope for the release.
+2. Test Strategy: Breakdown of Manual, Automated, API, and Performance testing.
+3. Environment Setup: Staging URLs, database seeds, and test credentials.
+4. Entry & Exit Criteria: Pre-requisites to start testing and quality gates required to sign off.
+5. Defect Management: Severity definitions (Critical, High, Medium, Low) and SLA response times.
+6. Resource Schedule: Milestones, sprint timelines, and tester assignments.
+7. Deliverables: Test execution log, bug summary report, and go/no-go recommendation.`,
+    tl: `Ang isang propesyonal na QA Test Plan ay may 7 pangunahing bahagi:
+1. Layunin at Saklaw (Scope): Mga features na kasama at hindi kasama sa testing.
+2. Estratehiya sa Testing: Paghahati ng Manual, Automated, API, at Performance tests.
+3. Test Environment: Staging URL, database test data, at user credentials.
+4. Entry at Exit Criteria: Mga kailangan bago magsimula at pamantayan bago payagang i-deploy.
+5. Defect Management: Kahulugan ng Severity levels (Critical, High, Medium, Low).
+6. Iskedyul ng Trabaho: Sprint timeline at takdang petsa ng pag-test.
+7. Mga Ulat (Deliverables): Test execution log, summary ng bugs, at go/no-go desisyon.`,
+  },
+
+  // =========================================================================
+  // 108. DEFECT LIFECYCLE STAGES
+  // =========================================================================
+  {
+    id: "defect_lifecycle_stages",
+    patterns: [
+      /\b(defect life cycle|bug life cycle|stages of a bug|bug status flow)\b/i,
+      /\b(ano ang defect lifecycle|ikot ng buhay ng bug|mga estado ng bug sa jira)\b/i,
+    ],
+    keywords: [
+      "defect lifecycle",
+      "bug lifecycle",
+      "new",
+      "assigned",
+      "fixed",
+      "retest",
+      "closed",
+    ],
+    category: "qa",
+    en: `The standard Defect Lifecycle:
+1. New / Draft: Bug identified and logged by QA with reproduction steps.
+2. Assigned: Triage assigns defect to the responsible developer.
+3. In Progress: Developer reproduces and investigates root cause.
+4. Fixed: Code patch committed and deployed to Staging.
+5. Retest: QA executes targeted verification test cases on the fix.
+6. Closed: Verified working properly in staging.
+(If retest fails, the bug is marked REOPENED with new logs attached).`,
+    tl: `Ang standard na ikot ng Defect Lifecycle:
+1. New: Natuklasan at iniulat ng QA na may kumpletong steps.
+2. Assigned: Itinalaga ang bug sa developer na may hawak ng module.
+3. In Progress: Sinusuri at inaayos ng developer ang problema.
+4. Fixed: Na-commit ang solusyon at na-deploy sa staging server.
+5. Retest: Sinusuri muli ng QA ang apektadong bahagi.
+6. Closed: Napatunayang maayos na at gumagana nang tama.
+(Kung pumalya sa retest, mamarkahan itong REOPENED kasama ang bagong ebidensya).`,
+  },
+
+  // =========================================================================
+  // 109. PERFORMANCE TESTING TOOLS & WORKFLOW
+  // =========================================================================
+  {
+    id: "performance_testing_tools",
+    patterns: [
+      /\b(how do you test performance|performance testing tools|load testing|lighthouse jmeter)\b/i,
+      /\b(paano mo tine-?test ang bilis ng website|performance testing tools na gamit mo|load test)\b/i,
+    ],
+    keywords: [
+      "performance testing",
+      "lighthouse",
+      "jmeter",
+      "k6",
+      "load testing",
+    ],
+    category: "qa",
+    en: `For performance and load testing, I utilize:
+• Google Lighthouse: Audits Core Web Vitals, SEO, and accessibility metrics.
+• Chrome DevTools Network & Performance Tabs: Identifies layout shifts, long CPU tasks, and uncompressed assets.
+• Postman & k6: Simulates concurrent API load and measures latency under 50-200 simultaneous users.`,
+    tl: `Para sa performance at load testing, gumagamit ako ng:
+• Google Lighthouse: Pagsusuri sa Core Web Vitals, bilis ng pahina, at SEO.
+• Chrome DevTools Performance Tab: Paghahanap ng mabagal na JavaScript tasks at mabibigat na files.
+• Postman at k6: Pagsusuri sa bilis ng API kapag sabay-sabay na nagre-request ang 50 hanggang 200 users.`,
+  },
+
+  // =========================================================================
+  // 110. EXPLORATORY TESTING & SESSION-BASED MANAGEMENT
+  // =========================================================================
+  {
+    id: "exploratory_testing_charters",
+    patterns: [
+      /\b(exploratory testing|how do you do exploratory testing|session based test management|sbtm)\b/i,
+      /\b(paano ka mag-?exploratory test|ano ang exploratory testing|paraan ng exploratory test)\b/i,
+    ],
+    keywords: ["exploratory testing", "sbtm", "charter", "timebox", "ad-hoc"],
+    category: "qa",
+    en: `I structure exploratory testing using Session-Based Test Management (SBTM):
+1. Test Charter: Define a specific mission (e.g. "Discover edge cases in multi-tier approvals under slow 3G").
+2. Timebox: Allocate a focused 45-60 minute uninterrupted testing session.
+3. Mindset: Think like both an adversary (trying to break things) and a novice user (trying unexpected button combinations).
+4. Debrief: Review session notes and log any valid defects with screenshots.`,
+    tl: `Isinasagawa ko ang exploratory testing gamit ang Session-Based Test Management (SBTM):
+1. Test Charter: Magtakda ng malinaw na layunin (hal. "Subukan ang multi-tier approvals sa mabagal na 3G network").
+2. Timebox: Maglaan ng 45 hanggang 60 minutong walang abalang pagsusuri.
+3. Pananaw: Mag-isip tulad ng mapanirang user at baguhang user para mahuli ang kakaibang behavior.
+4. Debrief: Isulat ang natuklasan at gumawa ng opisyal na bug reports.`,
+  },
+
+  // =========================================================================
+  // 111. API PAGINATION TESTING STRATEGY
+  // =========================================================================
+  {
+    id: "api_pagination_testing",
+    patterns: [
+      /\b(how do you test pagination|api pagination test cases|testing pagination)\b/i,
+      /\b(paano mo tine-?test ang pagination|test cases sa paging|pagination testing)\b/i,
+    ],
+    keywords: ["pagination", "api pagination", "page size", "offset", "cursor"],
+    category: "qa",
+    en: `When testing API pagination (page & limit parameters), I verify:
+1. Default Values: Requesting without parameters defaults to page=1 and limit=10/20.
+2. Boundary Limits: Requesting page=0, page=-1, or page=999999 returns empty lists gracefully without 500 crashes.
+3. Extreme Page Sizes: Requesting limit=0 or limit=1000000 respects maximum server caps (e.g. max 100).
+4. Total Count Meta: Verifying totalItems, totalPages, and hasNextPage accurately match database records.`,
+    tl: `Kapag sinusuri ang API pagination (page at limit parameters), tinitiyak ko ang:
+1. Default Values: Kapag walang parameters, default sa page=1 at limit=10 o 20.
+2. Boundary Limits: Kapag page=0, page=-1, o page=999999, dapat walang crash (HTTP 500) at maayos na magbalik ng empty array.
+3. Extreme Page Sizes: Kapag humingi ng limit=1000000, dapat may maximum cap ang server (hal. hanggang 100 lang).
+4. Meta Data: Tumpak ang totalItems, totalPages, at hasNextPage flags batay sa database.`,
+  },
+
+  // =========================================================================
+  // 112. FILE UPLOAD SECURITY TESTING
+  // =========================================================================
+  {
+    id: "file_upload_security_testing",
+    patterns: [
+      /\b(how do you test file uploads|testing file upload security|file upload test cases)\b/i,
+      /\b(paano mo tine-?test ang pag-upload ng file|file upload security|test cases sa upload)\b/i,
+    ],
+    keywords: [
+      "file upload",
+      "upload security",
+      "mime type",
+      "file size",
+      "malicious upload",
+    ],
+    category: "qa",
+    en: `File upload testing checklist:
+1. Extension vs MIME Spoofing: Rename a malicious .exe or .php file to .png and verify the server inspects the binary magic bytes, rejecting it.
+2. File Size Limits: Test 0-byte empty files, exact boundary limit (e.g. 5.0 MB), and oversized files (5.1 MB) for friendly error messages.
+3. SVG XSS Prevention: Uploading SVG files containing embedded <script> tags must not execute JavaScript when viewed.
+4. Storage Sanitization: Server must rename uploaded files to random UUIDs to prevent directory traversal attacks.`,
+    tl: `Checklist sa pagsusuri ng file uploads:
+1. MIME Spoofing: Palitan ang .exe o .php file ng pangalang .png at tiyaking tinatanggihan ito ng server batay sa binary bytes.
+2. File Size Limits: Subukan ang 0-byte file, saktong limit (5.0 MB), at sumosobrang file (5.1 MB) para sa malinaw na error message.
+3. SVG XSS Check: Ang SVG files na may nakatagong <script> tags ay hindi dapat magpatakbo ng JavaScript sa browser.
+4. Ligtas na Storage: Dapat palitan ng server ang pangalan ng uploaded file gamit ang random UUID para maiwasan ang directory traversal.`,
+  },
+
+  // =========================================================================
+  // 113. DATABASE CONCURRENCY & RACE CONDITION TESTING
+  // =========================================================================
+  {
+    id: "database_concurrency_race_conditions",
+    patterns: [
+      /\b(race condition testing|how do you test concurrency|database race condition|testing race conditions)\b/i,
+      /\b(paano ka mag-?test ng race condition|concurrency testing sa database|sabay-sabay na transaksyon)\b/i,
+    ],
+    keywords: [
+      "race condition",
+      "concurrency",
+      "locking",
+      "acid",
+      "double spend",
+    ],
+    category: "qa",
+    en: `To test for database race conditions:
+1. I send simultaneous asynchronous HTTP requests using Postman collection runner or a script with Promise.all().
+2. I test inventory decrement: purchasing the last item with 2 concurrent requests.
+3. I verify database transactions use SELECT ... FOR UPDATE or optimistic version checks to prevent dirty writes.`,
+    tl: `Para sumubok ng database race conditions:
+1. Nagpapadala ako ng magkasabay na HTTP requests gamit ang script na may Promise.all() o Postman runner.
+2. Sinusubukan ko ang huling stock: dalawang magkasabay na checkout sa iisang produkto.
+3. Tinitiyak kong gumagamit ang database ng tamang locking (SELECT ... FOR UPDATE) para maiwasan ang double deduction.`,
+  },
+
+  // =========================================================================
+  // 114. AGILE SCRUM RITUALS & THE QA ROLE
+  // =========================================================================
+  {
+    id: "agile_scrum_rituals_qa_role",
+    patterns: [
+      /\b(qa role in scrum|agile ceremonies|what do you do in daily standup|sprint retrospective)\b/i,
+      /\b(ano ang role ng qa sa agile|ano ginagawa mo sa standup|pakikilahok sa sprint)\b/i,
+    ],
+    keywords: [
+      "agile",
+      "scrum",
+      "daily standup",
+      "sprint planning",
+      "retrospective",
+    ],
+    category: "qa",
+    en: `My active role in Agile Scrum ceremonies:
+• Sprint Planning: Estimate QA story points, define acceptance criteria, and identify test data requirements.
+• Daily Standup: Share what I verified yesterday, what I am testing today, and raise any blocking environment defects.
+• Backlog Refinement: Challenge requirements early to prevent defects before developers write code.
+• Sprint Retrospective: Highlight testing bottlenecks and propose automated tooling improvements.`,
+    tl: `Ang aking ginagampanan sa Agile Scrum ceremonies:
+• Sprint Planning: Pagtantiya ng QA story points, paggawa ng acceptance criteria, at paghahanda ng test data.
+• Daily Standup: Pagbabahagi ng na-test kahapon, itetest ngayon, at mga blocking issues.
+• Backlog Refinement: Maagang pagbusisi sa requirements bago pa man simulan ang coding.
+• Sprint Retrospective: Pagbibigay ng mungkahi kung paano mapapabilis ang release at testing process.`,
+  },
+
+  // =========================================================================
+  // 115. GIT REBASE VS GIT MERGE
+  // =========================================================================
+  {
+    id: "git_rebase_vs_merge",
+    patterns: [
+      /\b(git rebase vs git merge|when to use rebase|git rebase explained|difference between rebase and merge)\b/i,
+      /\b(pagkakaiba ng git rebase at git merge|kailan ginagamit ang rebase|ano ang git rebase)\b/i,
+    ],
+    keywords: ["git rebase", "git merge", "git history", "linear history"],
+    category: "process",
+    en: `The difference:
+• git merge: Combines branches by creating a dedicated merge commit. It preserves the complete historical timeline but can clutter git history with merge bubbles.
+• git rebase: Moves your feature branch's base to the latest commit on develop/main, rewriting commits to produce a clean, linear history.
+
+Rule of thumb: Use git rebase locally on your private feature branch to stay up to date; use git merge (via Pull Requests) for public shared branches.`,
+    tl: `Ang pagkakaiba:
+• git merge: Pinagsasama ang branches sa pamamagitan ng paggawa ng bagong merge commit. Nananatili ang buong timeline ngunit maaaring maging magulo ang history.
+• git rebase: Inililipat ang base ng iyong feature branch sa dulo ng pinakabagong commit para maging tuwid at malinis ang git history.
+
+Pamantayan: Gamitin ang rebase sa sarili mong feature branch para laging updated; gamitin ang merge sa public main branches sa pamamagitan ng Pull Request.`,
+  },
+
+  // =========================================================================
+  // 116. TYPESCRIPT STRICT MODE BENEFITS
+  // =========================================================================
+  {
+    id: "typescript_strict_mode_benefits",
+    patterns: [
+      /\b(why typescript strict mode|typescript benefits|noimplicitany|why use typescript)\b/i,
+      /\b(bakit mahalaga ang typescript strict mode|bentahe ng typescript|bakit typescript gamit mo)\b/i,
+    ],
+    keywords: [
+      "typescript strict mode",
+      "typesafe",
+      "noimplicitany",
+      "strictnullchecks",
+    ],
+    category: "skills",
+    en: `Enabling TypeScript strict mode catches an entire category of runtime errors during compilation:
+• strictNullChecks: Prevents common "Cannot read property of undefined" crashes.
+• noImplicitAny: Forces explicit typing, ensuring developers and QA understand API contracts.
+• exactOptionalPropertyTypes: Prevents confusing undefined with absent object keys.
+This reduces manual regression testing overhead significantly.`,
+    tl: `Ang pag-enable ng TypeScript strict mode ay humuhuli sa napakaraming runtime errors bago pa i-run ang app:
+• strictNullChecks: Pumipigil sa "Cannot read property of undefined" crashes.
+• noImplicitAny: Pumupwersa sa malinaw na type definitions para alam ng lahat ang format ng data.
+• exactOptionalPropertyTypes: Tinitiyak ang tamang handling ng optional properties.
+Malaki ang nababawas nito sa oras ng pag-debug at manual testing.`,
+  },
+
+  // =========================================================================
+  // 117. MIRAMS ASSET BARCODE & QR SCANNING WORKFLOW
+  // =========================================================================
+  {
+    id: "mirams_asset_barcode_scanning",
+    patterns: [
+      /\b(mirams barcode|asset tracking in mirams|qr code scanning in mirams|how does mirams track assets)\b/i,
+      /\b(paano ang barcode sa mirams|asset tracking sa mirams|qr code scanning sa asset)\b/i,
+    ],
+    keywords: [
+      "mirams barcode",
+      "qr code",
+      "asset tracking",
+      "barcode scanning",
+    ],
+    category: "projects",
+    en: `In MIRAMS, assets are tracked through unique system-generated alphanumeric codes and QR labels:
+1. When an asset is registered, a unique tag is assigned (e.g. \`MIR-IT-2026-0042\`).
+2. Technicians scan the QR code via mobile devices to instantly open the asset's service history, assigned custodian, and maintenance logs.
+3. Audits verify location and status with zero manual data entry errors.`,
+    tl: `Sa MIRAMS, sinusubaybayan ang mga gamit gamit ang system-generated codes at QR labels:
+1. Kapag nag-rehistro ng asset, binibigyan ito ng natatanging tag (hal. \`MIR-IT-2026-0042\`).
+2. Ini-scan ng technicians ang QR code gamit ang phone para agad makita ang maintenance history at kung kanino naka-assign.
+3. Madaling magsagawa ng imbentaryo nang walang pagkakamali sa manual typing.`,
+  },
+
+  // =========================================================================
+  // 118. MIRAMS 8 OPERATIONAL ROLES BREAKDOWN
+  // =========================================================================
+  {
+    id: "mirams_user_roles_breakdown",
+    patterns: [
+      /\b(mirams user roles|what are the 8 roles in mirams|mirams rbac roles|roles in mirams)\b/i,
+      /\b(anong mga role sa mirams|8 roles ng mirams|rbac permissions sa mirams)\b/i,
+    ],
+    keywords: [
+      "mirams roles",
+      "8 roles",
+      "rbac",
+      "spatie permissions",
+      "requester",
+      "plant director",
+    ],
+    category: "projects",
+    en: `MIRAMS implements 8 operational role tiers using Spatie Laravel Permissions:
+1. General Requester: Submits asset requests & IT support tickets.
+2. Department Head: Reviews and endorses requests from department staff.
+3. IT Administrator: Manages hardware assignments, networking tickets, and system users.
+4. Maintenance Technician: Handles scheduled repairs, equipment downtime, and calibration logs.
+5. Warehouse Officer: Manages spare parts inventory and stock receipts.
+6. Internal Auditor: Conducts compliance reviews and depreciation audits.
+7. Plant Operations Director: Approves high-value equipment acquisitions.
+8. System Superadmin: Complete platform administration and security settings.`,
+    tl: `May 8 operational role tiers ang MIRAMS gamit ang Spatie Laravel Permissions:
+1. General Requester: Humihingi ng gamit at nagpasa ng IT support tickets.
+2. Department Head: Nag-aapruba ng requests ng kanyang departamento.
+3. IT Administrator: Nangangasiwa sa hardware assignments at user accounts.
+4. Maintenance Technician: Gumagawa ng repair at calibration logs.
+5. Warehouse Officer: Nangangasiwa sa bodega at spare parts stock.
+6. Internal Auditor: Nagsusuri sa compliance at depreciation ng kagamitan.
+7. Plant Operations Director: Nag-aapruba sa mamahaling kagamitan ng planta.
+8. System Superadmin: Kumpletong kontrol sa buong sistema at seguridad.`,
+  },
+
+  // =========================================================================
+  // 119. NCAMIS STUDENT GRADING COMPUTATION & RECORD LOCKS
+  // =========================================================================
+  {
+    id: "ncamis_student_grading_computation",
+    patterns: [
+      /\b(ncamis grading|how does ncamis compute grades|grade locking in ncamis|ncamis school system)\b/i,
+      /\b(paano ang kwenta ng grades sa ncamis|grade computation sa ncamis|ncamis grading system)\b/i,
+    ],
+    keywords: [
+      "ncamis grading",
+      "grade computation",
+      "deped formula",
+      "record locks",
+    ],
+    category: "projects",
+    en: `In NCAMIS, academic records are computed using DepEd Senior High School formulas:
+1. Written Works, Performance Tasks, and Quarterly Assessments are weighted per track (STEM, ABM, HUMSS, TVL).
+2. The system computes transmutation tables automatically.
+3. Once the grading period closes, records are locked with cryptographic timestamps, requiring registrar authorization to unlock and edit.`,
+    tl: `Sa NCAMIS, kinukwenta ang student grades batay sa DepEd Senior High School standards:
+1. May kanya-kanyang weight ang Written Works, Performance Tasks, at Quarterly Exam para sa bawat strand (STEM, ABM, HUMSS, TVL).
+2. Awtomatikong kinukwenta ang transmuted final grades.
+3. Kapag natapos ang quarter, ila-lock ang grades para hindi na mabago nang walang pahintulot mula sa Registrar.`,
+  },
+
+  // =========================================================================
+  // 120. NOBLECLASSICS SHOPPING CART PERSISTENCE
+  // =========================================================================
+  {
+    id: "nobleclassics_cart_persistence",
+    patterns: [
+      /\b(nobleclassics cart|how does nobleclassics handle cart|cart persistence in nobleclassics)\b/i,
+      /\b(paano gumagana ang cart sa nobleclassics|cart persistence sa online shop)\b/i,
+    ],
+    keywords: [
+      "nobleclassics cart",
+      "cart persistence",
+      "session cart",
+      "localstorage",
+    ],
+    category: "projects",
+    en: `In NobleClassics, cart persistence is designed seamlessly for both guests and authenticated users:
+• Guest Users: Cart items are saved in the browser session and local storage.
+• Logged-in Users: Cart items synchronize with a MySQL database table (\`user_cart_items\`).
+• Login Merging: When a guest logs in with an active local cart, items are merged with their saved database cart without duplicating quantities.`,
+    tl: `Sa NobleClassics, pinamamahalaan ang cart para sa mga bisita at naka-login na users:
+• Bisita (Guest): Nakatago ang items sa browser session at local storage.
+• Naka-login: Naka-sync ang cart sa database table (\`user_cart_items\`).
+• Pag-login: Kapag nag-login ang bisitang may laman ang cart, awtomatikong pinagsasama ang mga gamit sa kanyang account nang hindi nagdo-doble.`,
+  },
+
+  // =========================================================================
+  // 121. FREELANCE VS FULL-TIME STATUS
+  // =========================================================================
+  {
+    id: "freelance_vs_fulltime_status",
+    patterns: [
+      /\b(are you looking for full time or freelance|fulltime vs freelance|do you accept contracts)\b/i,
+      /\b(naghahanap ka ba ng full time o freelance|tumatanggap ka ba ng contractual|full-time ka ba)\b/i,
+    ],
+    keywords: ["full time", "freelance", "contract", "employment type"],
+    category: "about",
+    en: `I am actively open to both full-time permanent positions and freelance/contract projects. My primary objective is delivering reliable software engineering and rigorous QA testing.`,
+    tl: `Bukas ako sa parehong full-time permanenteng trabaho at freelance o contractual na mga proyekto. Ang pangunahin kong layunin ay makapagbigay ng de-kalidad na software at masusing QA testing.`,
+  },
+
+  // =========================================================================
+  // 122. SALARY EXPECTATIONS & COMPENSATIONS
+  // =========================================================================
+  {
+    id: "salary_expectations_flexible",
+    patterns: [
+      /\b(what is your expected salary|salary expectations|asking salary|compensation package)\b/i,
+      /\b(magkano ang asking salary mo|expected salary mo|magkano sahod na gusto mo)\b/i,
+    ],
+    keywords: [
+      "salary",
+      "expected salary",
+      "asking salary",
+      "sahod",
+      "compensation",
+    ],
+    category: "pricing",
+    en: `My expected salary is competitive and in line with industry standards for junior QA testers and web developers in the Philippines. I am open to negotiation based on total compensation, growth opportunities, and remote benefits.`,
+    tl: `Ang aking asking salary ay naaayon sa pamantayan ng industriya para sa junior QA testers at web developers sa Pilipinas. Bukas ako sa negosasyon depende sa kabuuang benepisyo at oportunidad sa kumpanya.`,
+  },
+
+  // =========================================================================
+  // 123. PREFERRED OS & OPERATING SYSTEM ENVIRONMENT
+  // =========================================================================
+  {
+    id: "preferred_os_dev_environment",
+    patterns: [
+      /\b(windows or mac or linux|what os do you use|preferred operating system|wsl2 ubuntu)\b/i,
+      /\b(anong os gamit mo|windows ka ba o mac|linux o windows)\b/i,
+    ],
+    keywords: ["operating system", "windows", "linux", "wsl2", "macos"],
+    category: "about",
+    en: `I develop on Windows 11 leveraging WSL2 (Ubuntu Linux) for terminal-heavy workflows, Docker containers, and Node/PHP scripting, alongside native Windows browser testing.`,
+    tl: `Gumagamit ako ng Windows 11 katuwang ang WSL2 (Ubuntu Linux) para sa mabilisang terminal commands, Docker containers, at backend tools, kasabay ng pagsusuri sa browser.`,
+  },
+
+  // =========================================================================
+  // 124. OVERCOMING IMPOSTOR SYNDROME
+  // =========================================================================
+  {
+    id: "handling_impostor_syndrome",
+    patterns: [
+      /\b(impostor syndrome|how do you deal with impostor syndrome|feeling inadequate in tech)\b/i,
+      /\b(paano mo hinaharap ang impostor syndrome|nakakaramdam ka ba ng pagdududa sa sarili)\b/i,
+    ],
+    keywords: ["impostor syndrome", "confidence", "growth mindset", "learning"],
+    category: "general",
+    en: `I overcome self-doubt by focusing on evidence: tracking solved bugs, committing clean code regularly, acknowledging that no developer knows everything, and treating every error as a learning stepping stone.`,
+    tl: `Hinaharap ko ang pagdududa sa sarili sa pamamagitan ng pagtingin sa mga nagawa: mga naayos na bugs, tuluy-tuloy na pag-aaral, at pagtanggap na walang programmer na alam ang lahat—bawat error ay pagkakataong matuto.`,
+  },
+
+  // =========================================================================
+  // 125. FAVORITE TECH PODCASTS & EDUCATORS
+  // =========================================================================
+  {
+    id: "favorite_tech_podcasts_youtubers",
+    patterns: [
+      /\b(favorite tech youtubers|tech podcasts you listen to|who do you learn from in tech)\b/i,
+      /\b(sino pinapanood mo sa youtube tungkol sa coding|tech creators na gusto mo)\b/i,
+    ],
+    keywords: [
+      "youtubers",
+      "podcasts",
+      "fireship",
+      "primeagen",
+      "kent c dodds",
+      "traversy",
+    ],
+    category: "general",
+    en: `I learn from creators and engineers like Fireship (architecture & trends), The Primeagen (performance & developer tooling), Web Dev Simplified (clean React patterns), and Kent C. Dodds (testing philosophy).`,
+    tl: `Natututo ako mula sa mga kilalang tagapagturo tulad nina Fireship (trends at tech news), The Primeagen (performance at tools), Web Dev Simplified (React patterns), at Kent C. Dodds (testing best practices).`,
+  },
+
+  // =========================================================================
+  // 126. CASUAL GAMING TITLES
+  // =========================================================================
+  {
+    id: "casual_gaming_titles",
+    patterns: [
+      /\b(what video games do you play|favorite games|gamer ka ba|do you play games)\b/i,
+      /\b(anong nilalaro mong games|naglalaro ka ba ng video games|paboritong laro)\b/i,
+    ],
+    keywords: ["games", "gaming", "video games", "laro"],
+    category: "general",
+    en: `During leisure time, I enjoy casual strategy games, sandbox building, and competitive esports titles that exercise analytical thinking and quick decision-making.`,
+    tl: `Kapag may libreng oras, naglalaro ako ng casual strategy games, open-world building, at esports games na nagpapatalas ng diskarte at bilis ng pag-iisip.`,
+  },
+
+  // =========================================================================
+  // 127. FAVORITE PROGRAMMING LANGUAGE
+  // =========================================================================
+  {
+    id: "favorite_programming_language",
+    patterns: [
+      /\b(what is your favorite programming language|favorite coding language|typescript or php)\b/i,
+      /\b(anong paborito mong programming language|paborito mong language sa coding)\b/i,
+    ],
+    keywords: ["favorite language", "typescript", "javascript", "php"],
+    category: "skills",
+    en: `TypeScript is my favorite programming language. The type safety, expressive interfaces, autocomplete support, and flexibility across both client and server make it an absolute joy to build with.`,
+    tl: `TypeScript ang paborito kong programming language dahil sa type safety, malinaw na interfaces, mabilis na autocomplete, at kakayahang magamit sa parehong frontend at backend.`,
+  },
+
+  // =========================================================================
+  // 128. FRONTEND VS BACKEND VERDICT
+  // =========================================================================
+  {
+    id: "frontend_vs_backend_verdict",
+    patterns: [
+      /\b(do you prefer frontend or backend|frontend or backend|mas gusto mo ba frontend o backend)\b/i,
+      /\b(mas gusto mo ba frontend o backend|alin mas gusto mo frontend o backend)\b/i,
+    ],
+    keywords: ["frontend vs backend", "preference", "ui", "api"],
+    category: "skills",
+    en: `I enjoy both equally for different reasons: Frontend provides the instant gratification of creating intuitive, responsive interfaces, while Backend provides the intellectual challenge of database modeling and data integrity.`,
+    tl: `Gusto ko pareho: Sa Frontend masaya ang pagbuo ng malinis at magandang interface na nakikita agad ng tao, habang sa Backend naman ay nakatutok sa lohika ng database at seguridad ng data.`,
+  },
+
+  // =========================================================================
+  // 129. WHY INFORMATION SYSTEMS DEGREE
+  // =========================================================================
+  {
+    id: "why_information_systems_degree",
+    patterns: [
+      /\b(why did you choose information systems|why bsis|bsis vs cs|bsis vs it)\b/i,
+      /\b(bakit information systems kinuha mo|bakit bsis|ano ang bsis kumpara sa it)\b/i,
+    ],
+    keywords: [
+      "information systems",
+      "bsis",
+      "degree choice",
+      "business and tech",
+    ],
+    category: "about",
+    en: `I chose Information Systems because it sits right at the intersection of computer software and real business operations. It taught me not just how to code, but how systems deliver measurable business value and efficiency to organizations.`,
+    tl: `Pinili ko ang Information Systems dahil pinagdurugtong nito ang software engineering at pamamalakad ng negosyo. Tinuruan ako nito kung paano bumuo ng software na tunay na kapaki-pakinabang sa operasyon ng kumpanya.`,
+  },
+
+  // =========================================================================
+  // 130. HOW KENNU HANDLES OVERTIME
+  // =========================================================================
+  {
+    id: "handling_overtime_willingness",
+    patterns: [
+      /\b(are you willing to work overtime|overtime willingness|can you do ot)\b/i,
+      /\b(willing ka ba mag-?overtime|kaya mo ba mag-?ot kapag kailangan)\b/i,
+    ],
+    keywords: ["overtime", "ot", "extra hours", "crunch"],
+    category: "about",
+    en: `Yes, I am fully willing to work overtime when critical deadlines, product releases, or high-priority production incidents demand it, while valuing structured sprint planning to prevent unnecessary crunch.`,
+    tl: `Oo, bukas at handa akong mag-overtime kapag may kritikal na release, deadline, o emergency incident, habang pinahahalagahan din ang maayos na plano sa sprint para maiwasan ang unneeded pagod.`,
+  },
+
+  // =========================================================================
+  // 131. CLIENT TESTIMONIAL & WORK REPUTATION
+  // =========================================================================
+  {
+    id: "client_testimonial_reputation",
+    patterns: [
+      /\b(how do colleagues describe you|work reputation|client feedback|work ethic)\b/i,
+      /\b(paano ka ilarawan ng mga katrabaho mo|work ethic mo|reputasyon mo sa trabaho)\b/i,
+    ],
+    keywords: ["reputation", "work ethic", "feedback", "reliable"],
+    category: "about",
+    en: `Colleagues and mentors know me as detail-oriented, reliable, and calm under pressure. I test deeply, write clean maintainable code, and communicate proactively without ego.`,
+    tl: `Inilalarawan ako ng aking mga guro at kasamahan bilang masusi, maaasahan, at kalmado kahit may deadline. Masusi akong sumuri, malinis magsulat ng code, at maayos makipag-usap sa team.`,
+  },
+
+  // =========================================================================
+  // 132. HOW TO VIEW PROJECTS LIVE OR INSPECT CODE
+  // =========================================================================
+  {
+    id: "how_to_view_projects_live",
+    patterns: [
+      /\b(where can i see your code|how to view your projects|live demo|github repositories)\b/i,
+      /\b(saan makikita ang code mo|paano ma-view ang projects mo|live demo ng mga gawa mo)\b/i,
+    ],
+    keywords: ["view projects", "live demo", "code inspection", "github repos"],
+    category: "projects",
+    en: `You can explore my projects right here in the Projects section of this portfolio, or inspect the source repositories and commit histories directly on GitHub at https://github.com/elnarkennu16-440.`,
+    tl: `Maaari mong makita ang aking mga gawa sa mismong Projects section ng portfolio na ito, o suriin ang source code at commits sa aking GitHub sa https://github.com/elnarkennu16-440.`,
   },
 ];

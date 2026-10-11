@@ -4,7 +4,7 @@ import { KENNU_BIO, QA_DATABASE, QAEntry } from "../content/chatbotKnowledge";
 export function detectLanguage(text: string): "tl" | "en" {
   const lower = text.toLowerCase();
   const tagalogIndicators = [
-    /\b(ano|anong|sino|sinong|paano|bakit|saan|kailan|nasaan|meron|wala|po|opo|ba|ng|mga|sa|kay|si|kung|pwede|puwede|pede|kumusta|kamusta|musta|salamat|taga|trabaho|gawa|ito|iyan|iyon|dito|dyan|doon|ako|ikaw|siya|tayo|sila|magkano|talaga|naman|lang|kasi|dahil|ginusto|pinili|jowa|gutom|ulam|tulog|puyat|singil|lugar|totoo|tunay|bentahe|pangalan|tawag|kasanayan|kumpanya|proyekto)\b/i,
+    /\b(ano|anong|sino|sinong|paano|bakit|saan|san|kailan|kelan|nasaan|meron|wala|po|opo|ba|ng|mga|sa|kay|si|kung|pwede|puwede|pede|kumusta|kamusta|musta|salamat|taga|trabaho|gawa|ito|iyan|iyon|dito|dyan|doon|ako|ikaw|ka|ko|mo|siya|tayo|sila|kami|natin|inyo|amin|magkano|talaga|naman|lang|kasi|dahil|ginusto|pinili|jowa|gutom|ulam|tulog|puyat|singil|lugar|totoo|tunay|pangalan|tawag|kasanayan|proyekto|nag-?aral|nagtapos|kurso|pakilala|magpakilala|pahingi|patingin|bigyan|paalam|ingat|gamit|yung|ung|sarili)\b/i,
   ];
 
   for (const regex of tagalogIndicators) {
@@ -112,10 +112,10 @@ function escapeRegExp(string: string) {
 }
 
 export const PROFESSIONAL_FALLBACK_EN =
-  "Inquiry acknowledged. For context regarding this portfolio: Kennu Elnar is an analytical Quality and Web Developer based in the Philippines. His technical discipline encompasses end-to-end software verification, defect lifecycle governance, and modern web application development using React, TypeScript, Tailwind CSS, and Playwright automation. Notable systems comprise MIRAMS (Enterprise Asset & Request Management), NCAMIS (Academic Management Architecture), and NobleClassics (Curated E-Commerce Infrastructure). You may download his complete Curriculum Vitae from the Capabilities section or initiate direct professional correspondence via elnarkennu16@gmail.com.";
+  "I'm Kennu Elnar, a Junior QA Tester and Web Developer. Feel free to ask about my background, skills, projects (MIRAMS, NCAMIS, NobleClassics), or email me directly at elnarkennu16@gmail.com.";
 
 export const PROFESSIONAL_FALLBACK_TL =
-  "Kinikilala ang iyong katanungan. Bilang konteksto hinggil sa portfoliong ito: Si Kennu Elnar ay isang masusing Quality Assurance at Web Developer mula sa Pilipinas. Nakapokus ang kanyang disiplina sa komprehensibong pagberipika ng software, pamamahala ng defect lifecycle, at arkitektura ng modernong web applications gamit ang React, TypeScript, Tailwind CSS, at Playwright automation. Kabilang sa kanyang mga naisakatuparang sistema ang MIRAMS (Enterprise Asset & Request Management), NCAMIS (Academic Information Architecture), at NobleClassics (E-Commerce Infrastructure). Maaari mong suriin at i-download ang kanyang opisyal na Curriculum Vitae sa seksyon ng Capabilities, o direktang makipag-ugnayan sa elnarkennu16@gmail.com para sa mga propesyonal na talakayan.";
+  "Ako si Kennu Elnar, isang Junior QA Tester at Web Developer. Maaari mo akong tanungin tungkol sa aking background, skills, mga proyekto (MIRAMS, NCAMIS, NobleClassics), o mag-email sa elnarkennu16@gmail.com.";
 
 /**
  * High-accuracy query matcher with prioritized question intent parsing,
@@ -130,7 +130,7 @@ export function getSmartLocalResponse(
 
   // Check if input contains substantive question words or topic indicators
   const hasQuestionIntent =
-    /\b(bakit|ano|anong|sino|sinong|paano|saan|kailan|magkano|pwede|puwede|pede|may|pangalan|why|what|who|how|where|when|can|is|are|does|do|could|should|tell|explain|name)\b/i.test(
+    /\b(bakit|ano|anong|sino|sinong|paano|saan|san|kailan|kelan|magkano|pwede|puwede|pede|may|pangalan|why|what|who|how|where|when|can|is|are|does|do|could|should|tell|explain|name)\b/i.test(
       cleanInput,
     );
 
@@ -217,7 +217,7 @@ export function getSmartLocalResponse(
     return lang === "tl" ? bestEntry.tl : bestEntry.en;
   }
 
-  // 3. Fallback: Cold, minimalist, high-level professional overview
+  // 3. Fallback: Straight-to-the-point concise introduction
   return lang === "tl" ? PROFESSIONAL_FALLBACK_TL : PROFESSIONAL_FALLBACK_EN;
 }
 
@@ -242,17 +242,17 @@ export function translateBotResponseText(
 ): string {
   const trimmed = text.trim();
 
-  // Handle greetings (both initial and formal greetings)
+  // Handle greetings
   const GREETING_EN =
-    "I am the autonomous AI assistant for Kennu Elnar's portfolio. You may submit inquiries regarding his QA methodologies, technical architectures, full-stack systems, or curriculum vitae. Inquiries are processed in English, Filipino, or Taglish.";
+    "Hello! I am an autonomous AI assistant for Kennu Elnar's portfolio, Feel free to look around and ask me anything about my background, projects, skills, or tech stack. Whether you have questions, feedback, or ideas to share, don't hesitate to reach out. You're welcome to ask in either English or Tagalog!";
   const GREETING_TL =
-    "Ako ang opisyal na AI assistant para sa portfolio ni Kennu Elnar. Maaari kang sumangguni hinggil sa kanyang mga metodolohiya sa QA, arkitektura ng software, mga natapos na sistema, o curriculum vitae sa wikang Filipino, Ingles, o Taglish.";
+    "Kamusta, Ako ang autonomous AI assistant para sa portfolio ni Kennu Elnar!. Huwag mag-atubiling magtanong tungkol sa aking background, mga proyekto, kasanayan, o tech stack. Kung may mga katanungan, puna, o ideya kang nais ibahagi, huwag mag-atubiling makipag-ugnayan. Maaari kang magtanong sa Ingles o Tagalog!";
 
-  // Legacy greeting variations fallback
+  // Previous greetings variations
   const GREETING_EN_OLD =
-    "Hello! I am Kennu Elnar's virtual assistant. Ask me anything about Kennu's QA testing, projects, tech stack, or CV. You can ask in English, Tagalog, or Taglish!";
+    "I am the autonomous AI assistant for Kennu Elnar's portfolio. You may submit inquiries regarding his Background methodologies, technical skills, full-stack systems, or curriculum vitae. Inquiries are processed in English, Filipino, or Taglish.";
   const GREETING_TL_OLD =
-    "Magandang araw! Ako ang virtual assistant ni Kennu Elnar. Maaari kang magtanong tungkol sa kanyang QA testing, mga proyekto, kakayahan, o CV sa Tagalog, Ingles, o Taglish!";
+    "Ako ang autonomous AI assistant para sa portfolio ni Kennu Elnar. Maaari kang magtanong tungkol sa kanyang Background methodologies, technical skills, full-stack systems, o curriculum vitae. Ang mga tanong ay pinoproseso sa Ingles, Filipino, o Taglish.";
 
   if (
     trimmed === GREETING_EN ||
