@@ -50,10 +50,10 @@ const QUICK_PROMPTS_TL = [
 ];
 
 const INITIAL_GREETING_EN =
-  "Hi! I'm Kennu Elnar. Feel free to ask me anything about my projects, QA testing skills, tech stack, or CV. You can ask in English or Tagalog!";
+  "Hello! I am an autonomous AI assistant for Kennu Elnar's portfolio, Feel free to look around and ask me anything about my background, projects, skills, or tech stack. Whether you have questions, feedback, or ideas to share, don't hesitate to reach out. You're welcome to ask in either English or Tagalog!";
 
 const INITIAL_GREETING_TL =
-  "Kumusta! Ako si Kennu Elnar. Huwag mag-atubiling magtanong tungkol sa aking mga proyekto, QA testing skills, tech stack, o CV sa English o Tagalog!";
+  "Kamusta, Ako ang autonomous AI assistant para sa portfolio ni Kennu Elnar!. Huwag mag-atubiling magtanong tungkol sa aking background, mga proyekto, kasanayan, o tech stack. Kung may mga katanungan, puna, o ideya kang nais ibahagi, huwag mag-atubiling makipag-ugnayan. Maaari kang magtanong sa Ingles o Tagalog!";
 
 export const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
