@@ -53,7 +53,7 @@ const INITIAL_GREETING_EN =
   "HHello! I am an autonomous AI assistant for Kennu Elnar's portfolio. My responses are limited and based strictly on his provided information. Feel free to look around and ask me about his background, projects, skills, or tech stack. Whether you have questions, feedback, or ideas to share, don't hesitate to reach out. You're welcome to ask in either English or Tagalog!";
 
 const INITIAL_GREETING_TL =
-  "Kamusta! Ako ang autonomous AI assistant para sa portfolio ni Kennu Elnar. Ang aking mga sagot ay limitado at nakabatay lamang sa impormasyong ibinigay niya. Huwag mag-atubiling magtanong tungkol sa kanyang background, mga proyekto, kasanayan, o tech stack. Kung may mga katanungan, puna, o ideya kang nais ibahagi, huwag mag-atubiling makipag-ugnayan. Maaari kang magtanong sa Ingles o Tagalog!";
+  "Kamusta! Ako ang autonomous AI assistant para sa portfolio ni Kennu Elnar. Ang aking mga sagot ay limitado at nakabatay lamang sa impormasyong ibinigay niya. Huwag mag-atubiling magtanong tungkol sa kanyang background, mga proyekto, kasanayan, o tech stacks. Kung may mga katanungan, puna, o ideya kang nais ibahagi, huwag mag-atubiling makipag-ugnayan. Maaari kang magtanong sa Ingles o Tagalog!";
 
 export const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
