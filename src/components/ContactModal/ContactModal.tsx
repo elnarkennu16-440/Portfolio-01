@@ -404,17 +404,17 @@ export const ContactModal: React.FC<ContactModalProps> = ({
               <div className={styles.formStatusNotice} role="status">
                 <span>{submissionStatus}</span>
                 {submissionError && (
-                  <div className="mt-2 flex flex-wrap gap-2 items-center">
+                  <div className={styles.fallbackActions}>
                     <button
                       type="button"
                       onClick={launchMailtoFallback}
-                      className="bg-transparent border border-[var(--border-hairline)] text-[var(--text-primary)] px-2.5 py-1 rounded text-xs font-mono cursor-pointer hover:border-[var(--border-strong)] transition-colors"
+                      className={styles.openEmailButton}
                     >
                       Open Email App ↗
                     </button>
                     <a
                       href={`mailto:${siteContent.meta.email}`}
-                      className="text-[var(--text-secondary)] underline text-xs font-mono hover:text-[var(--text-primary)] transition-colors"
+                      className={styles.fallbackEmailLink}
                     >
                       {siteContent.meta.email}
                     </a>

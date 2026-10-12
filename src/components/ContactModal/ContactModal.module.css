@@ -5,8 +5,10 @@
   left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  width: 100vw !important;
+  width: 100% !important;
+  height: 100% !important;
   height: 100vh !important;
+  height: 100dvh !important;
   background-color: rgba(0, 0, 0, 0.72) !important;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
@@ -14,6 +16,20 @@
   align-items: center !important;
   justify-content: center !important;
   padding: var(--space-4) !important;
+  padding-top: max(var(--space-4), env(safe-area-inset-top, 16px)) !important;
+  padding-bottom: max(
+    var(--space-4),
+    env(safe-area-inset-bottom, 16px)
+  ) !important;
+  padding-left: max(var(--space-4), env(safe-area-inset-left, 16px)) !important;
+  padding-right: max(
+    var(--space-4),
+    env(safe-area-inset-right, 16px)
+  ) !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch;
   z-index: 9999999 !important;
   animation: fadeInBackdrop 200ms ease forwards;
 }
@@ -29,19 +45,36 @@
 
 .modalDialog {
   position: relative !important;
+  box-sizing: border-box !important;
   width: 100% !important;
   max-width: 560px !important;
   max-height: min(88vh, 640px) !important;
+  max-height: min(88dvh, 640px) !important;
   overflow-y: auto !important;
   overscroll-behavior: contain !important;
+  -webkit-overflow-scrolling: touch;
   background-color: var(--bg-surface) !important;
   border: 1px solid var(--border-hairline) !important;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45) !important;
   padding: clamp(var(--space-5), 4vw, var(--space-8)) !important;
   display: flex !important;
   flex-direction: column !important;
+  margin: auto !important;
   animation: slideUpModal 240ms var(--ease-editorial) forwards;
   z-index: 10000000 !important;
+}
+
+.modalDialog::-webkit-scrollbar {
+  width: 5px;
+}
+
+.modalDialog::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modalDialog::-webkit-scrollbar-thumb {
+  background: var(--border-hairline);
+  border-radius: 4px;
 }
 
 [data-theme="dark"] .modalDialog {
@@ -201,6 +234,157 @@
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--text-muted);
+}
+
+.fallbackActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.openEmailButton {
+  background: transparent;
+  border: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) ease,
+    color var(--duration-fast) ease;
+}
+
+.openEmailButton:hover {
+  border-color: var(--border-strong);
+}
+
+.fallbackEmailLink {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-decoration: underline;
+  transition: color var(--duration-fast) ease;
+}
+
+.fallbackEmailLink:hover {
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   Mobile & Responsive Adjustments (Universal Phone Support)
+   ========================================================================== */
+@media (max-width: 640px) {
+  .backdrop {
+    padding: 12px 10px !important;
+    padding-top: max(12px, env(safe-area-inset-top, 12px)) !important;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+    padding-left: max(10px, env(safe-area-inset-left, 10px)) !important;
+    padding-right: max(10px, env(safe-area-inset-right, 10px)) !important;
+  }
+
+  .modalDialog {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: calc(100vh - 24px) !important;
+    max-height: calc(
+      100dvh -
+        max(
+          24px,
+          env(safe-area-inset-top, 12px) + env(safe-area-inset-bottom, 12px)
+        )
+    ) !important;
+    padding: 16px 14px 18px 14px !important;
+    border-radius: 4px !important;
+  }
+
+  .dialogHeader {
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+
+  .dialogTitle {
+    font-size: 1.25rem;
+    line-height: 1.2;
+  }
+
+  .dialogSubtitle {
+    font-size: 11px;
+  }
+
+  .closeButton {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  .fallbackNotice {
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .form {
+    gap: 10px;
+  }
+
+  .fieldGroup {
+    gap: 3px;
+  }
+
+  .fieldLabel {
+    font-size: 11px;
+  }
+
+  .inputField {
+    padding: 8px 10px;
+    font-size: 14px;
+    min-height: 38px;
+  }
+
+  .textareaField {
+    padding: 8px 10px;
+    font-size: 14px;
+    min-height: 72px;
+  }
+
+  .submitRow {
+    margin-top: 2px;
+    padding-top: 10px;
+    gap: 8px;
+  }
+}
+
+/* Landscape / Ultra-compact height adaptation */
+@media (max-height: 640px) and (max-width: 900px) {
+  .modalDialog {
+    max-height: calc(100vh - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+    padding: 12px 14px !important;
+  }
+
+  .dialogHeader {
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+
+  .fallbackNotice {
+    padding: 6px 8px;
+    margin-bottom: 8px;
+    font-size: 10.5px;
+  }
+
+  .form {
+    gap: 8px;
+  }
+
+  .textareaField {
+    min-height: 60px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
