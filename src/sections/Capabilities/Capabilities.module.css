@@ -353,10 +353,17 @@
 .itemRow {
   display: flex;
   flex-direction: column;
+  justify-content: flex-start;
   gap: 3px;
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--border-hairline);
   transition: transform var(--duration-fast) var(--ease-editorial);
+}
+
+@media (min-width: 640px) {
+  .itemRow {
+    min-height: 5.5rem;
+  }
 }
 
 .itemRow:hover {

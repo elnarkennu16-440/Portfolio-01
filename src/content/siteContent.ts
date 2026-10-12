@@ -229,31 +229,31 @@ export const siteContent = {
           {
             name: "Modern HTML5 & CSS3",
             description:
-              "Crafting responsive, accessible layouts with modern semantic markup and CSS architecture.",
+              "Building responsive, accessible layouts with clean semantic markup and structured styling.",
             level: "Using",
           },
           {
             name: "JavaScript (ES6+)",
             description:
-              "Developing dynamic client-side logic, event-driven workflows, and asynchronous API integrations.",
+              "Writing client-side logic, handling user events, and consuming REST APIs in web applications.",
             level: "Using",
           },
           {
             name: "React & Tailwind CSS",
             description:
-              "Building modular, component-driven UI architectures with scalable utility styling and state management.",
+              "Building component-based user interfaces with utility-first styling and reusable layouts.",
             level: "Using",
           },
           {
             name: "TypeScript",
             description:
-              "Enforcing static typing, strict interface contracts, and maintainable enterprise-level code.",
+              "Learning static typing, interfaces, and type safety for modern JavaScript and React projects.",
             level: "Learning",
           },
           {
-            name: "Python",
+            name: "Vue.js",
             description:
-              "Scripting algorithmic logic, lightweight utility backends, and data processing automation.",
+              "Exploring progressive UI development, reactivity fundamentals, and component-based layouts.",
             level: "Learning",
           },
         ],
@@ -262,33 +262,33 @@ export const siteContent = {
         category: "QA & Testing",
         items: [
           {
-            name: "Functional & Regression Testing",
+            name: "Manual Testing",
             description:
-              "Executing comprehensive manual test suites to validate functional requirements and product stability.",
+              "Executing manual test cases to verify core features, validate user flows, and catch regressions.",
             level: "Using",
           },
           {
-            name: "Test Case Architecture",
+            name: "Test Case Design",
             description:
-              "Designing detailed test scenarios, boundary conditions, and acceptance criteria matrices.",
+              "Writing detailed test scenarios, boundary conditions, expected outcomes, and acceptance criteria.",
             level: "Using",
           },
           {
-            name: "Defect Lifecycle & Triage",
+            name: "Bug Reporting & Triage",
             description:
-              "Documenting detailed reproduction steps, network telemetry, and severity-ranked bug reports.",
+              "Documenting clear reproduction steps, expected vs. actual results, and severity-ranked defect logs.",
             level: "Using",
           },
           {
             name: "Playwright",
             description:
-              "Implementing automated end-to-end regression suites and cross-browser interaction testing.",
+              "Learning to write basic automated test scripts for web UI flows, locators, and user interactions.",
             level: "Learning",
           },
           {
-            name: "API & Contract Testing",
+            name: "API Testing",
             description:
-              "Validating endpoint schemas, HTTP status response integrity, and backend payload contracts.",
+              "Testing REST endpoints for correct HTTP status codes, request/response formats, and error handling.",
             level: "Learning",
           },
         ],
@@ -299,31 +299,31 @@ export const siteContent = {
           {
             name: "Git & GitHub",
             description:
-              "Managing collaborative trunk-based workflows, feature branches, and pull request code reviews.",
+              "Using Git and GitHub for daily version control, feature branching, commits, and pull requests.",
             level: "Using",
           },
           {
             name: "VS Code & Cursor",
             description:
-              "Optimized workspace configuration for rapid full-stack debugging, linting, and development flow.",
+              "Everyday code editing, basic debugging, linting, and working with helpful development tools.",
             level: "Using",
           },
           {
             name: "Chrome DevTools",
             description:
-              "Inspecting DOM hierarchies, profiling network traffic, and debugging runtime console issues.",
+              "Inspecting DOM elements, checking console logs, and monitoring network requests in the browser.",
             level: "Using",
           },
           {
-            name: "Postman",
+            name: "Node.js",
             description:
-              "Constructing, testing, and debugging RESTful API endpoints and authentication headers.",
+              "Installing project dependencies, managing npm packages and running scripts.",
             level: "Using",
           },
           {
             name: "Vite & Modern Tooling",
             description:
-              "Configuring lightning-fast build pipelines, hot module replacement, and modern asset bundling.",
+              "Learning modern frontend build tools, fast local dev servers, and clean project bundling.",
             level: "Learning",
           },
         ],

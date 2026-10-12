@@ -22,18 +22,36 @@ interface FormErrors {
   message?: string;
 }
 
-// EmailJS Service & Template identifiers provided by user:
+// Guard against common optical confusion between lowercase 'l' and digit '1'
+const normalizeTemplateId = (
+  id: string | undefined,
+  defaultId: string,
+): string => {
+  if (!id) return defaultId;
+  const trimmed = id.trim();
+  if (trimmed === "template_vcl3ub1") return "template_vcl3ubl";
+  if (trimmed === "template_fk2v1nu") return "template_fk2vlnu";
+  return trimmed;
+};
+
+// EmailJS Service & Template identifiers:
 // Service ID (Gmail): service_jywlhsz
 // Contact Us Template ID (Notification to Kennu): template_vcl3ubl
 // Auto-Reply Template ID (Confirmation to Sender): template_fk2vlnu
-const EMAILJS_SERVICE_ID =
-  import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_jywlhsz";
-const EMAILJS_TEMPLATE_ID =
-  import.meta.env.VITE_EMAILJS_TEMPLATE_ID || "template_vcl3ubl";
-const EMAILJS_AUTOREPLY_TEMPLATE_ID =
-  import.meta.env.VITE_EMAILJS_AUTOREPLY_TEMPLATE_ID || "template_fk2vlnu";
-const EMAILJS_PUBLIC_KEY =
-  import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "OnBse-4nZVFDGjy43";
+const EMAILJS_SERVICE_ID = (
+  import.meta.env.VITE_EMAILJS_SERVICE_ID || "service_jywlhsz"
+).trim();
+const EMAILJS_TEMPLATE_ID = normalizeTemplateId(
+  import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+  "template_vcl3ubl",
+);
+const EMAILJS_AUTOREPLY_TEMPLATE_ID = normalizeTemplateId(
+  import.meta.env.VITE_EMAILJS_AUTOREPLY_TEMPLATE_ID,
+  "template_fk2vlnu",
+);
+const EMAILJS_PUBLIC_KEY = (
+  import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "OnBse-4nZVFDGjy43"
+).trim();
 
 // Resilient dispatcher supporting both SDK and native fetch REST API
 const sendViaEmailJS = async (
@@ -80,6 +98,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [submissionStatus, setSubmissionStatus] = useState<string | null>(null);
+  const [submissionError, setSubmissionError] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -118,7 +137,8 @@ export const ContactModal: React.FC<ContactModalProps> = ({
     }
 
     setIsSubmitting(true);
-    setSubmissionStatus("Transmitting via EmailJS...");
+    setSubmissionError(false);
+    setSubmissionStatus("Sending message...");
 
     const templateParams = {
       // Sender Details
@@ -156,17 +176,24 @@ export const ContactModal: React.FC<ContactModalProps> = ({
           EMAILJS_PUBLIC_KEY,
         );
 
-        // 2. Auto-Reply: Send immediate confirmation copy to sender
+        // 2. Auto-Reply: Send confirmation copy to sender
         if (EMAILJS_AUTOREPLY_TEMPLATE_ID) {
           try {
+            const autoReplyParams = {
+              ...templateParams,
+              to_name: formData.name.trim(),
+              to_email: formData.email.trim(),
+              recipient: formData.email.trim(),
+              recipient_email: formData.email.trim(),
+            };
             await sendViaEmailJS(
               EMAILJS_SERVICE_ID,
               EMAILJS_AUTOREPLY_TEMPLATE_ID,
-              templateParams,
+              autoReplyParams,
               EMAILJS_PUBLIC_KEY,
             );
           } catch (autoReplyError) {
-            console.warn("EmailJS auto-reply note:", autoReplyError);
+            console.warn("Auto-reply delivery note:", autoReplyError);
           }
         }
 
@@ -180,20 +207,19 @@ export const ContactModal: React.FC<ContactModalProps> = ({
           setSubmissionStatus(null);
         }, 2200);
       } catch (err: unknown) {
-        console.error("EmailJS transmission error:", err);
+        console.error("Transmission error:", err);
+        setSubmissionError(true);
         setSubmissionStatus(
-          "EmailJS error encountered. Launching email client fallback...",
+          "Direct transmission could not be completed. You can send directly via your email client below:",
         );
-        launchMailtoFallback();
       } finally {
         setIsSubmitting(false);
       }
     } else {
-      // If Public Key isn't defined yet, provide graceful guidance and launch mailto
+      setSubmissionError(true);
       setSubmissionStatus(
-        "Opening default email client with your formatted message...",
+        "No email service configured. Please use your email client below:",
       );
-      launchMailtoFallback();
       setIsSubmitting(false);
     }
   };
@@ -253,14 +279,12 @@ export const ContactModal: React.FC<ContactModalProps> = ({
           </button>
         </div>
 
-        {/* Direct Transmission Notice */}
+        {/* Direct Message Notice */}
         <div className={styles.fallbackNotice} role="note">
-          <strong>Direct Transmission Notice:</strong>{" "}
+          <strong>Direct Message Notice:</strong>{" "}
           <span>
-            Connected via <strong>EmailJS</strong> (Service:{" "}
-            <code>{EMAILJS_SERVICE_ID}</code>). Messages are delivered directly
-            to <strong>{siteContent.meta.email}</strong> with an automated
-            confirmation sent to your inbox.
+            Messages submitted through this form are delivered directly to my
+            inbox with an automated confirmation sent to your email address.
           </span>
         </div>
 
@@ -377,9 +401,26 @@ export const ContactModal: React.FC<ContactModalProps> = ({
             </button>
 
             {submissionStatus && (
-              <span className={styles.formStatusNotice} role="status">
-                {submissionStatus}
-              </span>
+              <div className={styles.formStatusNotice} role="status">
+                <span>{submissionStatus}</span>
+                {submissionError && (
+                  <div className="mt-2 flex flex-wrap gap-2 items-center">
+                    <button
+                      type="button"
+                      onClick={launchMailtoFallback}
+                      className="bg-transparent border border-[var(--border-hairline)] text-[var(--text-primary)] px-2.5 py-1 rounded text-xs font-mono cursor-pointer hover:border-[var(--border-strong)] transition-colors"
+                    >
+                      Open Email App ↗
+                    </button>
+                    <a
+                      href={`mailto:${siteContent.meta.email}`}
+                      className="text-[var(--text-secondary)] underline text-xs font-mono hover:text-[var(--text-primary)] transition-colors"
+                    >
+                      {siteContent.meta.email}
+                    </a>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </form>
