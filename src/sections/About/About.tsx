@@ -9,24 +9,10 @@ export const About: React.FC = () => {
   const { elementRef: sectionRef, isRevealed: isHeaderRevealed } =
     useScrollReveal<HTMLElement>({ threshold: 0.1 });
 
-  // Dedicated observer for the cards: ONE-TIME ONLY reveal when scrolled down
+  // Dedicated observer for the 3 Core Focus cards: triggers architectural split-reveal when scrolled into view
   const cardsContainerRef = useRef<HTMLDivElement | null>(null);
   const [isCardsRevealed, setIsCardsRevealed] = useState(false);
-  const [isAnimationFinished, setIsAnimationFinished] = useState(false);
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout | null = null;
-    if (isCardsRevealed) {
-      // Phase 1 (Right halves): delay 0.15s, duration 1.25s
-      // Phase 2 (Left halves): delay 0.70s, duration 1.25s (completes at 1.95s)
-      timer = setTimeout(() => {
-        setIsAnimationFinished(true);
-      }, 2100);
-    }
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
-  }, [isCardsRevealed]);
+  const [animationFinished, setAnimationFinished] = useState(false);
 
   useEffect(() => {
     if (isCardsRevealed) return;
@@ -34,7 +20,6 @@ export const About: React.FC = () => {
     const el = cardsContainerRef.current;
     if (!el || typeof IntersectionObserver === "undefined") {
       setIsCardsRevealed(true);
-      setIsAnimationFinished(true);
       return;
     }
 
@@ -42,7 +27,6 @@ export const About: React.FC = () => {
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            // Trigger ONE-TIME ONLY animation!
             setIsCardsRevealed(true);
             observer.unobserve(entry.target);
             observer.disconnect();
@@ -50,7 +34,7 @@ export const About: React.FC = () => {
         });
       },
       {
-        threshold: 0.28,
+        threshold: 0.18,
         rootMargin: "0px 0px -40px 0px",
       },
     );
@@ -61,6 +45,16 @@ export const About: React.FC = () => {
       observer.disconnect();
     };
   }, [isCardsRevealed]);
+
+  // Once both split phases have landed (1.25s + 0.7s delay = ~1.95s), cleanly merge into unified interactive cards
+  useEffect(() => {
+    if (isCardsRevealed && !animationFinished) {
+      const timer = setTimeout(() => {
+        setAnimationFinished(true);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isCardsRevealed, animationFinished]);
 
   return (
     <section
@@ -90,12 +84,12 @@ export const About: React.FC = () => {
           <div className={styles.headerUnderline} aria-hidden="true" />
         </div>
 
-        {/* Staggered Editorial Layout: One-time reveal when whole UI is reached */}
+        {/* Staggered Editorial Layout */}
         <div
           ref={cardsContainerRef}
           className={`${styles.editorialLayout} ${
             isCardsRevealed ? styles.isCardsRevealed : ""
-          } ${isAnimationFinished ? styles.animationFinished : ""}`}
+          } ${animationFinished ? styles.animationFinished : ""}`}
         >
           {/* Left Column: Narrative */}
           <div className={styles.narrativeCol}>
@@ -137,7 +131,7 @@ export const About: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: 3 Core Pillars */}
+          {/* Right Column: 3 Core Focus Cards with Original Two-Phase Architectural Split-Reveal Animation */}
           <div className={styles.principlesCol}>
             <div className={styles.principlesHeader}>
               <span>CORE FOCUS</span>
@@ -148,27 +142,28 @@ export const About: React.FC = () => {
 
               return (
                 <div key={principle.term} className={styles.splitCardContainer}>
-                  {/* Base full card (permanent layout, interactive after merge) */}
+                  {/* Base card for permanent layout, elevation & interaction */}
                   <div className={styles.principleCard}>
                     <div className={styles.principleMeta}>
                       <span className={styles.principleNumber}>
                         {formattedIndex}
                       </span>
+                      <span className={styles.principleLabel}>PILLAR</span>
                     </div>
-
                     <h3 className={styles.principleTerm}>{principle.term}</h3>
                     <p className={styles.principleDesc}>
                       {principle.description}
                     </p>
                   </div>
 
-                  {/* Split Phase 1: Right half (slides horizontally from right wall together) */}
+                  {/* Phase 1: All 3 Right Halves Slide In Horizontally from the Right Wall */}
                   <div className={styles.rightHalfSegment} aria-hidden="true">
                     <div className={styles.halfCardBody}>
                       <div className={styles.principleMeta}>
                         <span className={styles.principleNumber}>
                           {formattedIndex}
                         </span>
+                        <span className={styles.principleLabel}>PILLAR</span>
                       </div>
                       <h3 className={styles.principleTerm}>{principle.term}</h3>
                       <p className={styles.principleDesc}>
@@ -177,13 +172,14 @@ export const About: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Split Phase 2: Left half (rises vertically from bottom together) */}
+                  {/* Phase 2: All 3 Left Halves Rise Up Vertically from the Bottom */}
                   <div className={styles.leftHalfSegment} aria-hidden="true">
                     <div className={styles.halfCardBody}>
                       <div className={styles.principleMeta}>
                         <span className={styles.principleNumber}>
                           {formattedIndex}
                         </span>
+                        <span className={styles.principleLabel}>PILLAR</span>
                       </div>
                       <h3 className={styles.principleTerm}>{principle.term}</h3>
                       <p className={styles.principleDesc}>

@@ -7,7 +7,11 @@ import kennuLogo from "../../assets/Minimalist-KennuLogo-.png";
 import elnarLogo from "../../assets/Minimalist-ElnarLogo-.png";
 import styles from "./Hero.module.css";
 
-export const Hero: React.FC = () => {
+interface HeroProps {
+  isIntroDone?: boolean;
+}
+
+export const Hero: React.FC<HeroProps> = ({ isIntroDone = true }) => {
   const { hero, meta } = siteContent;
   const worksBtnRef = useMagneticButton<HTMLAnchorElement>();
 
@@ -121,7 +125,7 @@ export const Hero: React.FC = () => {
 
           {/* Right Column: Look-at-Cursor Portrait */}
           <div className={styles.portraitCol}>
-            <LookAtPortrait />
+            <LookAtPortrait isIntroDone={isIntroDone} />
           </div>
         </div>
       </div>

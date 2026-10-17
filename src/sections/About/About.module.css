@@ -270,7 +270,6 @@
   letter-spacing: var(--tracking-widest);
   text-transform: uppercase;
   color: var(--text-muted);
-  flex-wrap: wrap;
 }
 
 /* =========================================================================
