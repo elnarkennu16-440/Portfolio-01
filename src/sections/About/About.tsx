@@ -4,6 +4,19 @@ import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { getPlaceholderDebugAttr } from "../../utils/debugContent";
 import styles from "./About.module.css";
 
+/* ────────────────────────────────────────────────────────────────────────────
+ * CORE FOCUS CARDS — TIMING (only these numbers control the new behaviour)
+ * ────────────────────────────────────────────────────────────────────────────
+ * CARD_STAGGER_S           delay between each card: card 1 starts first, card 2
+ *                          0.5s later, card 3 1.0s after card 1 (top → bottom)
+ * CARDS_TRIGGER_ROOT_MARGIN  the reveal starts when the top of the CORE FOCUS column
+ *                          reaches the MIDDLE of the screen (-50% = middle).
+ *                          Smaller % (e.g. -35%) = starts a bit earlier,
+ *                          bigger % (e.g. -60%) = waits until it is higher up.
+ * ──────────────────────────────────────────────────────────────────────────── */
+const CARD_STAGGER_S = 0.5;
+const CARDS_TRIGGER_ROOT_MARGIN = "0px 0px -50% 0px";
+
 export const About: React.FC = () => {
   const { about } = siteContent;
   const { elementRef: sectionRef, isRevealed: isHeaderRevealed } =
@@ -13,6 +26,13 @@ export const About: React.FC = () => {
   const cardsContainerRef = useRef<HTMLDivElement | null>(null);
   const [isCardsRevealed, setIsCardsRevealed] = useState(false);
   const [animationFinished, setAnimationFinished] = useState(false);
+
+  // Dedicated observer ONLY for the 3 pillar cards (right column).
+  // It watches the cards column itself — not the whole layout — so on mobile (where the
+  // cards sit far below the text) the animation waits until the cards are really on screen.
+  const pillarsRef = useRef<HTMLDivElement | null>(null);
+  const [arePillarsRevealed, setArePillarsRevealed] = useState(false);
+  const [pillarsFinished, setPillarsFinished] = useState(false);
 
   useEffect(() => {
     if (isCardsRevealed) return;
@@ -55,6 +75,51 @@ export const About: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [isCardsRevealed, animationFinished]);
+
+  // Pillar cards: start the split-reveal only when the cards column reaches the middle of the screen
+  useEffect(() => {
+    if (arePillarsRevealed) return;
+
+    const el = pillarsRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setArePillarsRevealed(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setArePillarsRevealed(true);
+            observer.unobserve(entry.target);
+            observer.disconnect();
+          }
+        });
+      },
+      {
+        threshold: 0,
+        rootMargin: CARDS_TRIGGER_ROOT_MARGIN,
+      },
+    );
+
+    observer.observe(el);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [arePillarsRevealed]);
+
+  // After the LAST card has landed (1.25s + 0.7s delay + stagger of the last card), merge into the unified interactive cards
+  useEffect(() => {
+    if (arePillarsRevealed && !pillarsFinished) {
+      const lastCardDelayMs =
+        Math.max(about.principles.length - 1, 0) * CARD_STAGGER_S * 1000;
+      const timer = setTimeout(() => {
+        setPillarsFinished(true);
+      }, 2000 + lastCardDelayMs);
+      return () => clearTimeout(timer);
+    }
+  }, [arePillarsRevealed, pillarsFinished, about.principles.length]);
 
   return (
     <section
@@ -132,7 +197,12 @@ export const About: React.FC = () => {
           </div>
 
           {/* Right Column: 3 Core Focus Cards with Original Two-Phase Architectural Split-Reveal Animation */}
-          <div className={styles.principlesCol}>
+          <div
+            ref={pillarsRef}
+            className={`${styles.principlesCol} ${
+              arePillarsRevealed ? styles.isPillarsRevealed : ""
+            } ${pillarsFinished ? styles.pillarsFinished : ""}`}
+          >
             <div className={styles.principlesHeader}>
               <span>CORE FOCUS</span>
             </div>
@@ -141,14 +211,23 @@ export const About: React.FC = () => {
               const formattedIndex = String(index + 1).padStart(2, "0");
 
               return (
-                <div key={principle.term} className={styles.splitCardContainer}>
+                <div
+                  key={principle.term}
+                  className={styles.splitCardContainer}
+                  style={
+                    {
+                      // top card first, then each next card slightly later
+                      "--card-delay": `${index * CARD_STAGGER_S}s`,
+                    } as React.CSSProperties
+                  }
+                >
                   {/* Base card for permanent layout, elevation & interaction */}
                   <div className={styles.principleCard}>
                     <div className={styles.principleMeta}>
                       <span className={styles.principleNumber}>
                         {formattedIndex}
                       </span>
-                      <span className={styles.principleLabel}>PILLAR</span>
+                      <span className={styles.principleLabel}></span>
                     </div>
                     <h3 className={styles.principleTerm}>{principle.term}</h3>
                     <p className={styles.principleDesc}>
@@ -163,7 +242,7 @@ export const About: React.FC = () => {
                         <span className={styles.principleNumber}>
                           {formattedIndex}
                         </span>
-                        <span className={styles.principleLabel}>PILLAR</span>
+                        <span className={styles.principleLabel}></span>
                       </div>
                       <h3 className={styles.principleTerm}>{principle.term}</h3>
                       <p className={styles.principleDesc}>
@@ -179,7 +258,7 @@ export const About: React.FC = () => {
                         <span className={styles.principleNumber}>
                           {formattedIndex}
                         </span>
-                        <span className={styles.principleLabel}>PILLAR</span>
+                        <span className={styles.principleLabel}></span>
                       </div>
                       <h3 className={styles.principleTerm}>{principle.term}</h3>
                       <p className={styles.principleDesc}>

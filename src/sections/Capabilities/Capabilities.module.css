@@ -5,6 +5,32 @@
   border-top: 1px solid var(--border-hairline);
   overflow: hidden;
   width: 100%;
+
+  /* 3D capability icons — grey palette (dark theme, default) */
+  --cap3d-top-a: #565a62;
+  --cap3d-top-b: #34373d;
+  --cap3d-left-a: #40434a;
+  --cap3d-left-b: #292b30;
+  --cap3d-right-a: #2b2d32;
+  --cap3d-right-b: #1b1c1f;
+  --cap3d-rim: rgba(255, 255, 255, 0.3);
+  --cap3d-glyph-top: #eceef1;
+  --cap3d-glyph-side: #969aa2;
+  --cap3d-shadow: rgba(0, 0, 0, 0.55);
+}
+
+/* 3D capability icons — grey palette (light theme) */
+[data-theme="light"] .capabilitiesSection {
+  --cap3d-top-a: #f7f8fa;
+  --cap3d-top-b: #e1e4e8;
+  --cap3d-left-a: #c9cdd3;
+  --cap3d-left-b: #b4b8bf;
+  --cap3d-right-a: #aeb2b9;
+  --cap3d-right-b: #979ba2;
+  --cap3d-rim: rgba(255, 255, 255, 0.9);
+  --cap3d-glyph-top: #2f3237;
+  --cap3d-glyph-side: #70747b;
+  --cap3d-shadow: rgba(20, 24, 32, 0.28);
 }
 
 .watermark {
@@ -350,11 +376,14 @@
   flex-direction: column;
 }
 
+/* Row layout: [ name + description ] [ 3D icon + USING/LEARNING ]
+   (was a single stacked column; the text itself is unchanged) */
 .itemRow {
   display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 3px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--border-hairline);
   transition: transform var(--duration-fast) var(--ease-editorial);
@@ -368,6 +397,16 @@
 
 .itemRow:hover {
   transform: translateX(4px);
+}
+
+/* Left side: the original name + description stack */
+.itemText {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 3px;
 }
 
 .itemHeader {
@@ -402,6 +441,91 @@
   color: var(--text-secondary);
 }
 
+/* Right side: 3D icon with the USING / LEARNING level right under it */
+.itemAside {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.itemAside .levelBadge {
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* =========================================================================
+   3D CAPABILITY ICONS (isometric grey slab + raised emblem, pure SVG)
+   ========================================================================= */
+.isoDefs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.iconSvg {
+  display: block;
+  width: clamp(58px, 15vw, 80px);
+  height: auto;
+  overflow: visible;
+  filter: drop-shadow(0 5px 5px var(--cap3d-shadow));
+  transition:
+    transform var(--duration-fast) var(--ease-editorial),
+    filter var(--duration-fast) var(--ease-editorial);
+}
+
+.itemRow:hover .iconSvg {
+  transform: translateY(-3px);
+  filter: drop-shadow(0 9px 8px var(--cap3d-shadow));
+}
+
+.isoRim {
+  stroke: var(--cap3d-rim);
+}
+
+.isoRimSoft {
+  stroke: var(--cap3d-rim);
+  opacity: 0.35;
+}
+
+.isoGlyphTop {
+  color: var(--cap3d-glyph-top);
+}
+
+.isoGlyphSide {
+  color: var(--cap3d-glyph-side);
+}
+
+/* Three narrow columns: keep the text roomy */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .iconSvg {
+    width: 64px;
+  }
+
+  .itemRow {
+    gap: var(--space-3);
+  }
+}
+
+@media (max-width: 480px) {
+  .itemRow {
+    gap: var(--space-3);
+  }
+
+  .iconSvg {
+    width: 56px;
+  }
+
+  .itemAside {
+    gap: 2px;
+  }
+}
+
 @media (max-width: 768px) {
   .introText {
     font-size: 0.8rem;
@@ -428,5 +552,10 @@
   }
   .itemRow:hover {
     transform: none !important;
+  }
+  .iconSvg,
+  .itemRow:hover .iconSvg {
+    transform: none !important;
+    transition: none !important;
   }
 }

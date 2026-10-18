@@ -274,9 +274,15 @@
 
 /* =========================================================================
    TWO-PHASE ARCHITECTURAL SPLIT-REVEAL FOR 3 CORE FOCUS CARDS
-   - Phase 1 (1st Image): Right halves slide horizontally from right wall together
-   - Phase 2 (2nd Image): Left halves rise vertically from bottom together
+   - Phase 1 (1st Image): Right halves slide horizontally from right wall
+   - Phase 2 (2nd Image): Left halves rise vertically from bottom
    - Merges into original 3 distinct cards with spaces maintained
+
+   TIMING UPDATE: the reveal is now triggered by the CORE FOCUS column itself
+   (.isPillarsRevealed / .pillarsFinished live on .principlesCol), and every card
+   gets its own small start delay via --card-delay (set in the TSX):
+   card 1 = 0s, card 2 = 0.5s, card 3 = 1.0s  → reveals top → bottom.
+   The animation itself (shapes, easing, durations) is UNCHANGED.
    ========================================================================= */
 
 .splitCardContainer {
@@ -304,12 +310,12 @@
 }
 
 /* Once both split phases have locked into place: reveal base card and enable hover */
-.animationFinished .principleCard {
+.pillarsFinished .principleCard {
   opacity: 1;
   pointer-events: auto;
 }
 
-.animationFinished .principleCard:hover {
+.pillarsFinished .principleCard:hover {
   transform: translate3d(0, -2px, 0);
   border-color: var(--border-medium);
 }
@@ -337,16 +343,17 @@
 }
 
 /* =========================================================================
-   PHASE 1 (1st Image): All 3 Right Halves Slide in Horizontally from Right
-   Together (Sabay-sabay)
+   PHASE 1 (1st Image): Right Halves Slide in Horizontally from Right
+   (each card starts slightly after the one above it)
    ========================================================================= */
 .rightHalfSegment {
   clip-path: inset(0 0 0 50%);
   transform: translate3d(105%, 0, 0);
   opacity: 0;
   transition:
-    transform 1.25s cubic-bezier(0.16, 1, 0.3, 1) 0.15s,
-    opacity 0.3s ease-out 0.15s;
+    transform 1.25s cubic-bezier(0.16, 1, 0.3, 1)
+      calc(0.15s + var(--card-delay, 0s)),
+    opacity 0.3s ease-out calc(0.15s + var(--card-delay, 0s));
 }
 
 /* Vertical dividing line on the cut edge */
@@ -360,22 +367,23 @@
   background-color: var(--border-hairline);
 }
 
-.isCardsRevealed .rightHalfSegment {
+.isPillarsRevealed .rightHalfSegment {
   transform: translate3d(0, 0, 0);
   opacity: 1;
 }
 
 /* =========================================================================
-   PHASE 2 (2nd Image): All 3 Left Halves Rise up Vertically from Bottom
-   Together (Sabay-sabay)
+   PHASE 2 (2nd Image): Left Halves Rise up Vertically from Bottom
+   (each card starts slightly after the one above it)
    ========================================================================= */
 .leftHalfSegment {
   clip-path: inset(0 50% 0 0);
   transform: translate3d(0, 105%, 0);
   opacity: 0;
   transition:
-    transform 1.25s cubic-bezier(0.16, 1, 0.3, 1) 0.7s,
-    opacity 0.3s ease-out 0.7s;
+    transform 1.25s cubic-bezier(0.16, 1, 0.3, 1)
+      calc(0.7s + var(--card-delay, 0s)),
+    opacity 0.3s ease-out calc(0.7s + var(--card-delay, 0s));
 }
 
 /* Vertical dividing line on the cut edge */
@@ -389,14 +397,14 @@
   background-color: var(--border-hairline);
 }
 
-.isCardsRevealed .leftHalfSegment {
+.isPillarsRevealed .leftHalfSegment {
   transform: translate3d(0, 0, 0);
   opacity: 1;
 }
 
 /* Seamless merge: smoothly fade out split layers once unified card takes over */
-.animationFinished .rightHalfSegment,
-.animationFinished .leftHalfSegment {
+.pillarsFinished .rightHalfSegment,
+.pillarsFinished .leftHalfSegment {
   opacity: 0;
   transition: opacity 0.35s ease-out;
 }

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { siteContent, CapabilityGroup } from "../../content/siteContent";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
+import { CapabilityIcon, CapabilityIconDefs } from "./CapabilityIcons";
 import styles from "./Capabilities.module.css";
 
 export const Capabilities: React.FC = () => {
@@ -51,6 +52,9 @@ export const Capabilities: React.FC = () => {
       className={`${styles.capabilitiesSection} ${isRevealed ? styles.isRevealed : ""}`}
       aria-label="Technical Capabilities"
     >
+      {/* Shared gradients for the 3D capability icons (invisible, takes no space) */}
+      <CapabilityIconDefs />
+
       {/* Faint Background Watermark */}
       <div className={`ghostWatermark ${styles.watermark}`} aria-hidden="true">
         {capabilities.faintWatermark}
@@ -146,15 +150,23 @@ export const Capabilities: React.FC = () => {
                   <ul className={styles.itemsList}>
                     {group.items.map((item) => (
                       <li key={item.name} className={styles.itemRow}>
-                        <div className={styles.itemHeader}>
-                          <span className={styles.itemName}>{item.name}</span>
+                        {/* Name + description (unchanged content) */}
+                        <div className={styles.itemText}>
+                          <div className={styles.itemHeader}>
+                            <span className={styles.itemName}>{item.name}</span>
+                          </div>
+                          <p className={styles.itemDescription}>
+                            {item.description}
+                          </p>
+                        </div>
+
+                        {/* 3D icon + USING / LEARNING level, sitting side by side with the text */}
+                        <div className={styles.itemAside}>
+                          <CapabilityIcon name={item.name} />
                           <span className={styles.levelBadge}>
                             {item.level}
                           </span>
                         </div>
-                        <p className={styles.itemDescription}>
-                          {item.description}
-                        </p>
                       </li>
                     ))}
                   </ul>
