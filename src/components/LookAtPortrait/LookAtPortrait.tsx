@@ -45,6 +45,38 @@ const easeInOutCubic = (t: number) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 /**
+ * Pre-loads Kennu's center photo ONCE and shares it.
+ * It is requested as soon as the component mounts (during the loading screen), so on
+ * the very first visit the photo is already downloaded when the dust animation starts.
+ * CORS mode is only used if the photo lives on another origin (same-origin images
+ * never taint the canvas, and this keeps the browser cache shared with the <img> frames).
+ */
+const centerImageCache = new Map<string, Promise<HTMLImageElement | null>>();
+function loadCenterImage(src: string): Promise<HTMLImageElement | null> {
+  const cached = centerImageCache.get(src);
+  if (cached) return cached;
+
+  const promise = new Promise<HTMLImageElement | null>((resolve) => {
+    const img = new Image();
+    try {
+      const url = new URL(src, window.location.href);
+      if (url.origin !== window.location.origin) img.crossOrigin = "anonymous";
+    } catch {
+      // keep default
+    }
+    img.onload = () => resolve(img);
+    img.onerror = () => {
+      centerImageCache.delete(src); // allow a retry later
+      resolve(null);
+    };
+    img.src = src;
+  });
+
+  centerImageCache.set(src, promise);
+  return promise;
+}
+
+/**
  * Fallback portrait silhouette points (facial contours, hair, glasses, tie, suit shoulders)
  */
 function generateFallbackPoints(
@@ -240,6 +272,11 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
   const hasCompletedRef = useRef(false);
   const [isSettled, setIsSettled] = useState(false);
 
+  // Start downloading the dust source photo immediately (during the loading screen)
+  useEffect(() => {
+    void loadCenterImage(`${siteContent.lookGrid.basePath}looking-center.png`);
+  }, []);
+
   // Main Photographic 3D Particle Convergence: Runs EXACTLY 1 Time
   useEffect(() => {
     // Check prefers-reduced-motion
@@ -287,23 +324,33 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
       return;
     }
 
-    const stageRect = stage.getBoundingClientRect();
-    const stageWidth = Math.max(Math.round(stageRect.width), 280);
-    const stageHeight = Math.max(Math.round(stageRect.height), 280);
-
     const PADDING = 40;
-    const sceneWidth = stageWidth + PADDING * 2;
-    const sceneHeight = stageHeight + PADDING * 2;
+    let stageWidth = 280;
+    let stageHeight = 280;
+    let sceneWidth = stageWidth + PADDING * 2;
+    let sceneHeight = stageHeight + PADDING * 2;
+    let PARTICLE_COUNT = 2800;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = sceneWidth * dpr;
-    canvas.height = sceneHeight * dpr;
-    ctx.scale(dpr, dpr);
+    // Measures the stage + sizes the canvas. It is called again at the exact moment the
+    // photo is ready, so the dust always matches the FINAL layout (not a mid-load one).
+    const prepareScene = () => {
+      const stageRect = stage.getBoundingClientRect();
+      stageWidth = Math.max(Math.round(stageRect.width), 280);
+      stageHeight = Math.max(Math.round(stageRect.height), 280);
+      sceneWidth = stageWidth + PADDING * 2;
+      sceneHeight = stageHeight + PADDING * 2;
 
-    // More dust on big stages for photographic detail, fewer on phones for speed
-    const PARTICLE_COUNT = Math.round(
-      Math.min(7500, Math.max(2800, (stageWidth * stageHeight) / 30)),
-    );
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = sceneWidth * dpr;
+      canvas.height = sceneHeight * dpr;
+      ctx.scale(dpr, dpr);
+
+      // More dust on big stages for photographic detail, fewer on phones for speed
+      PARTICLE_COUNT = Math.round(
+        Math.min(7500, Math.max(2800, (stageWidth * stageHeight) / 30)),
+      );
+    };
+    prepareScene();
 
     let cancelled = false;
     let animId: number | null = null;
@@ -523,54 +570,37 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
       }, START_DELAY_MS);
     };
 
-    // Wait for the real photo BEFORE starting, so the dust is built on the exact
-    // face from the first frame (no mid-flight swap / sudden jump).
-    const startWith = (points: ParticlePoint[]) => {
+    // Wait for the REAL photo before starting, so the dust is ALWAYS built on the exact
+    // face. The photo was pre-loaded at mount, so on the first visit it is normally ready.
+    // A slow download no longer switches to the generic silhouette — we just wait for it.
+    const startWith = (img: HTMLImageElement | null) => {
       if (began || cancelled) return;
       began = true;
       if (loadTimeout) clearTimeout(loadTimeout);
+
+      prepareScene(); // measure the final layout right now
+
+      let points: ParticlePoint[];
+      try {
+        points = img
+          ? extractPointsFromImage(img, stageWidth, stageHeight, PARTICLE_COUNT)
+          : generateFallbackPoints(stageWidth, stageHeight, PARTICLE_COUNT);
+      } catch {
+        points = generateFallbackPoints(
+          stageWidth,
+          stageHeight,
+          PARTICLE_COUNT,
+        );
+      }
       beginAnimation(points);
     };
 
-    const centerImg = new Image();
-    centerImg.crossOrigin = "anonymous";
+    void loadCenterImage(
+      `${siteContent.lookGrid.basePath}looking-center.png`,
+    ).then(startWith);
 
-    const sampleImageTargets = () => {
-      try {
-        startWith(
-          extractPointsFromImage(
-            centerImg,
-            stageWidth,
-            stageHeight,
-            PARTICLE_COUNT,
-          ),
-        );
-      } catch {
-        startWith(
-          generateFallbackPoints(stageWidth, stageHeight, PARTICLE_COUNT),
-        );
-      }
-    };
-
-    centerImg.onload = sampleImageTargets;
-    centerImg.onerror = () =>
-      startWith(
-        generateFallbackPoints(stageWidth, stageHeight, PARTICLE_COUNT),
-      );
-    centerImg.src = `${siteContent.lookGrid.basePath}looking-center.png`;
-
-    if (centerImg.complete && centerImg.naturalWidth > 0) {
-      sampleImageTargets();
-    } else {
-      // Safety net: never leave the portrait hidden if the image is very slow
-      loadTimeout = setTimeout(
-        () =>
-          startWith(
-            generateFallbackPoints(stageWidth, stageHeight, PARTICLE_COUNT),
-          ),
-        2500,
-      );
-    }
+    // Last-resort safety net only (e.g. network is down) — NOT triggered by a slow download
+    loadTimeout = setTimeout(() => startWith(null), 15000);
 
     return () => {
       cancelled = true;
