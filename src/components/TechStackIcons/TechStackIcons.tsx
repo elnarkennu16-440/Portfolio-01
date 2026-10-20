@@ -5,7 +5,8 @@ interface TechStackIconsProps {
   tags: string[];
 }
 
-export const getIconForTag = (tag: string) => {
+export const getIconForTag = (tag?: string) => {
+  if (!tag || typeof tag !== "string") return null;
   const normalized = tag.toLowerCase().trim();
 
   if (normalized.includes("react")) {
@@ -293,6 +294,150 @@ export const getIconForTag = (tag: string) => {
     );
   }
 
+  if (
+    normalized.includes("ai") ||
+    normalized.includes("gemini") ||
+    normalized.includes("spark") ||
+    normalized.includes("intel")
+  ) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M12 2l2.4 6.6L21 11l-6.6 2.4L12 20l-2.4-6.6L3 11l6.6-2.4L12 2z" />
+        <path d="M18 18l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" />
+      </svg>
+    );
+  }
+
+  if (
+    normalized.includes("markdown") ||
+    normalized.includes("doc") ||
+    normalized.includes("note") ||
+    normalized.includes("read")
+  ) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="16" y1="13" x2="8" y2="13" />
+        <line x1="16" y1="17" x2="8" y2="17" />
+        <line x1="10" y1="9" x2="8" y2="9" />
+      </svg>
+    );
+  }
+
+  if (
+    normalized.includes("playwright") ||
+    normalized.includes("automation") ||
+    normalized.includes("bot")
+  ) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="3" y="11" width="18" height="10" rx="2" />
+        <circle cx="12" cy="5" r="2" />
+        <path d="M12 7v4" />
+        <line x1="8" y1="16" x2="8" y2="16" strokeWidth="2.5" />
+        <line x1="16" y1="16" x2="16" y2="16" strokeWidth="2.5" />
+      </svg>
+    );
+  }
+
+  if (
+    normalized.includes("lighthouse") ||
+    normalized.includes("vital") ||
+    normalized.includes("speed") ||
+    normalized.includes("audit")
+  ) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+      </svg>
+    );
+  }
+
+  if (normalized.includes("docker") || normalized.includes("container")) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <rect x="2" y="7" width="20" height="14" rx="2" />
+        <path d="M6 7V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v3" />
+        <line x1="2" y1="14" x2="22" y2="14" />
+      </svg>
+    );
+  }
+
+  if (
+    normalized.includes("node") ||
+    normalized.includes("express") ||
+    normalized.includes("api") ||
+    normalized.includes("contract") ||
+    normalized.includes("openapi")
+  ) {
+    return (
+      <svg
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+      </svg>
+    );
+  }
+
   // Default code icon
   return (
     <svg
@@ -312,12 +457,21 @@ export const getIconForTag = (tag: string) => {
   );
 };
 
-export const TechStackIcons: React.FC<TechStackIconsProps> = ({ tags }) => {
+export const TechStackIcons: React.FC<TechStackIconsProps> = ({
+  tags = [],
+}) => {
+  const safeTags = Array.isArray(tags)
+    ? tags.filter(
+        (t): t is string => typeof t === "string" && Boolean(t.trim()),
+      )
+    : [];
+  if (safeTags.length === 0) return null;
+
   return (
     <ul className={styles.techStackIconsList} aria-label="Technologies used">
-      {tags.map((tag, index) => (
+      {safeTags.map((tag, index) => (
         <li
-          key={tag}
+          key={`${tag}-${index}`}
           className={styles.techIconBadge}
           style={{ animationDelay: `${index * 0.35}s` }}
           title={tag}

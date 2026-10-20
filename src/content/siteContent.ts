@@ -145,7 +145,10 @@ export const siteContent = {
     sectionTitle: "WORKS",
     faintWatermark: "WORKS",
     intro: "Recent web projects and testing work.",
-    // Honest list: support 1 to 4 projects. Edit these when you have real project links!
+    // The first 4 projects are always shown. Any project after the 4th (05, 06, ...)
+    // is hidden behind the floating "Show more" button in the Works section.
+    // Projects 05 and 06 are SAMPLE placeholders (status: "placeholder") — replace them
+    // with your real projects whenever you are ready.
     projects: [
       {
         id: "project-01",
@@ -212,6 +215,73 @@ export const siteContent = {
           "NobleClassics E-Commerce Bookstore Platform storefront preview",
         status: "final" as const,
       },
+      {
+        id: "project-04",
+        number: "04",
+        title: "ReadCap.AI — Distillation & Focused Reading Workspace",
+        role: "Full-Stack Developer & AI Integrator",
+        year: "2026",
+        tags: [
+          "React",
+          "TypeScript",
+          "Tailwind CSS",
+          "Gemini API",
+          "AI Workspace",
+          "Markdown",
+        ],
+        description:
+          "AI-powered distraction-free reading room and thought workspace. Allows readers to untangle raw thoughts, capture signals from long-form writing, and converse with localized private sessions through clean conversational threads.",
+        repoUrl: "https://github.com/elnarkennu16-440/ReadCap-AI",
+        imageUrl: "/images/projects/READCAPAI-Project.png",
+        imageAlt:
+          "ReadCap AI focused reading room and conversational synthesis interface preview",
+        status: "final" as const,
+      },
+      // ── Hidden behind "Show more" (SAMPLE projects — replace with real ones later) ──
+      {
+        id: "project-05",
+        number: "05",
+        title: "QueueLess — Clinic Appointment & Live Queue Tracker",
+        role: "Full-Stack Developer",
+        year: "2025",
+        tags: [
+          "React",
+          "TypeScript",
+          "Node.js",
+          "MySQL",
+          "Tailwind CSS",
+          "Real-time Queue",
+        ],
+        description:
+          "Walk-in and online appointment system for small clinics with real-time queue numbers, SMS-ready patient alerts, and a staff dashboard that estimates waiting time so patients stop waiting in crowded lobbies.",
+        // TODO: add repoUrl / liveUrl when this becomes a real project (buttons stay hidden until then)
+        imageUrl: "/images/projects/QueueLess-Project.svg",
+        imageAlt:
+          "QueueLess dashboard showing the live patient queue and the number now being served",
+        status: "placeholder" as const,
+      },
+      {
+        id: "project-06",
+        number: "06",
+        title: "SalesTrack — Store Inventory & Debt Ledger",
+        role: "Full-Stack Developer",
+        year: "2025",
+        tags: [
+          "React",
+          "TypeScript",
+          "Node.js",
+          "MySQL",
+          "Inventory",
+          "Offline-first",
+        ],
+        description:
+          "Offline-friendly point-of-sale and inventory tool for neighborhood stores: low-stock alerts, daily sales summaries, and a customer credit (debt) ledger with payment reminders and printable statements.",
+        // TODO: add repoUrl / liveUrl when this becomes a real project (buttons stay hidden until then)
+        imageUrl: "/images/projects/TindaTrack-Project.svg",
+        imageAlt:
+          "SalesTrack dashboard with weekly sales, stock levels and the customer credit ledger",
+        status: "placeholder" as const,
+      },
     ] as ProjectItem[],
     status: "final" as const,
   },
@@ -229,7 +299,7 @@ export const siteContent = {
           {
             name: "Modern HTML5 & CSS3",
             description:
-              "Building responsive, accessible layouts with clean semantic markup and structured styling.",
+              "Building responsive, accessible layouts with clean semantic markup and modern CSS styling.",
             level: "Using",
           },
           {
@@ -317,7 +387,7 @@ export const siteContent = {
           {
             name: "Node.js",
             description:
-              "Installing project dependencies, managing npm packages and running scripts.",
+              "Running local development servers, installing project dependencies, and managing npm packages.",
             level: "Using",
           },
           {
