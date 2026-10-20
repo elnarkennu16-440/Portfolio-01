@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { siteContent, ProjectItem } from "../../content/siteContent";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { getPlaceholderDebugAttr } from "../../utils/debugContent";
@@ -12,10 +18,26 @@ const EXPAND_MS = 1100;
 // siteContent.works.projects is revealed by the floating "Show more" button.
 const INITIAL_VISIBLE_PROJECTS = 4;
 
-const ProjectCardItem: React.FC<{ project: ProjectItem; index: number }> = ({
-  project,
-  index,
-}) => {
+// Set when "View All Projects" is opened; read when Works mounts again after pressing Back,
+// so the page lands back on the same spot (the divider line under the button) with no re-animation.
+const RESTORE_KEY = "works:return-from-archive";
+
+const readRestoreFlag = (): boolean => {
+  try {
+    return (
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem(RESTORE_KEY) === "1"
+    );
+  } catch {
+    return false;
+  }
+};
+
+const ProjectCardItem: React.FC<{
+  project: ProjectItem;
+  index: number;
+  instant?: boolean;
+}> = ({ project, index, instant = false }) => {
   // General card reveal for overall presence
   const { elementRef: cardRef, isRevealed: isCardRevealed } =
     useScrollReveal<HTMLElement>({
@@ -31,7 +53,8 @@ const ProjectCardItem: React.FC<{ project: ProjectItem; index: number }> = ({
       rootMargin: "0px 0px -15% 0px",
     });
 
-  const [isAnimationFinished, setIsAnimationFinished] = useState(false);
+  // `instant` = coming back from the All Projects page: show the final state straight away
+  const [isAnimationFinished, setIsAnimationFinished] = useState(instant);
 
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
@@ -111,7 +134,9 @@ const ProjectCardItem: React.FC<{ project: ProjectItem; index: number }> = ({
     <article
       ref={cardRef}
       key={project.id}
-      className={`${styles.projectCard} ${isCardRevealed ? styles.cardRevealed : ""}`}
+      className={`${styles.projectCard} ${
+        isCardRevealed || instant ? styles.cardRevealed : ""
+      }`}
       data-debug-content={getPlaceholderDebugAttr(project.status)}
     >
       {/* Media Container: Image untouched */}
@@ -136,7 +161,7 @@ const ProjectCardItem: React.FC<{ project: ProjectItem; index: number }> = ({
       <div
         ref={panelRef}
         className={`${styles.splitPanelContainer} ${
-          isPanelRevealed ? styles.panelRevealed : ""
+          isPanelRevealed || instant ? styles.panelRevealed : ""
         } ${isAnimationFinished ? styles.animationFinished : ""} ${
           index % 2 === 1 ? styles.cardStagger : ""
         }`}
@@ -163,11 +188,20 @@ const prefersReducedMotion = () =>
   typeof window.matchMedia === "function" &&
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-export const Works: React.FC = () => {
+interface WorksProps {
+  onOpenAllProjects?: () => void;
+}
+
+export const Works: React.FC<WorksProps> = ({ onOpenAllProjects }) => {
   const { works } = siteContent;
   const { elementRef, isRevealed } = useScrollReveal<HTMLElement>({
     threshold: 0.08,
   });
+
+  // Coming back from the All Projects page? (read once, when Works mounts)
+  const [isRestoring] = useState<boolean>(readRestoreFlag);
+  // While true, every Works transition is switched off so nothing re-animates on return
+  const [motionOff, setMotionOff] = useState<boolean>(isRestoring);
 
   // First 4 projects are always visible, the rest sit behind "Show more" — all from siteContent
   const visibleProjects = useMemo<ProjectItem[]>(
@@ -199,6 +233,67 @@ export const Works: React.FC = () => {
       isMountedRef.current = false;
     };
   }, []);
+
+  // BACK from "View All Projects": land instantly on the divider line right under the
+  // "View All Projects" button (so CAPABILITIES is never visible) — no smooth scroll, no replay.
+  useLayoutEffect(() => {
+    if (!isRestoring) return;
+
+    let interacted = false;
+    const stop = () => {
+      interacted = true;
+    };
+    const listenerOpts: AddEventListenerOptions = { passive: true };
+    const events: Array<keyof WindowEventMap> = [
+      "wheel",
+      "touchstart",
+      "keydown",
+      "mousedown",
+    ];
+    events.forEach((ev) => window.addEventListener(ev, stop, listenerOpts));
+
+    const alignToButton = () => {
+      if (interacted) return;
+      const section = document.getElementById("works");
+      if (!section) return;
+      const viewportH = window.visualViewport?.height ?? window.innerHeight;
+      const target = Math.max(
+        0,
+        section.getBoundingClientRect().bottom + window.scrollY - viewportH + 2,
+      );
+      if (Math.abs(window.scrollY - target) > 1) {
+        window.scrollTo({
+          top: target,
+          left: 0,
+          behavior: "instant" as ScrollBehavior,
+        });
+      }
+    };
+
+    // Align right away, then re-check while the page settles (fonts / images can nudge the layout)
+    alignToButton();
+    const raf = window.requestAnimationFrame(alignToButton);
+    const t1 = window.setTimeout(alignToButton, 120);
+    const t2 = window.setTimeout(alignToButton, 380);
+    // Give normal hover/transition behaviour back once everything has settled
+    const t3 = window.setTimeout(() => setMotionOff(false), 900);
+    const t4 = window.setTimeout(() => {
+      try {
+        window.sessionStorage.removeItem(RESTORE_KEY);
+      } catch {
+        /* storage unavailable */
+      }
+    }, 1600);
+
+    return () => {
+      events.forEach((ev) => window.removeEventListener(ev, stop));
+      window.cancelAnimationFrame(raf);
+      window.clearTimeout(t1);
+      window.clearTimeout(t2);
+      window.clearTimeout(t3);
+      window.clearTimeout(t4);
+    };
+  }, [isRestoring]);
 
   useEffect(() => {
     if (!isExpanded) return;
@@ -282,7 +377,9 @@ export const Works: React.FC = () => {
     <section
       id="works"
       ref={elementRef}
-      className={`${styles.worksSection} ${isRevealed ? styles.isRevealed : ""}`}
+      className={`${styles.worksSection} ${
+        isRevealed || isRestoring ? styles.isRevealed : ""
+      } ${motionOff ? styles.worksInstant : ""}`}
       aria-label="Works"
       data-debug-content={getPlaceholderDebugAttr(works.status)}
     >
@@ -311,7 +408,12 @@ export const Works: React.FC = () => {
         {/* Dynamic Projects Grid */}
         <div className={styles.projectsGrid}>
           {visibleProjects.map((project: ProjectItem, index: number) => (
-            <ProjectCardItem key={project.id} project={project} index={index} />
+            <ProjectCardItem
+              key={project.id}
+              project={project}
+              index={index}
+              instant={isRestoring}
+            />
           ))}
         </div>
 
@@ -340,6 +442,7 @@ export const Works: React.FC = () => {
                             key={project.id}
                             project={project}
                             index={visibleProjects.length + index}
+                            instant={isRestoring}
                           />
                         ),
                       )}
@@ -349,11 +452,11 @@ export const Works: React.FC = () => {
               </div>
             )}
 
-            {/* Floating "Show more" control */}
+            {/* Floating "VIEW ALL PROJECTS" control */}
             <div
               ref={moreRowRef}
               className={`${styles.moreRow} ${
-                isMoreRowRevealed ? styles.moreRowRevealed : ""
+                isMoreRowRevealed || isRestoring ? styles.moreRowRevealed : ""
               }`}
             >
               <span className={styles.moreRail} aria-hidden="true" />
@@ -361,28 +464,33 @@ export const Works: React.FC = () => {
               <div className={styles.showMoreFloat}>
                 <button
                   type="button"
-                  className={`${styles.showMoreBtn} ${
-                    isExpanded ? styles.showMoreBtnOpen : ""
-                  }`}
-                  onClick={handleToggleMore}
-                  aria-expanded={isExpanded}
-                  aria-controls="works-more-projects"
-                  aria-label={
-                    isExpanded
-                      ? "Show fewer projects"
-                      : `Show ${extraProjects.length} more projects`
-                  }
+                  className={styles.showMoreBtn}
+                  onClick={() => {
+                    if (onOpenAllProjects) {
+                      // remember we are leaving from here, so Back can return to this exact spot
+                      try {
+                        window.sessionStorage.setItem(RESTORE_KEY, "1");
+                      } catch {
+                        /* storage unavailable */
+                      }
+                      onOpenAllProjects();
+                    } else {
+                      handleToggleMore();
+                    }
+                  }}
+                  aria-label="View all projects in archive"
                 >
                   <span className={styles.showMoreLabelWrap} aria-hidden="true">
-                    <span className={styles.showMoreLabelMore}>Show more</span>
-                    <span className={styles.showMoreLabelLess}>Show less</span>
+                    <span className={styles.showMoreLabelMore}>
+                      View All Projects
+                    </span>
                   </span>
                   <span
-                    key={shownCount}
+                    key={totalCount}
                     className={styles.showMoreCount}
                     aria-hidden="true"
                   >
-                    {pad(shownCount)} / {pad(totalCount)}
+                    {pad(totalCount)} / {pad(totalCount)}
                   </span>
                   <span className={styles.showMoreIcon} aria-hidden="true">
                     <svg
@@ -393,7 +501,7 @@ export const Works: React.FC = () => {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     >
-                      <path d="M6 9l6 6 6-6" />
+                      <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                   </span>
                 </button>

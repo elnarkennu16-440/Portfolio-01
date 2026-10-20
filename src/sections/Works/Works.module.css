@@ -996,3 +996,16 @@
     transition: none !important;
   }
 }
+
+/* =========================================================================
+   RETURNING FROM "VIEW ALL PROJECTS"
+   While .worksInstant is on (first ~0.9s after coming back), every transition in the
+   Works section is switched off, so nothing re-animates and the page just sits where
+   you left it. The class is removed automatically afterwards, so hover effects work as usual.
+   ========================================================================= */
+.worksInstant,
+.worksInstant *,
+.worksInstant *::before,
+.worksInstant *::after {
+  transition: none !important;
+}

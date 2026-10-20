@@ -34,6 +34,7 @@ export interface ProjectItem {
   repoUrl?: string;
   imageUrl?: string;
   imageAlt?: string;
+  iconUrl?: string;
   status?: "placeholder" | "final";
 }
 
@@ -170,6 +171,7 @@ export const siteContent = {
         imageUrl: "/images/projects/MIRAMS-Project.png",
         imageAlt:
           "MIRAMS Manufacturing Internal Request & Asset Management System interface preview",
+        iconUrl: "/images/projects/icons/mirams.svg",
         status: "final" as const,
       },
       {
@@ -191,6 +193,7 @@ export const siteContent = {
         imageUrl: "/images/projects/NCAMIS-Project.png",
         imageAlt:
           "NCAMIS Northills College of Asia Management Information System portal preview",
+        iconUrl: "/images/projects/icons/ncamis.svg",
         status: "final" as const,
       },
       {
@@ -213,6 +216,7 @@ export const siteContent = {
         imageUrl: "/images/projects/NobleClassics-Project.png",
         imageAlt:
           "NobleClassics E-Commerce Bookstore Platform storefront preview",
+        iconUrl: "/images/projects/icons/nobleclassics.svg",
         status: "final" as const,
       },
       {
@@ -235,6 +239,7 @@ export const siteContent = {
         imageUrl: "/images/projects/READCAPAI-Project.png",
         imageAlt:
           "ReadCap AI focused reading room and conversational synthesis interface preview",
+        iconUrl: "/images/projects/icons/readcapai.svg",
         status: "final" as const,
       },
       // ── Hidden behind "Show more" (SAMPLE projects — replace with real ones later) ──
@@ -255,15 +260,16 @@ export const siteContent = {
         description:
           "Walk-in and online appointment system for small clinics with real-time queue numbers, SMS-ready patient alerts, and a staff dashboard that estimates waiting time so patients stop waiting in crowded lobbies.",
         // TODO: add repoUrl / liveUrl when this becomes a real project (buttons stay hidden until then)
+        iconUrl: "",
         imageUrl: "/images/projects/QueueLess-Project.svg",
         imageAlt:
-          "AbisoMed dashboard showing the live patient queue and the number now being served",
+          "QueueLess dashboard showing the live patient queue and the number now being served",
         status: "placeholder" as const,
       },
       {
         id: "project-06",
         number: "06",
-        title: "AsensoPOS — Store Inventory & Debt Ledger",
+        title: "AsensoPOS — Sari-Sari Store Inventory & Utang Ledger",
         role: "Full-Stack Developer",
         year: "2025",
         tags: [
@@ -275,11 +281,12 @@ export const siteContent = {
           "Offline-first",
         ],
         description:
-          "Offline-friendly point-of-sale and inventory tool for neighborhood stores: low-stock alerts, daily sales summaries, and a customer credit (debt) ledger with payment reminders and printable statements.",
+          "Offline-friendly point-of-sale and inventory tool for neighborhood stores: low-stock alerts, daily sales summaries, and a customer credit (utang) ledger with payment reminders and printable statements.",
         // TODO: add repoUrl / liveUrl when this becomes a real project (buttons stay hidden until then)
+        iconUrl: "",
         imageUrl: "/images/projects/TindaTrack-Project.svg",
         imageAlt:
-          "AsensoPOS dashboard with weekly sales, stock levels and the customer credit ledger",
+          "TindaTrack dashboard with weekly sales, stock levels and the customer credit ledger",
         status: "placeholder" as const,
       },
     ] as ProjectItem[],
