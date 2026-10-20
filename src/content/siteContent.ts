@@ -241,7 +241,7 @@ export const siteContent = {
       {
         id: "project-05",
         number: "05",
-        title: "QueueLess — Clinic Appointment & Live Queue Tracker",
+        title: "AbisoMed — Clinic Appointment & Live Queue Tracker",
         role: "Full-Stack Developer",
         year: "2025",
         tags: [
@@ -257,13 +257,13 @@ export const siteContent = {
         // TODO: add repoUrl / liveUrl when this becomes a real project (buttons stay hidden until then)
         imageUrl: "/images/projects/QueueLess-Project.svg",
         imageAlt:
-          "QueueLess dashboard showing the live patient queue and the number now being served",
+          "AbisoMed dashboard showing the live patient queue and the number now being served",
         status: "placeholder" as const,
       },
       {
         id: "project-06",
         number: "06",
-        title: "SalesTrack — Store Inventory & Debt Ledger",
+        title: "AsensoPOS — Store Inventory & Debt Ledger",
         role: "Full-Stack Developer",
         year: "2025",
         tags: [
@@ -279,7 +279,7 @@ export const siteContent = {
         // TODO: add repoUrl / liveUrl when this becomes a real project (buttons stay hidden until then)
         imageUrl: "/images/projects/TindaTrack-Project.svg",
         imageAlt:
-          "SalesTrack dashboard with weekly sales, stock levels and the customer credit ledger",
+          "AsensoPOS dashboard with weekly sales, stock levels and the customer credit ledger",
         status: "placeholder" as const,
       },
     ] as ProjectItem[],
