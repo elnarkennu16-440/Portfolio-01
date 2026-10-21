@@ -16,31 +16,48 @@ interface Message {
 }
 
 const QUICK_PROMPTS_EN = [
-  { label: "About Me", query: "Tell me about yourself and your background" },
-  { label: "QA & Skills", query: "What are your QA testing skills and tools?" },
-  { label: "Projects", query: "What projects have you developed and tested?" },
-  { label: "Download CV", query: "Where can I download your resume or CV?" },
   {
-    label: "Contact / Hire",
+    label: "About Kennu Elnar?",
+    query: "Tell me about yourself and your background",
+  },
+  {
+    label: "Projects Developed",
+    query: "What projects have you developed and tested?",
+  },
+  {
+    label: "Technical Tools and Skills",
+    query: "What are your technical tools and skills?",
+  },
+  {
+    label: "Project Architecture?",
+    query:
+      "How do you setup fullstack project structures and its architecture?",
+  },
+  {
+    label: "Message me",
     query: "How do I get in touch with you or hire you?",
   },
 ];
 
 const QUICK_PROMPTS_TL = [
   {
-    label: "Tungkol sa Akin",
+    label: "Tungkol kay Kennu Elnar",
     query: "Pakilala ka at ano ang iyong background?",
   },
   {
-    label: "QA at Kasanayan",
-    query: "Ano ang mga QA testing skills at tools mo?",
-  },
-  {
-    label: "Mga Proyekto",
+    label: "Mga prokyektong ginawa",
     query: "Ano ang mga proyektong ginawa at sinuri mo?",
   },
   {
-    label: "Download CV",
+    label: "Mga kasanayan at teknikal na tools",
+    query: "Ano ang mga kasanayan at teknikal na tools mo?",
+  },
+  {
+    label: "Proyektong Arkitektura",
+    query: "Paano mo itinayo ang fullstack project structures at architecture?",
+  },
+  {
+    label: "iDownload ang CV",
     query: "Saan ko pwedeng i-download ang resume o CV mo?",
   },
   {

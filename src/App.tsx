@@ -39,13 +39,6 @@ export default function App() {
 
   const handleCloseViewAllProjects = () => {
     setIsViewAllProjectsOpen(false);
-    // Smoothly scroll back to the works section
-    setTimeout(() => {
-      const worksEl = document.getElementById("works");
-      if (worksEl) {
-        worksEl.scrollIntoView({ behavior: "smooth" });
-      }
-    }, 50);
   };
 
   // Called after loader has fully finished
@@ -60,55 +53,55 @@ export default function App() {
         <IntroLoader durationMs={2000} onComplete={handleCompleteIntro} />
       )}
 
-      {isViewAllProjectsOpen ? (
+      <div
+        className="portfolioRoot"
+        inert={isContactModalOpen || isViewAllProjectsOpen ? true : undefined}
+        aria-hidden={isContactModalOpen || isViewAllProjectsOpen}
+      >
+        <a href="#main-content" className="skipToContent">
+          Skip to content
+        </a>
+
+        {/* Floating Navbar */}
+        <Navbar
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onOpenContact={handleOpenContact}
+        />
+
+        <main id="main-content" tabIndex={-1}>
+          {/* Hero Section */}
+          <Hero isIntroDone={!showIntro} />
+
+          {/* About Section */}
+          <About />
+
+          {/* Tech Stack Sliding Loop with Wave Spin Icons */}
+          <TechMarquee />
+
+          {/* Works Section with VIEW ALL PROJECTS button */}
+          <Works onOpenAllProjects={handleOpenViewAllProjects} />
+
+          {/* Capabilities Section */}
+          <Capabilities />
+
+          {/* Process Section */}
+          <Process />
+
+          {/* Philosophy / Scroll-Switching Statement Section */}
+          <Philosophy />
+        </main>
+
+        {/* Footer */}
+        <Footer onOpenContact={handleOpenContact} />
+      </div>
+
+      {isViewAllProjectsOpen && (
         <ViewAllProjects
           onBack={handleCloseViewAllProjects}
           theme={theme}
           onToggleTheme={toggleTheme}
         />
-      ) : (
-        <div
-          className="portfolioRoot"
-          inert={isContactModalOpen ? true : undefined}
-          aria-hidden={isContactModalOpen}
-        >
-          <a href="#main-content" className="skipToContent">
-            Skip to content
-          </a>
-
-          {/* Floating Navbar */}
-          <Navbar
-            theme={theme}
-            onToggleTheme={toggleTheme}
-            onOpenContact={handleOpenContact}
-          />
-
-          <main id="main-content" tabIndex={-1}>
-            {/* Hero Section */}
-            <Hero isIntroDone={!showIntro} />
-
-            {/* About Section */}
-            <About />
-
-            {/* Tech Stack Sliding Loop with Wave Spin Icons */}
-            <TechMarquee />
-
-            {/* Works Section with VIEW ALL PROJECTS button */}
-            <Works onOpenAllProjects={handleOpenViewAllProjects} />
-
-            {/* Capabilities Section */}
-            <Capabilities />
-
-            {/* Process Section */}
-            <Process />
-
-            {/* Philosophy / Scroll-Switching Statement Section */}
-            <Philosophy />
-          </main>
-
-          {/* Footer */}
-          <Footer onOpenContact={handleOpenContact} />
-        </div>
       )}
 
       {/* Accessible Contact Modal */}

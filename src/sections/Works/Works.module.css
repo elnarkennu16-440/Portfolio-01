@@ -83,12 +83,22 @@
   clip-path: inset(0 0 0 0);
 }
 
+/* Intro row: intro sentence + small "View all projects" line-arrow link beside it */
+.introRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  column-gap: clamp(var(--space-4), 3vw, var(--space-8));
+  row-gap: var(--space-3);
+  margin-bottom: clamp(var(--space-6), 3vh, var(--space-10));
+}
+
 .introText {
   font-family: var(--font-sans);
   font-size: clamp(0.875rem, 2vw, var(--text-base));
   color: var(--text-secondary);
   max-width: 58ch;
-  margin-bottom: clamp(var(--space-6), 3vh, var(--space-10));
+  margin-bottom: 0;
   opacity: 0;
   transform: translate3d(0, 32px, 0);
   transition:
@@ -100,6 +110,59 @@
 .isRevealed .introText {
   opacity: 1;
   transform: translate3d(0, 0, 0);
+}
+
+/* Shared minimal connector: continuous line that bends up into an arrow head */
+.connectorArrow {
+  display: block;
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  overflow: visible;
+}
+
+/* Small link under the section title (text + underline connected to arrow) */
+.viewAllLink {
+  display: inline-flex;
+  align-items: flex-end;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  opacity: 0;
+  transform: translate3d(0, 32px, 0);
+  transition:
+    opacity 1.25s var(--ease-slowmo) 0.3s,
+    transform 1.25s var(--ease-slowmo) 0.3s,
+    color 0.3s var(--ease-editorial);
+}
+
+.isRevealed .viewAllLink {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.viewAllLink:hover {
+  color: var(--text-primary);
+}
+
+.viewAllLink:focus-visible {
+  outline: 1px solid var(--border-strong);
+  outline-offset: 4px;
+}
+
+.viewAllLinkLabel {
+  padding: 0 0.15rem 0.4rem;
+  border-bottom: 1px solid currentColor;
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 /* Responsive, well-aligned Projects Grid */
@@ -621,8 +684,7 @@
 }
 
 /* =========================================================================
-   SHOW MORE — extra projects (05 & 06) + floating control
-   Everything above is untouched; this block only ADDS the new feature.
+   SHOW MORE — extra projects (05 & 06) + "VIEW ALL PROJECTS" control
    ========================================================================= */
 
 /* Collapsible region. Animates grid-template-rows (0fr → 1fr): no fixed heights,
@@ -668,11 +730,8 @@
   }
 }
 
-/* Row: [soft rail] [ floating button ] [soft rail] */
+/* Row: [soft rail] [ button ] [soft rail] */
 .moreRow {
-  --showmore-ground: rgba(255, 255, 255, 0.09);
-  --showmore-halo: rgba(255, 255, 255, 0.16);
-
   position: relative;
   z-index: 3;
   display: flex;
@@ -687,11 +746,6 @@
   transition:
     opacity 1.1s var(--ease-slowmo) 0.1s,
     transform 1.1s var(--ease-slowmo) 0.1s;
-}
-
-[data-theme="light"] .moreRow {
-  --showmore-ground: rgba(0, 0, 0, 0.18);
-  --showmore-halo: rgba(0, 0, 0, 0.2);
 }
 
 .moreRowRevealed {
@@ -718,65 +772,21 @@
   transform: scaleX(1);
 }
 
-/* The button floats: gentle bob + a ground shadow that breathes with it */
+/* Plain wrapper (no floating / bobbing animation anymore) */
 .showMoreFloat {
   position: relative;
   flex: 0 0 auto;
-  animation: showMoreFloat 4.2s ease-in-out infinite;
-  will-change: transform;
 }
 
-.showMoreFloat::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -18px;
-  width: 62%;
-  height: 12px;
-  transform: translateX(-50%);
-  background: radial-gradient(
-    ellipse at center,
-    var(--showmore-ground),
-    transparent 70%
-  );
-  filter: blur(4px);
-  pointer-events: none;
-  animation: showMoreGround 4.2s ease-in-out infinite;
-}
-
-@keyframes showMoreFloat {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  50% {
-    transform: translate3d(0, -7px, 0);
-  }
-}
-
-@keyframes showMoreGround {
-  0%,
-  100% {
-    opacity: 0.95;
-    transform: translateX(-50%) scaleX(1);
-  }
-  50% {
-    opacity: 0.45;
-    transform: translateX(-50%) scaleX(0.78);
-  }
-}
-
+/* Minimal text button: label + count sit on a line that connects into the arrow */
 .showMoreBtn {
-  position: relative;
-  isolation: isolate;
   display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-  min-height: 3.6rem;
-  padding: 0.7rem 0.8rem 0.7rem 1.9rem;
-  border: 1px solid var(--border-medium);
-  border-radius: 999px;
-  background-color: var(--bg-surface);
+  align-items: flex-end;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 0.78rem;
@@ -784,66 +794,28 @@
   letter-spacing: var(--tracking-widest);
   text-transform: uppercase;
   cursor: pointer;
-  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.28);
   -webkit-tap-highlight-color: transparent;
-  transition:
-    transform 0.5s var(--ease-editorial),
-    border-color 0.35s var(--ease-editorial),
-    background-color 0.35s var(--ease-editorial),
-    color 0.35s var(--ease-editorial),
-    box-shadow 0.5s var(--ease-editorial);
-}
-
-[data-theme="dark"] .showMoreBtn {
-  border-color: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
-}
-
-/* Soft halo ring that radiates outward */
-.showMoreBtn::before {
-  content: "";
-  position: absolute;
-  inset: -7px;
-  border-radius: inherit;
-  border: 1px solid var(--showmore-halo);
-  opacity: 0;
-  transform: scale(0.94);
-  z-index: -1;
-  pointer-events: none;
-  animation: showMoreHalo 3.6s ease-out infinite;
-}
-
-@keyframes showMoreHalo {
-  0% {
-    opacity: 0;
-    transform: scale(0.94);
-  }
-  35% {
-    opacity: 0.85;
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.16);
-  }
+  transition: color 0.3s var(--ease-editorial);
 }
 
 .showMoreBtn:hover {
-  transform: translate3d(0, -2px, 0);
-  border-color: var(--border-strong);
-  background-color: var(--pill-hover-bg);
-  color: var(--pill-hover-text);
-}
-
-.showMoreBtn:active {
-  transform: translate3d(0, 0, 0) scale(0.98);
+  color: var(--text-secondary);
 }
 
 .showMoreBtn:focus-visible {
   outline: 1px solid var(--border-strong);
-  outline-offset: 5px;
+  outline-offset: 6px;
 }
 
-/* "Show more" ⇄ "Show less" cross-fade (stacked, so the width never jumps) */
+/* The underline (border-bottom) runs under label + count and meets the arrow */
+.showMoreLine {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: 0 0.2rem 0.6rem;
+  border-bottom: 1px solid currentColor;
+}
+
 .showMoreLabelWrap {
   display: grid;
 }
@@ -851,89 +823,23 @@
 .showMoreLabelWrap > span {
   grid-area: 1 / 1;
   white-space: nowrap;
-  transition:
-    opacity 0.45s ease,
-    transform 0.6s var(--ease-editorial);
 }
 
-.showMoreLabelLess {
-  opacity: 0;
-  transform: translate3d(0, 8px, 0);
-}
-
-.showMoreBtnOpen .showMoreLabelMore {
-  opacity: 0;
-  transform: translate3d(0, -8px, 0);
-}
-
-.showMoreBtnOpen .showMoreLabelLess {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-}
-
-/* 04 / 06 → 06 / 06 progress */
+/* 06 / 06 progress */
 .showMoreCount {
   font-family: var(--font-mono);
   font-size: 0.7rem;
   letter-spacing: var(--tracking-wider);
   opacity: 0.55;
   white-space: nowrap;
-  animation: showMoreCountIn 0.6s var(--ease-editorial);
 }
 
-@keyframes showMoreCountIn {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 6px, 0);
-  }
-  to {
-    opacity: 0.55;
-    transform: translate3d(0, 0, 0);
-  }
+.showMoreArrow {
+  width: 1.35rem;
+  height: 1.35rem;
 }
 
-.showMoreIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 50%;
-  border: 1px solid var(--border-medium);
-  transition:
-    transform 0.7s var(--ease-slowmo),
-    background-color 0.35s var(--ease-editorial),
-    color 0.35s var(--ease-editorial),
-    border-color 0.35s var(--ease-editorial);
-}
-
-.showMoreIcon svg {
-  width: 1rem;
-  height: 1rem;
-  animation: showMoreNudge 2.2s ease-in-out infinite;
-}
-
-@keyframes showMoreNudge {
-  0%,
-  100% {
-    transform: translate3d(0, -1px, 0);
-  }
-  50% {
-    transform: translate3d(0, 2px, 0);
-  }
-}
-
-.showMoreBtn:hover .showMoreIcon {
-  background-color: var(--pill-hover-text);
-  color: var(--pill-hover-bg);
-  border-color: var(--pill-hover-text);
-}
-
-.showMoreBtnOpen .showMoreIcon {
-  transform: rotate(180deg);
-}
-
-/* Mobile: the button becomes a comfortable full-width pill (easy thumb target) */
+/* Mobile: the button stretches so the line is a comfortable thumb target */
 @media (max-width: 640px) {
   .moreRail {
     display: none;
@@ -946,10 +852,12 @@
 
   .showMoreBtn {
     width: 100%;
-    justify-content: space-between;
-    min-height: 3.4rem;
-    padding-left: 1.5rem;
     font-size: 0.74rem;
+  }
+
+  .showMoreLine {
+    flex: 1 1 auto;
+    justify-content: space-between;
   }
 }
 
@@ -960,6 +868,7 @@
     transition: none !important;
   }
   .introText,
+  .viewAllLink,
   .projectCard {
     opacity: 1 !important;
     transform: none !important;
@@ -983,16 +892,7 @@
     transform: none !important;
     transition: none !important;
   }
-  .showMoreFloat,
-  .showMoreFloat::after,
-  .showMoreBtn::before,
-  .showMoreIcon svg,
-  .showMoreCount {
-    animation: none !important;
-  }
-  .showMoreBtn,
-  .showMoreIcon,
-  .showMoreLabelWrap > span {
+  .showMoreBtn {
     transition: none !important;
   }
 }

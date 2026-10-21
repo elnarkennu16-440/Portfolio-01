@@ -350,8 +350,8 @@ export const QA_DATABASE: QAEntry[] = [
     ],
     keywords: ["projects", "proyekto", "mirams", "ncamis", "nobleclassics"],
     category: "projects",
-    en: "I have 3 featured projects:\n1. MIRAMS (2026) – Manufacturing Internal Request & Asset Management System (React, TypeScript, Laravel 11, Spatie RBAC)\n2. NCAMIS (2025) – Senior High School MIS for Northills College of Asia (PHP, JavaScript, RBAC)\n3. NobleClassics (2024) – Curated E-Commerce Bookstore Platform (PHP, MySQL, Cart & Admin Panel)",
-    tl: "May 3 pangunahing proyekto ako:\n1. MIRAMS (2026) – Manufacturing Internal Request & Asset Management System (React, TypeScript, Laravel 11, Spatie RBAC)\n2. NCAMIS (2025) – Senior High School MIS para sa Northills College of Asia (PHP, JavaScript, RBAC)\n3. NobleClassics (2024) – Curated E-Commerce Bookstore Platform (PHP, MySQL, Cart at Admin Panel)",
+    en: "I have 6 featured projects:\n1. MIRAMS (2026) – Manufacturing Request & Asset Management System with IT helpdesk ticketing\n2. NCAMIS (2025) – Senior High School MIS centralizing student records & admissions\n3. NobleClassics (2024) – Curated E-Commerce Bookstore with cart & admin panel\n4. ReadCap.AI – AI-powered distraction-free reading room & workspace\n5. AbisoMed – Clinic appointment system with real-time queue & SMS alerts\n6. AsensoPOS – Offline POS & inventory tool with customer credit ledger\n\nOther Projects:\n• DroidCaffeine – College cafe ordering & POS application (C# / .NET)\n• HatidIsked – Campus distribution & pickup queue coordinator\n• Plummatry – API testing & file manipulation web utility",
+    tl: "May 6 pangunahing proyekto ako:\n1. MIRAMS (2026) – Manufacturing Request & Asset Management System na may IT helpdesk ticketing\n2. NCAMIS (2025) – Senior High School MIS para sa student records at admissions\n3. NobleClassics (2024) – Curated E-Commerce Bookstore na may cart at admin panel\n4. ReadCap.AI – AI-powered distraction-free reading room at workspace\n5. AbisoMed – Clinic appointment system na may real-time queue at SMS alerts\n6. AsensoPOS – Offline POS at inventory tool na may utang ledger\n\nIba Pang Proyekto:\n• DroidCaffeine – College cafe ordering at POS application (C# / .NET)\n• HatidIsked – Campus distribution at pickup queue coordinator\n• Plummatry – API testing at file manipulation web utility",
   },
 
   // 22. MIRAMS PROJECT
@@ -720,8 +720,8 @@ export const QA_DATABASE: QAEntry[] = [
     ],
     keywords: ["vs code", "cursor", "devtools", "tools"],
     category: "skills",
-    en: "I work with VS Code, Cursor, Chrome DevTools, Git/GitHub, Postman, and modern terminal tooling.",
-    tl: "Gumagamit ako ng VS Code, Cursor, Chrome DevTools, Git/GitHub, Postman, at terminal tools sa aking araw-araw na paggawa.",
+    en: "Here is the full breakdown of my technical capabilities:\n\nFront-end:\n• Modern HTML5 & CSS3\n• JavaScript (ES6+)\n• React & Tailwind CSS\n• TypeScript\n• Vue.js\n\nQA & Testing:\n• Manual Testing\n• Test Case Design\n• Bug Reporting & Triage\n• Playwright\n• API Testing\n\nTools:\n• Git & GitHub\n• VS Code & Cursor\n• Chrome DevTools\n• Node.js\n• Vite & Modern Tooling",
+    tl: "Narito ang buong listahan ng aking mga kakayahan at tools:\n\nFront-end:\n• Modern HTML5 & CSS3\n• JavaScript (ES6+)\n• React & Tailwind CSS\n• TypeScript\n• Vue.js\n\nQA & Testing:\n• Manual Testing\n• Test Case Design\n• Bug Reporting & Triage\n• Playwright\n• API Testing\n\nTools:\n• Git & GitHub\n• VS Code & Cursor\n• Chrome DevTools\n• Node.js\n• Vite & Modern Tooling",
   },
 
   // 50. TEAMWORK AND COLLABORATION
@@ -871,15 +871,16 @@ my-web-app/
       /\b(paano ang fullstack setup|paano mo pinagsasama ang frontend at backend|arkitektura ng buong app)\b/i,
     ],
     keywords: [
-      "fullstack",
+      "fullstack project structure",
+      "fullstack setup",
       "architecture",
       "client server",
       "backend frontend",
     ],
     category: "process",
-    en: `For full-stack applications, I decouple the presentation layer from the business logic and database layer. This ensures independent testing, security, and scalability.
+    en: `For Project Architecture, I decouple the presentation layer from the business logic and database layer. This ensures independent testing, security, and scalability.
 
-Here is my standard full-stack multi-service file structure:
+Here is my standard multi-service file structure:
 
 fullstack-system/
 ├── client/                  # Frontend SPA (React + TypeScript)
@@ -903,9 +904,9 @@ fullstack-system/
 │   └── seeders/             # Initial demo & lookup data
 ├── docker-compose.yml       # Local MySQL, Redis, & App container setup
 └── .env.example             # Shared environment configuration`,
-    tl: `Para sa full-stack applications, inihihiwalay ko ang presentation layer mula sa business logic at database layer para madaling i-test, ligtas, at scalable.
+    tl: `Para sa proyektong arkitektura, inihihiwalay ko ang presentation layer mula sa business logic at database layer para madaling i-test, ligtas, at scalable.
 
-Ito ang aking karaniwang full-stack project structure:
+Ito ang aking karaniwang project structure:
 
 fullstack-system/
 ├── client/                  # Frontend SPA (React + TypeScript)
@@ -2055,7 +2056,7 @@ Dahil marunong akong mag-code sa TypeScript at PHP, kaya kong mag-black-box test
     ],
     keywords: ["learn new tech", "fast learner", "matuto", "framework"],
     category: "about",
-    en: `I learn rapidly through hands-on building:
+    en: `How I learn rapidly through hands-on building:
 1. I read the official documentation to understand core architectural concepts.
 2. I build a small working proof-of-concept (CRUD app) to test state, routing, and error boundaries.
 3. I inspect production open-source implementations to learn community best practices.

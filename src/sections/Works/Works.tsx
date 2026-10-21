@@ -22,16 +22,28 @@ const INITIAL_VISIBLE_PROJECTS = 4;
 // so the page lands back on the same spot (the divider line under the button) with no re-animation.
 const RESTORE_KEY = "works:return-from-archive";
 
-const readRestoreFlag = (): boolean => {
-  try {
-    return (
-      typeof window !== "undefined" &&
-      window.sessionStorage.getItem(RESTORE_KEY) === "1"
-    );
-  } catch {
-    return false;
-  }
-};
+const readRestoreFlag = (): boolean => false;
+
+/**
+ * Minimal "line + arrow" connector: one continuous stroke — a horizontal line that
+ * bends upward into an arrow head (↗). The horizontal part sits on the bottom edge of the
+ * SVG so it joins the underline of the label right next to it.
+ */
+const ConnectorArrow: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    className={className}
+    viewBox="0 0 16 16"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.1"
+    strokeLinecap="butt"
+    strokeLinejoin="miter"
+    aria-hidden="true"
+  >
+    <path d="M0 15.5H3.5L13.5 5.5" />
+    <path d="M6.5 5.5H13.5V12.5" />
+  </svg>
+);
 
 const ProjectCardItem: React.FC<{
   project: ProjectItem;
@@ -369,6 +381,21 @@ export const Works: React.FC<WorksProps> = ({ onOpenAllProjects }) => {
     }
   };
 
+  // Shared by BOTH "View all projects" buttons (small one under the intro + the one below the grid)
+  const handleViewAll = () => {
+    if (onOpenAllProjects) {
+      // remember we are leaving from here, so Back can return to this exact spot
+      try {
+        window.sessionStorage.setItem(RESTORE_KEY, "1");
+      } catch {
+        /* storage unavailable */
+      }
+      onOpenAllProjects();
+    } else {
+      handleToggleMore();
+    }
+  };
+
   const totalCount = visibleProjects.length + extraProjects.length;
   const shownCount = isExpanded ? totalCount : visibleProjects.length;
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -403,7 +430,22 @@ export const Works: React.FC<WorksProps> = ({ onOpenAllProjects }) => {
           <div className={styles.headerUnderline} aria-hidden="true" />
         </div>
 
-        <p className={styles.introText}>{works.intro}</p>
+        {/* Intro text + small "View all projects" line-arrow link */}
+        <div className={styles.introRow}>
+          <p className={styles.introText}>{works.intro}</p>
+
+          {extraProjects.length > 0 && (
+            <button
+              type="button"
+              className={styles.viewAllLink}
+              onClick={handleViewAll}
+              aria-label="View all projects in archive"
+            >
+              <span className={styles.viewAllLinkLabel}>View all projects</span>
+              <ConnectorArrow className={styles.connectorArrow} />
+            </button>
+          )}
+        </div>
 
         {/* Dynamic Projects Grid */}
         <div className={styles.projectsGrid}>
@@ -452,7 +494,7 @@ export const Works: React.FC<WorksProps> = ({ onOpenAllProjects }) => {
               </div>
             )}
 
-            {/* Floating "VIEW ALL PROJECTS" control */}
+            {/* "VIEW ALL PROJECTS" control — text + underline connected to an arrow, no animation */}
             <div
               ref={moreRowRef}
               className={`${styles.moreRow} ${
@@ -465,45 +507,29 @@ export const Works: React.FC<WorksProps> = ({ onOpenAllProjects }) => {
                 <button
                   type="button"
                   className={styles.showMoreBtn}
-                  onClick={() => {
-                    if (onOpenAllProjects) {
-                      // remember we are leaving from here, so Back can return to this exact spot
-                      try {
-                        window.sessionStorage.setItem(RESTORE_KEY, "1");
-                      } catch {
-                        /* storage unavailable */
-                      }
-                      onOpenAllProjects();
-                    } else {
-                      handleToggleMore();
-                    }
-                  }}
+                  onClick={handleViewAll}
                   aria-label="View all projects in archive"
                 >
-                  <span className={styles.showMoreLabelWrap} aria-hidden="true">
-                    <span className={styles.showMoreLabelMore}>
-                      View All Projects
+                  <span className={styles.showMoreLine}>
+                    <span
+                      className={styles.showMoreLabelWrap}
+                      aria-hidden="true"
+                    >
+                      <span className={styles.showMoreLabelMore}>
+                        View All Projects
+                      </span>
+                    </span>
+                    <span
+                      key={totalCount}
+                      className={styles.showMoreCount}
+                      aria-hidden="true"
+                    >
+                      {pad(totalCount)} / {pad(totalCount)}
                     </span>
                   </span>
-                  <span
-                    key={totalCount}
-                    className={styles.showMoreCount}
-                    aria-hidden="true"
-                  >
-                    {pad(totalCount)} / {pad(totalCount)}
-                  </span>
-                  <span className={styles.showMoreIcon} aria-hidden="true">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.8"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M5 12h14M12 5l7 7-7 7" />
-                    </svg>
-                  </span>
+                  <ConnectorArrow
+                    className={`${styles.connectorArrow} ${styles.showMoreArrow}`}
+                  />
                 </button>
               </div>
 

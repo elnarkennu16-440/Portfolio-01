@@ -1,0 +1,433 @@
+/* Desktop Project Description Modal Styles
+ * Wide, comfortable desktop presentation with scaled content, grayscale preview image,
+ * and strict adherence to the Message Me modal design theme and tokens.
+ */
+
+.backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  background-color: rgba(0, 0, 0, 0.76) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 32px 24px !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  z-index: 9999999 !important;
+  animation: fadeInBackdrop 200ms ease forwards;
+}
+
+@keyframes fadeInBackdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Modal Dialog: Wide desktop dimension matching user drawing (880px max-width) */
+.modalDialog {
+  position: relative !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 880px !important;
+  max-height: min(90vh, 840px) !important;
+  max-height: min(90dvh, 840px) !important;
+  background-color: var(--bg-surface) !important;
+  border: 1px solid var(--border-hairline) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.6) !important;
+  padding: 28px 34px 30px 34px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: auto !important;
+  animation: slideUpModal 240ms
+    var(--ease-editorial, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+  z-index: 10000000 !important;
+  overflow: hidden !important;
+}
+
+[data-theme="dark"] .modalDialog {
+  background-color: #141416 !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  box-shadow: 0 32px 85px rgba(0, 0, 0, 0.88) !important;
+}
+
+@keyframes slideUpModal {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Header - identical to Message Me dialogHeader with larger, wider desktop proportions */
+.dialogHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border-hairline);
+  margin-bottom: 20px;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.titleArea {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+/* Number badge stays on the first line while a long title wraps underneath */
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.numberMono {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  border: 1px solid var(--border-hairline);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background-color: var(--bg-surface-elevated);
+  line-height: 1.2;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+
+/* Title now WRAPS instead of being cut with "…" */
+.dialogTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(1.45rem, 2.6vw, 1.85rem);
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: 1.2;
+  margin: 0;
+  min-width: 0;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+}
+
+.dialogSubtitle {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Close Button - identical to ContactModal's ESC ✕ button */
+.closeButton {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-muted);
+  border: 1px solid var(--border-hairline);
+  padding: 5px 12px;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    color var(--duration-fast, 150ms) ease,
+    border-color var(--duration-fast, 150ms) ease;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+
+.closeButton:hover {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+/* Modal Scrollable Body - Slender 4px scrollbar requested by user */
+.modalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding-right: 8px;
+  min-width: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.modalBody::-webkit-scrollbar {
+  width: 4px;
+}
+
+.modalBody::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modalBody::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+}
+
+.modalBody::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* Media Banner - Wide cinematic preview banner matching user's requested layout */
+.mediaContainer {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 440px;
+  border-radius: 5px;
+  background-color: #0b0d10;
+  border: 1px solid var(--border-hairline);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Grayscale image filter as requested in Image 1 and 2 (monochrome / gray) */
+.previewImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: grayscale(100%) contrast(1.08) brightness(0.95);
+}
+
+.previewPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--text-muted);
+}
+
+.placeholderText {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Section Blocks */
+.sectionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionLabel {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+/* Notice Box - exact styling like ContactModal's fallbackNotice with enlarged font */
+.noticeBox {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+  padding: 16px 20px;
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  line-height: 1.68;
+  color: var(--text-secondary);
+  border-radius: 4px;
+}
+
+/* Overview text: justified so there is no uneven gap on the right edge */
+.overviewText {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  line-height: 1.68;
+  text-align: justify;
+  text-justify: inter-word;
+  hyphens: auto;
+  -webkit-hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+/* 3-Column Metadata Bar: wider and more spacious */
+.metaCard {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: 4px;
+  padding: 12px 14px;
+  gap: 10px;
+}
+
+.metaCol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 10px;
+  min-width: 0;
+}
+
+.metaCol:not(:last-child) {
+  border-right: 1px solid var(--border-hairline);
+}
+
+.metaLabel {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+/* Values WRAP if a window is narrow instead of being cut with "…" */
+.metaValue {
+  font-family: var(--font-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  line-height: 1.35;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* Status dot: Light Gray (was blue) */
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: #b4b8bf;
+  flex-shrink: 0;
+}
+
+[data-theme="light"] .statusDot {
+  background-color: #8a8f98;
+}
+
+/* 02 - Stack Pills: enlarged and properly spaced */
+.stackPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stackPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 9999px;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1;
+}
+
+.pillIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
+
+.pillIcon svg {
+  width: 13.5px;
+  height: 13.5px;
+}
+
+/* 03 - Key Features */
+.featuresList {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.featureItem {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  overflow-wrap: break-word;
+}
+
+/* Action Links at Bottom */
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-hairline);
+  margin-top: 4px;
+}
+
+.pillActionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 18px;
+  border-radius: 9999px;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition:
+    border-color var(--duration-fast, 150ms) ease,
+    color var(--duration-fast, 150ms) ease;
+}
+
+.pillActionBtn:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop {
+    animation: none !important;
+  }
+  .modalDialog {
+    animation: none !important;
+    transform: none !important;
+  }
+}

@@ -36,6 +36,20 @@ export interface ProjectItem {
   imageAlt?: string;
   iconUrl?: string;
   status?: "placeholder" | "final";
+  duration?: string;
+  projectType?: string;
+  overview?: string;
+  keyFeatures?: string[];
+  modalStatus?: string;
+}
+
+export interface OtherProjectItem {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  link?: string;
+  year?: string;
 }
 
 export interface ProcessStep {
@@ -155,8 +169,6 @@ export const siteContent = {
         id: "project-01",
         number: "01",
         title: "MIRAMS — Manufacturing Internal Request & Asset Management",
-        role: "Full-Stack Developer & QA",
-        year: "2026",
         tags: [
           "React",
           "TypeScript",
@@ -171,15 +183,24 @@ export const siteContent = {
         imageUrl: "/images/projects/MIRAMS-Project.png",
         imageAlt:
           "MIRAMS Manufacturing Internal Request & Asset Management System interface preview",
-        iconUrl: "/images/projects/icons/mirams.svg",
+        iconUrl: "/images/projects/icons/Mirams-Icon-Logo.png",
         status: "final" as const,
+        modalStatus: "In Progress",
+        duration: "Sep 2025 – Present",
+        projectType: "Enterprise Web Application",
+        overview:
+          "Full-stack, role-aware enterprise web application built for high-throughput electronics manufacturing environments. Integrates hardware lifecycle tracking, IT helpdesk ticketing, equipment preventive maintenance schedules, and departmental supply requisitions across 8 operational tiers with granular Spatie RBAC security.",
+        keyFeatures: [
+          "Hardware lifecycle tracking and multi-tier IT asset management with audit trails",
+          "Role-based access control (RBAC) securely spanning 8 operational tiers",
+          "Automated helpdesk ticketing workflows and maintenance dispatch scheduling",
+          "Department supply requisition approvals with real-time stock deductions",
+        ],
       },
       {
         id: "project-02",
         number: "02",
         title: "NCAMIS — Senior High School Management Information System",
-        role: "QA Tester & Web Developer",
-        year: "2025",
         tags: [
           "PHP",
           "JavaScript",
@@ -193,15 +214,24 @@ export const siteContent = {
         imageUrl: "/images/projects/NCAMIS-Project.png",
         imageAlt:
           "NCAMIS Northills College of Asia Management Information System portal preview",
-        iconUrl: "/images/projects/icons/ncamis.svg",
+        iconUrl: "/images/projects/icons/Ncamis-Icon-Logo.png",
         status: "final" as const,
+        modalStatus: "Completed",
+        duration: "2024 – 2025",
+        projectType: "Academic Information System",
+        overview:
+          "Comprehensive web platform streamlining academic and administrative operations for Northills College of Asia. Centralizes student records, faculty grading schedules, and admissions workflows with dedicated role-based portals for school administrators, faculty instructors, students, and parents.",
+        keyFeatures: [
+          "Centralized student academic records, digital grading sheets, and enrollment pipelines",
+          "Distinct role portals for school administrators, faculty instructors, and students",
+          "Admissions processing pipeline with automated prerequisite document verification",
+          "Parent portal for real-time grade notifications and student attendance visibility",
+        ],
       },
       {
         id: "project-03",
         number: "03",
         title: "NobleClassics — Full-Featured E-Commerce Bookstore",
-        role: "Full-Stack Developer",
-        year: "2024",
         tags: [
           "PHP",
           "MySQL",
@@ -216,15 +246,24 @@ export const siteContent = {
         imageUrl: "/images/projects/NobleClassics-Project.png",
         imageAlt:
           "NobleClassics E-Commerce Bookstore Platform storefront preview",
-        iconUrl: "/images/projects/icons/nobleclassics.svg",
+        iconUrl: "/images/projects/icons/Nobleclassics.Icon-Logo.png",
         status: "final" as const,
+        modalStatus: "Completed",
+        duration: "2024",
+        projectType: "E-Commerce Bookstore",
+        overview:
+          "Curated literary e-commerce platform featuring dynamic shopping cart calculation, multi-step checkout, and order status tracking, backed by an administrative dashboard for catalog management, stock control, customer inquiries, and secure user credentials.",
+        keyFeatures: [
+          "Dynamic real-time cart computation, discount vouchers, and multi-step checkout",
+          "Admin control panel for live book catalog updates, stock tiers, and order status",
+          "Customer authentication, profile order history, and inquiry messaging",
+          "Clean responsive reader-friendly aesthetic tailored for bibliophiles",
+        ],
       },
       {
         id: "project-04",
         number: "04",
         title: "ReadCap.AI — Distillation & Focused Reading Workspace",
-        role: "Full-Stack Developer & AI Integrator",
-        year: "2026",
         tags: [
           "React",
           "TypeScript",
@@ -239,16 +278,25 @@ export const siteContent = {
         imageUrl: "/images/projects/READCAPAI-Project.png",
         imageAlt:
           "ReadCap AI focused reading room and conversational synthesis interface preview",
-        iconUrl: "/images/projects/icons/readcapai.svg",
+        iconUrl: "/images/projects/icons/Readcapai-Icon-Logo.png",
         status: "final" as const,
+        modalStatus: "Active Development",
+        duration: "Jan 2026 – Present",
+        projectType: "AI Reading & Workspace Tool",
+        overview:
+          "AI-powered distraction-free reading room and thought workspace. Allows readers to untangle raw thoughts, capture signals from long-form writing, and converse with localized private sessions through clean conversational threads.",
+        keyFeatures: [
+          "Focused distraction-free markdown reader with typography tuning",
+          "Gemini API integration for summarizing, questioning, and extracting key points",
+          "Local private thread history stored securely in the browser",
+          "Signal-to-noise extractor for long-form whitepapers and technical essays",
+        ],
       },
       // ── Hidden behind "Show more" (SAMPLE projects — replace with real ones later) ──
       {
         id: "project-05",
         number: "05",
         title: "AbisoMed — Clinic Appointment & Live Queue Tracker",
-        role: "Full-Stack Developer",
-        year: "2025",
         tags: [
           "React",
           "TypeScript",
@@ -260,18 +308,27 @@ export const siteContent = {
         description:
           "Walk-in and online appointment system for small clinics with real-time queue numbers, SMS-ready patient alerts, and a staff dashboard that estimates waiting time so patients stop waiting in crowded lobbies.",
         // TODO: add repoUrl / liveUrl when this becomes a real project (buttons stay hidden until then)
-        iconUrl: "",
+        iconUrl: "/images/projects/icons/Abisomed-Icon-Logo.png",
         imageUrl: "/images/projects/QueueLess-Project.svg",
         imageAlt:
           "QueueLess dashboard showing the live patient queue and the number now being served",
         status: "placeholder" as const,
+        modalStatus: "In Progress",
+        duration: "2025",
+        projectType: "Healthcare & Queue System",
+        overview:
+          "Walk-in and online appointment system for community clinics with real-time queue tracking, SMS-ready patient alerts, and a triage dashboard that estimates waiting time so patients stop waiting in crowded lobbies.",
+        keyFeatures: [
+          "Live waiting room display board updating patient queue numbers in real time",
+          "Staff triage dashboard for managing doctors' schedules and consulting rooms",
+          "Automated SMS notification alerts when patient's turn is approaching",
+          "Daily patient throughput metrics and appointment scheduling calendar",
+        ],
       },
       {
         id: "project-06",
         number: "06",
-        title: "AsensoPOS — Sari-Sari Store Inventory & Utang Ledger",
-        role: "Full-Stack Developer",
-        year: "2025",
+        title: "AsensoPOS — Market Inventory & Debt Ledger",
         tags: [
           "React",
           "TypeScript",
@@ -283,13 +340,53 @@ export const siteContent = {
         description:
           "Offline-friendly point-of-sale and inventory tool for neighborhood stores: low-stock alerts, daily sales summaries, and a customer credit (utang) ledger with payment reminders and printable statements.",
         // TODO: add repoUrl / liveUrl when this becomes a real project (buttons stay hidden until then)
-        iconUrl: "",
+        iconUrl: "/images/projects/icons/Asensopos-Icon-Logo.png",
         imageUrl: "/images/projects/TindaTrack-Project.svg",
         imageAlt:
           "TindaTrack dashboard with weekly sales, stock levels and the customer credit ledger",
         status: "placeholder" as const,
+        modalStatus: "Prototype",
+        duration: "2025",
+        projectType: "Point-of-Sale & Inventory",
+        overview:
+          "Offline-friendly point-of-sale and inventory tool designed for neighborhood micro-retailers: low-stock alerts, daily sales summaries, and a customer credit (utang) ledger with payment reminders and printable statements.",
+        keyFeatures: [
+          "Fast barcode or tap-to-add checkout workflow optimized for touch screens",
+          "Customer credit (utang) ledger with payment tracking and balance summaries",
+          "Low-stock notifications and vendor restocking order suggestions",
+          "Offline-first IndexedDB data persistence with automatic background sync",
+        ],
       },
     ] as ProjectItem[],
+    otherProjects: [
+      {
+        id: "other-01",
+        title: "DroidCaffeine",
+        category: "MOBILE APPLICATION",
+        description:
+          "A college cafe ordering and point-of-sale application built in Visual Studio using C# and .NET with interactive food item menus, order queue calculations, and local receipt logging.",
+        link: "https://github.com/elnarkennu16-440/DroidCafe",
+        year: "2024",
+      },
+      {
+        id: "other-02",
+        title: "HatidIsked",
+        category: "WEB APPLICATION",
+        description:
+          "A college campus distribution and queue coordinator built with localized timeslot allocations, real-time release status updates, and automated pickup schedule tracking.",
+        link: "https://github.com/elnarkennu16-440",
+        year: "2024",
+      },
+      {
+        id: "other-03",
+        title: "Plummatry",
+        category: "WEB APPLICATION",
+        description:
+          "A robust web application built to accelerate API testing and file manipulation workflows. By eliminating tedious manual scripting, it offers a secure, intuitive interface to validate endpoints, transforms file schemas, and monitors data payloads in real time.",
+        link: "https://github.com/elnarkennu16-440",
+        year: "2023",
+      },
+    ] as OtherProjectItem[],
     status: "final" as const,
   },
 

@@ -1,25 +1,16 @@
 .pageContainer {
-  /* Soft grayscale glow used when a card is hovered / tapped (no borders, no colors) */
-  --card-glow:
-    0 22px 56px -16px rgba(255, 255, 255, 0.13),
-    0 0 36px rgba(255, 255, 255, 0.035);
-  --icon-glow: 0 0 22px rgba(255, 255, 255, 0.16);
-
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
   width: 100%;
-  max-width: 100vw;
+  height: 100vh;
+  z-index: 900;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  position: relative;
-  overflow-x: clip;
   display: flex;
   flex-direction: column;
-}
-
-[data-theme="light"] .pageContainer {
-  --card-glow:
-    0 22px 50px -16px rgba(0, 0, 0, 0.26), 0 0 30px rgba(0, 0, 0, 0.05);
-  --icon-glow: 0 0 20px rgba(0, 0, 0, 0.16);
 }
 
 /* Subtle atmosphere background */
@@ -200,7 +191,7 @@
   text-align: left;
 }
 
-/* Responsive compact grid: 3 columns desktop · 2 tablet · 2 (smaller cards) on mobile */
+/* Responsive compact grid: 3 columns desktop · 2 tablet · 2 on mobile */
 .projectsGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -217,11 +208,11 @@
 @media (max-width: 600px) {
   .projectsGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.65rem;
+    gap: 0.55rem;
   }
 }
 
-/* Individual Compact Card — everything left aligned */
+/* Individual Compact Card — clean plain zoom-in, NO colored/gray glow */
 .compactCard {
   position: relative;
   z-index: 0;
@@ -235,36 +226,43 @@
   text-align: left;
   -webkit-tap-highlight-color: transparent;
   transition:
-    transform 0.55s var(--ease-editorial),
-    box-shadow 0.55s var(--ease-editorial),
-    background-color 0.35s var(--ease-editorial);
+    transform 0.28s var(--ease-editorial),
+    background-color 0.28s var(--ease-editorial);
 }
 
-/* Pointer devices: the card softly glows and zooms in. The border does NOT change (no white line). */
+/* Pointer devices: pure subtle zoom in, no colored box-shadow */
 @media (hover: hover) and (pointer: fine) {
   .compactCard:hover {
     z-index: 2;
-    transform: scale(1.035);
+    transform: scale(1.025);
     background-color: var(--bg-surface-elevated);
-    box-shadow: var(--card-glow);
   }
 
   .compactCard:hover .cardIconBox {
-    transform: scale(1.14);
-    box-shadow: var(--icon-glow);
+    transform: scale(1.08);
+  }
+
+  /* Icon transitions from muted grayscale to its full real color on hover */
+  .compactCard:hover .cardIconImg {
+    filter: grayscale(0%) contrast(1) brightness(1);
+    opacity: 1;
   }
 }
 
-/* Touch devices: same soft glow/zoom while the card is pressed */
+/* Touch devices: clean zoom on tap, no glow */
 @media (hover: none) {
   .compactCard:active {
-    transform: scale(1.02);
-    box-shadow: var(--card-glow);
+    transform: scale(1.015);
+    background-color: var(--bg-surface-elevated);
   }
 
   .compactCard:active .cardIconBox {
-    transform: scale(1.1);
-    box-shadow: var(--icon-glow);
+    transform: scale(1.05);
+  }
+
+  .compactCard:active .cardIconImg {
+    filter: grayscale(0%) contrast(1) brightness(1);
+    opacity: 1;
   }
 }
 
@@ -305,7 +303,6 @@
   text-decoration: none;
 }
 
-/* Quiet hover: no white fill, no extra color */
 .actionIconBtn:hover {
   background-color: var(--bg-surface-elevated);
   color: var(--text-primary);
@@ -320,39 +317,41 @@
 }
 
 .cardIconBox {
-  width: 54px;
-  height: 54px;
-  border-radius: 12px;
-  background-color: var(--bg-surface-elevated);
-  border: 1px solid var(--border-medium);
+  width: 78px;
+  height: 78px;
+  background-color: transparent;
+  border: none;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 9px;
+  justify-content: flex-start;
+  padding: 0;
   flex-shrink: 0;
-  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.08);
   transform-origin: left center;
-  transition:
-    transform 0.55s var(--ease-editorial),
-    box-shadow 0.55s var(--ease-editorial);
+  transition: transform 0.28s var(--ease-editorial);
 }
 
+/* Icon image: Pure image icon without box/border, muted grayscale by default, vibrant real color on hover */
 .cardIconImg {
   width: 100%;
   height: 100%;
   object-fit: contain;
   display: block;
-  filter: grayscale(100%) contrast(1.05) brightness(0.92);
+  filter: grayscale(100%) contrast(1.1) brightness(0.85);
+  opacity: 0.85;
+  transition:
+    filter 0.3s var(--ease-editorial),
+    opacity 0.3s var(--ease-editorial),
+    transform 0.3s var(--ease-editorial);
 }
 
-/* Fallback when a project has no icon file: clean serif monogram (grayscale) */
-.cardMonogram {
-  font-family: var(--font-serif);
-  font-size: 1.5rem;
-  font-weight: 300;
-  line-height: 1;
-  color: var(--text-secondary);
-  user-select: none;
+/* Minimalist SVG placeholder when custom icon image is missing (no letters) */
+.cardPlaceholderIcon {
+  color: var(--text-muted);
+  transition: color 0.25s ease;
+}
+
+.compactCard:hover .cardPlaceholderIcon {
+  color: var(--text-primary);
 }
 
 /* Card Body: small, left-aligned type with a tight hierarchy */
@@ -395,15 +394,65 @@
   text-align: left;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* Tech icons: the same animated, light-gray TechStackIcons used in the Works section.
-   The icons are larger now (their natural Works size); `zoom` below scales them on small screens. */
+/* Overview button: plain text with an underline that connects into an arrow.
+   No pill / oval / background / animation. */
+.cardOverviewBtn {
+  margin-top: 0.4rem;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s var(--ease-editorial);
+}
+
+.cardOverviewBtn:hover {
+  color: var(--text-secondary);
+}
+
+.cardOverviewBtn:focus-visible {
+  outline: 1px solid var(--border-strong);
+  outline-offset: 4px;
+}
+
+/* The underline runs under the word and meets the arrow's line */
+.cardOverviewLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 0 6px;
+  border-bottom: 1px solid currentColor;
+  line-height: 1.2;
+}
+
+/* One continuous stroke: horizontal line that bends up into an arrow head */
+.connectorArrow {
+  display: block;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  overflow: visible;
+}
+
+/* Tech icons row */
 .cardTech {
-  margin-top: auto;
-  padding-top: 0.75rem;
+  margin-top: 0.35rem;
+  padding-top: 0.65rem;
   border-top: 1px solid var(--border-hairline);
   display: flex;
   justify-content: flex-start;
@@ -415,7 +464,6 @@
   zoom: 1;
 }
 
-/* Keep the icon row inside the card: wrap instead of overflowing */
 .cardTechInner > * {
   flex-wrap: wrap;
   max-width: 100%;
@@ -427,20 +475,219 @@
   }
 }
 
-/* Mobile: two small cards per row — smaller type, tile and icons */
+/* =========================================================================
+   OTHER PROJECTS SECTION (Row-based list matching reference image)
+   ========================================================================= */
+.otherProjectsSection {
+  margin-top: clamp(2.5rem, 5vh, 4rem);
+  width: 100%;
+}
+
+.otherSectionHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--border-hairline);
+  margin-bottom: 1.25rem;
+  text-align: left;
+}
+
+.otherSectionTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(1.15rem, 2.2vw, 1.45rem);
+  font-weight: 300;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-primary);
+  text-transform: uppercase;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.otherSectionDesc {
+  font-family: var(--font-sans);
+  font-size: clamp(0.76rem, 1.4vw, 0.85rem);
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.otherProjectsList {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.otherProjectRow {
+  display: grid;
+  grid-template-columns: minmax(130px, 190px) 1fr auto;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border-hairline);
+  transition: background-color 0.2s var(--ease-editorial);
+  text-decoration: none;
+  color: inherit;
+}
+
+.otherProjectRow:last-child {
+  border-bottom: none;
+}
+
+.otherProjectRow:hover {
+  background-color: var(--bg-surface-elevated);
+}
+
+.otherColTitle {
+  display: flex;
+  align-items: center;
+}
+
+.otherItemTitle {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  font-weight: 400;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.otherColMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: left;
+}
+
+.otherItemCategory {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: var(--tracking-wider);
+  text-transform: uppercase;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.otherItemDesc {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.otherColAction {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.otherGithubBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid var(--border-hairline);
+  color: var(--text-secondary);
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+  text-decoration: none;
+}
+
+.otherProjectRow:hover .otherGithubBtn {
+  color: var(--text-primary);
+  background-color: var(--bg-surface-elevated);
+  border-color: var(--border-medium);
+  transform: scale(1.08);
+}
+
+.otherGithubMuted {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  color: var(--text-muted);
+  opacity: 0.4;
+  user-select: none;
+}
+
+/* =========================================================================
+   MOBILE RESPONSIVENESS (Card and typography adjustments)
+   ========================================================================= */
+@media (max-width: 680px) {
+  .otherProjectRow {
+    grid-template-columns: 1fr auto;
+    gap: 0.6rem;
+    padding: 1rem 1rem;
+  }
+
+  .otherColMeta {
+    grid-column: 1 / -1;
+  }
+
+  .otherItemTitle {
+    font-size: 0.95rem;
+  }
+
+  .otherItemCategory {
+    font-size: 0.58rem;
+  }
+
+  .otherItemDesc {
+    font-size: 0.74rem;
+    line-height: 1.45;
+  }
+}
+
 @media (max-width: 600px) {
+  .mainContent {
+    padding: 1.25rem 0.75rem 3.5rem;
+  }
+
+  .subHeaderRow {
+    gap: 0.5rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .pageTitle {
+    font-size: 1.25rem;
+  }
+
+  .pageDescription {
+    font-size: 0.75rem;
+    line-height: 1.5;
+  }
+
+  .projectsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
   .compactCard {
-    padding: 0.8rem;
-    gap: 0.4rem;
-    border-radius: 9px;
+    padding: 0.8rem 0.7rem;
+    gap: 0.35rem;
+    border-radius: 11px;
+    cursor: pointer;
   }
 
   .cardTopRow {
-    min-height: 22px;
+    min-height: 20px;
   }
 
   .cardNumberMono {
-    font-size: 0.6rem;
+    font-size: 0.62rem;
   }
 
   .actionIconBtn {
@@ -449,59 +696,90 @@
     border-radius: 5px;
   }
 
+  /* Pure enlarged image icon on mobile without line border / box */
   .cardIconBox {
-    width: 38px;
-    height: 38px;
-    border-radius: 9px;
-    padding: 7px;
-  }
-
-  .cardMonogram {
-    font-size: 1.1rem;
+    width: 62px;
+    height: 62px;
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    border-radius: 0;
   }
 
   .cardIconWrap {
-    margin: 0.05rem 0 0.2rem 0;
+    margin: 0.1rem 0 0.25rem 0;
   }
 
   .cardBody {
-    gap: 0.28rem;
+    gap: 0.25rem;
   }
 
   .cardRoleYear {
-    font-size: 0.52rem;
-    letter-spacing: 0.05em;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    font-size: 0.56rem;
+    letter-spacing: 0.03em;
+    line-height: 1.25;
+    color: var(--text-muted);
   }
 
   .cardTitle {
-    font-size: 0.78rem;
-    line-height: 1.28;
+    font-size: 0.76rem;
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--text-primary);
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
 
+  /* Hide description on mobile to keep card compact and clean (full details available via Overview modal) */
   .cardDescription {
-    font-size: 0.65rem;
-    line-height: 1.45;
-    -webkit-line-clamp: 4;
+    display: none !important;
   }
 
+  /* Hide moving/animated marquee tech icons on mobile to prevent crowding */
   .cardTech {
-    padding-top: 0.55rem;
+    display: none !important;
   }
 
-  .cardTechInner {
-    zoom: 0.58;
+  /* Sleek mobile overview line-arrow button */
+  .cardOverviewBtn {
+    margin-top: 0.35rem;
+    padding: 0;
+    font-size: 0.64rem;
+    letter-spacing: 0.06em;
   }
 
-  .pageDescription {
-    font-size: 0.76rem;
+  .cardOverviewLabel {
+    padding-bottom: 5px;
+  }
+
+  .connectorArrow {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 400px) {
+  .projectsGrid {
+    gap: 0.45rem;
+  }
+
+  .cardIconBox {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    padding: 6px;
+  }
+
+  .cardTitle {
+    font-size: 0.7rem;
+  }
+
+  .cardOverviewBtn {
+    font-size: 0.6rem;
+    padding: 0;
   }
 }
 
@@ -513,6 +791,7 @@
   border-top: 1px solid var(--border-hairline);
   background-color: var(--bg-primary);
   padding: 1.25rem clamp(1rem, 3vw, 2rem);
+  margin-top: auto;
 }
 
 .footerInner {
@@ -552,7 +831,7 @@
   color: var(--text-primary);
 }
 
-/* Reduced motion: no zoom / glow transitions */
+/* Reduced motion: no zoom transitions */
 @media (prefers-reduced-motion: reduce) {
   .compactCard,
   .cardIconBox {
