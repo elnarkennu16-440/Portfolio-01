@@ -362,10 +362,10 @@ export const siteContent = {
     otherProjects: [
       {
         id: "other-01",
-        title: "RoamWeb",
+        title: "Plummatry",
         category: "WEB APPLICATION",
         description:
-          "An automated end-to-end (E2E) web testing  and data extraction platform designed to eliminate repetitive manual validation workflows. Built using a modular architecture, the platform orchistrates background automated headless browsers to navitation complex web applications, validate interface structures, and continuously monitor API endpoints for data integrity.",
+          "A robust web application built to accelerate API testing and file manipulation workflows. By eliminating tedious manual scripting, it offers a secure, intuitive interface to validate endpoints, transforms file schemas, and monitors data payloads in real time.",
         link: "https://github.com/elnarkennu16-440",
         year: "2026",
       },
@@ -380,10 +380,10 @@ export const siteContent = {
       },
       {
         id: "other-03",
-        title: "Plummatry",
+        title: "RoamWeb",
         category: "WEB APPLICATION",
         description:
-          "A robust web application built to accelerate API testing and file manipulation workflows. By eliminating tedious manual scripting, it offers a secure, intuitive interface to validate endpoints, transforms file schemas, and monitors data payloads in real time.",
+          "An automated end-to-end (E2E) web testing  and data extraction platform designed to eliminate repetitive manual validation workflows. Built using a modular architecture, the platform orchistrates background automated headless browsers to navitation complex web applications, validate interface structures, and continuously monitor API endpoints for data integrity.",
         link: "https://github.com/elnarkennu16-440",
         year: "2026",
       },

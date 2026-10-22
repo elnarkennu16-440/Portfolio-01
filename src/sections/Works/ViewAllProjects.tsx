@@ -95,19 +95,15 @@ const ProjectIcon: React.FC<{
     }
   };
 
-  if (currentSrc) {
-    return (
-      <img
-        src={currentSrc}
-        alt={`${title} icon`}
-        className={styles.cardIconImg}
-        loading="lazy"
-        onError={handleError}
-      />
-    );
-  }
-
-  return (
+  const logo = currentSrc ? (
+    <img
+      src={currentSrc}
+      alt={`${title} icon`}
+      className={styles.cardIconImg}
+      loading="lazy"
+      onError={handleError}
+    />
+  ) : (
     <svg
       width="30"
       height="30"
@@ -124,6 +120,20 @@ const ProjectIcon: React.FC<{
       <path d="M3 9h18M9 21V9" />
     </svg>
   );
+
+  /* 3D box seen from the front (front face + thin top face + right side face).
+     The project logo sits on the FRONT face; on hover the whole box floats. */
+  return (
+    <div className={styles.cubeFloat}>
+      <div className={styles.cubeBob}>
+        <span className={styles.cubeTop} aria-hidden="true" />
+        <span className={styles.cubeSide} aria-hidden="true" />
+        <span className={styles.cubeFront} aria-hidden="true" />
+        <span className={styles.cubeLogo}>{logo}</span>
+      </div>
+      <span className={styles.cubeShadow} aria-hidden="true" />
+    </div>
+  );
 };
 
 export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
@@ -138,6 +148,20 @@ export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
 
   const [selectedProjectForModal, setSelectedProjectForModal] =
     useState<ProjectItem | null>(null);
+
+  // Touch devices have no hover: a tapped card keeps its logo floating until you tap
+  // somewhere else (or tap the same card again).
+  const [floatingId, setFloatingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!floatingId) return;
+    const clearOnOutsideTap = (e: Event) => {
+      const el = e.target as Element | null;
+      if (!el || !el.closest("[data-project-card]")) setFloatingId(null);
+    };
+    document.addEventListener("pointerdown", clearOnOutsideTap);
+    return () => document.removeEventListener("pointerdown", clearOnOutsideTap);
+  }, [floatingId]);
 
   const [isMobile, setIsMobile] = useState<boolean>(() => {
     if (typeof window === "undefined") return false;
@@ -275,14 +299,19 @@ export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
             return (
               <article
                 key={project.id}
-                className={styles.compactCard}
-                onClick={() => setSelectedProjectForModal(project)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setSelectedProjectForModal(project);
+                data-project-card
+                className={`${styles.compactCard} ${
+                  floatingId === project.id ? styles.cardFloating : ""
+                }`}
+                onClick={() => {
+                  // only on touch screens (no hover); on desktop the normal hover effect is used
+                  if (
+                    typeof window !== "undefined" &&
+                    window.matchMedia("(hover: none)").matches
+                  ) {
+                    setFloatingId((prev) =>
+                      prev === project.id ? null : project.id,
+                    );
                   }
                 }}
               >
