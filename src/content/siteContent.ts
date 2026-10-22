@@ -13,12 +13,12 @@ export interface NavItem {
 
 export interface CapabilityItem {
   name: string;
-  description: string;
-  level: "Using" | "Learning";
+  icon: string; // key sa brandIconData.ts
 }
 
 export interface CapabilityGroup {
   category: string;
+  column: 1 | 2 | 3; // saang column ng layout lalabas
   items: CapabilityItem[];
 }
 
@@ -394,112 +394,80 @@ export const siteContent = {
     sectionNumber: "",
     sectionTitle: "CAPABILITIES",
     faintWatermark: "SKILLS",
-    intro:
-      "The tools and technologies I use every day, plus what I am currently learning.",
+    intro: "The tools and technologies I work with.",
     groups: [
       {
-        category: "Front-end",
+        category: "Frontend",
+        column: 1,
         items: [
-          {
-            name: "Modern HTML5 & CSS3",
-            description:
-              "Building responsive, accessible layouts with clean semantic markup and modern CSS styling.",
-            level: "Using",
-          },
-          {
-            name: "JavaScript (ES6+)",
-            description:
-              "Writing client-side logic, handling user events, and consuming REST APIs in web applications.",
-            level: "Using",
-          },
-          {
-            name: "React & Tailwind CSS",
-            description:
-              "Building component-based user interfaces with utility-first styling and reusable layouts.",
-            level: "Using",
-          },
-          {
-            name: "TypeScript",
-            description:
-              "Learning static typing, interfaces, and type safety for modern JavaScript and React projects.",
-            level: "Learning",
-          },
-          {
-            name: "Vue.js",
-            description:
-              "Exploring progressive UI development, reactivity fundamentals, and component-based layouts.",
-            level: "Learning",
-          },
+          { name: "React", icon: "react" },
+          { name: "Vue.js", icon: "vue" },
+          { name: "Tailwind CSS", icon: "tailwind" },
+          { name: "Next.js", icon: "next" },
+          { name: "TypeScript", icon: "typescript" },
+          { name: "JavaScript", icon: "javascript" },
         ],
       },
       {
-        category: "QA & Testing",
+        category: "Backend",
+        column: 1,
         items: [
-          {
-            name: "Manual Testing",
-            description:
-              "Executing manual test cases to verify core features, validate user flows, and catch regressions.",
-            level: "Using",
-          },
-          {
-            name: "Test Case Design",
-            description:
-              "Writing detailed test scenarios, boundary conditions, expected outcomes, and acceptance criteria.",
-            level: "Using",
-          },
-          {
-            name: "Bug Reporting & Triage",
-            description:
-              "Documenting clear reproduction steps, expected vs. actual results, and severity-ranked defect logs.",
-            level: "Using",
-          },
-          {
-            name: "Playwright",
-            description:
-              "Learning to write basic automated test scripts for web UI flows, locators, and user interactions.",
-            level: "Learning",
-          },
-          {
-            name: "API Testing",
-            description:
-              "Testing REST endpoints for correct HTTP status codes, request/response formats, and error handling.",
-            level: "Learning",
-          },
+          { name: "Node.js", icon: "node" },
+          { name: "Express.js", icon: "express" },
+          { name: "Laravel", icon: "laravel" },
         ],
       },
       {
-        category: "Tools",
+        category: "Databases",
+        column: 1,
         items: [
-          {
-            name: "Git & GitHub",
-            description:
-              "Using Git and GitHub for daily version control, feature branching, commits, and pull requests.",
-            level: "Using",
-          },
-          {
-            name: "VS Code & Cursor",
-            description:
-              "Everyday code editing, basic debugging, linting, and working with helpful development tools.",
-            level: "Using",
-          },
-          {
-            name: "Chrome DevTools",
-            description:
-              "Inspecting DOM elements, checking console logs, and monitoring network requests in the browser.",
-            level: "Using",
-          },
-          {
-            name: "Node.js",
-            description:
-              "Running local development servers, installing project dependencies, and managing npm packages.",
-            level: "Using",
-          },
-          {
-            name: "Vite & Modern Tooling",
-            description:
-              "Learning modern frontend build tools, fast local dev servers, and clean project bundling.",
-            level: "Learning",
-          },
+          { name: "MySQL", icon: "mysql" },
+          { name: "Supabase", icon: "supabase" },
+          { name: "Firebase", icon: "firebase" },
+          { name: "MongoDB", icon: "mongodb" },
+        ],
+      },
+      {
+        category: "Testing Tools",
+        column: 2,
+        items: [
+          { name: "Asana", icon: "asana" },
+          { name: "Jira", icon: "jira" },
+          { name: "Chrome DevTools", icon: "devtools" },
+          { name: "Postman", icon: "postman" },
+        ],
+      },
+      {
+        category: "Platforms & Dev Tools",
+        column: 3,
+        items: [
+          { name: "Git / GitHub", icon: "github" },
+          { name: "Vercel", icon: "vercel" },
+          { name: "Notion", icon: "notion" },
+          { name: "VS Code", icon: "vscode" },
+          { name: "Vite", icon: "vite" },
+          { name: "npm", icon: "npm" },
+          { name: "Cline", icon: "cline" },
+          { name: "Antigravity", icon: "antigravity" },
+        ],
+      },
+      {
+        category: "AI Technologies",
+        column: 2,
+        items: [
+          { name: "Gemini", icon: "gemini" },
+          { name: "Claude", icon: "claude" },
+          { name: "Manus", icon: "manus" },
+          { name: "Google AI Studio", icon: "aistudio" },
+          { name: "OpenAI", icon: "openai" },
+        ],
+      },
+      {
+        category: "Mobile",
+        column: 3,
+        items: [
+          { name: "Flutter", icon: "flutter" },
+          { name: "React Native", icon: "reactnative" },
         ],
       },
     ] as CapabilityGroup[],

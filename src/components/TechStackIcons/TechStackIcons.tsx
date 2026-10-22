@@ -1,12 +1,16 @@
 import React from "react";
 import styles from "./TechStackIcons.module.css";
+import { getRealIconForTag } from "./techTagIcons";
 
 interface TechStackIconsProps {
   tags: string[];
 }
 
-export const getIconForTag = (tag?: string) => {
-  if (!tag || typeof tag !== "string") return null;
+/**
+ * Generic (line) icons — now only used for tags that have NO real brand logo
+ * (e.g. RBAC, Manual Testing, Admin Panel, Cart & Checkout ...).
+ */
+const getGenericIconForTag = (tag: string) => {
   const normalized = tag.toLowerCase().trim();
 
   if (normalized.includes("react")) {
@@ -455,6 +459,16 @@ export const getIconForTag = (tag?: string) => {
       <polyline points="8 6 2 12 8 18" />
     </svg>
   );
+};
+
+/**
+ * Public helper (also used by the project modals).
+ * 1) Real brand logo when the tag is a real tool (React, TypeScript, Laravel, MySQL ...)
+ * 2) Otherwise the generic line icon above (RBAC, Manual Testing, Admin Panel ...)
+ */
+export const getIconForTag = (tag?: string) => {
+  if (!tag || typeof tag !== "string") return null;
+  return getRealIconForTag(tag) ?? getGenericIconForTag(tag);
 };
 
 export const TechStackIcons: React.FC<TechStackIconsProps> = ({

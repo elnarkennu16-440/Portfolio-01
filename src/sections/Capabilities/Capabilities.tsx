@@ -1,11 +1,20 @@
 import React, { useState, useRef, useEffect } from "react";
 import { siteContent, CapabilityGroup } from "../../content/siteContent";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
-import { CapabilityIcon, CapabilityIconDefs } from "./CapabilityIcons";
+import {
+  CapabilityIcon,
+  CapabilityIconDefs,
+  CapabilityIconKey,
+} from "./CapabilityIcons";
 import styles from "./Capabilities.module.css";
 
 export const Capabilities: React.FC = () => {
   const { capabilities, meta } = siteContent;
+  // Layout follows the sketch: columns 1-3, each column stacks its categories
+  const columns: CapabilityGroup[][] = [1, 2, 3].map((col) =>
+    capabilities.groups.filter((g) => g.column === col),
+  );
+  let cardIndex = 0; // used only to stagger the reveal animation
   const { elementRef, isRevealed } = useScrollReveal<HTMLElement>({
     threshold: 0.1,
   });
@@ -135,45 +144,40 @@ export const Capabilities: React.FC = () => {
           </div>
         </div>
 
-        {/* 3-Column Grid */}
+        {/* 3 columns, each with stacked categories (matches the sketch) */}
         <div className={styles.capabilitiesGrid}>
-          {capabilities.groups.map(
-            (group: CapabilityGroup, groupIndex: number) => {
-              const formattedIndex = String(groupIndex + 1).padStart(2, "0");
-
-              return (
-                <div key={group.category} className={styles.categoryCard}>
+          {columns.map((column, colIndex) => (
+            <div key={colIndex} className={styles.column}>
+              {column.map((category) => (
+                <div
+                  key={category.category}
+                  className={styles.categoryCard}
+                  style={{ "--i": cardIndex++ } as React.CSSProperties}
+                >
                   <div className={styles.categoryHeader}>
-                    <h3 className={styles.categoryTitle}>{group.category}</h3>
+                    <h3 className={styles.categoryTitle}>
+                      {category.category}
+                    </h3>
                   </div>
 
-                  <ul className={styles.itemsList}>
-                    {group.items.map((item) => (
-                      <li key={item.name} className={styles.itemRow}>
-                        {/* Name + description (unchanged content) */}
-                        <div className={styles.itemText}>
-                          <div className={styles.itemHeader}>
-                            <span className={styles.itemName}>{item.name}</span>
-                          </div>
-                          <p className={styles.itemDescription}>
-                            {item.description}
-                          </p>
-                        </div>
-
-                        {/* 3D icon + USING / LEARNING level, sitting side by side with the text */}
-                        <div className={styles.itemAside}>
-                          <CapabilityIcon name={item.name} />
-                          <span className={styles.levelBadge}>
-                            {item.level}
-                          </span>
-                        </div>
+                  <ul className={styles.iconGrid}>
+                    {category.items.map((item) => (
+                      <li
+                        key={item.name}
+                        className={styles.iconTile}
+                        tabIndex={0}
+                      >
+                        <CapabilityIcon
+                          iconKey={item.icon as CapabilityIconKey}
+                        />
+                        <span className={styles.iconLabel}>{item.name}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
-              );
-            },
-          )}
+              ))}
+            </div>
+          ))}
         </div>
       </div>
     </section>

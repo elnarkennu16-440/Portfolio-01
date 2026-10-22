@@ -29,7 +29,8 @@
   width: max-content;
   will-change: transform;
   /* Smooth horizontal sliding marquee */
-  animation: marqueeLoop 32s linear infinite;
+  /* dati: 83s (bilis ng original mong video) */
+  animation: marqueeLoop 125s linear infinite;
 }
 
 .techMarqueeSection:hover .marqueeTrack {
@@ -64,7 +65,8 @@
   transform-style: preserve-3d;
   will-change: transform, opacity;
   /* 3D Wave spin-jumping animation */
-  animation: spinJumpWave 3.2s cubic-bezier(0.34, 1.25, 0.64, 1) infinite;
+  /* dati: 3.2s */
+  animation: spinJumpWave 4.8s cubic-bezier(0.34, 1.25, 0.64, 1) infinite;
 }
 
 .marqueeItem svg {
@@ -72,6 +74,17 @@
   height: 100%;
   display: block;
   flex-shrink: 0;
+  .marqueeItem svg {
+    transition: color var(--duration-fast) ease;
+  }
+
+  .marqueeItem:hover svg {
+    color: var(--brand, currentColor);
+  }
+
+  [data-theme="light"] .marqueeItem:hover svg {
+    color: var(--brand, currentColor);
+  }
 }
 
 [data-theme="light"] .marqueeItem {

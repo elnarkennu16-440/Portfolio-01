@@ -2,6 +2,10 @@ import React from "react";
 import { REAL_TECH_ITEMS } from "./RealTechIcons";
 import styles from "./TechMarquee.module.css";
 
+// Wave offset between neighbouring icons. Scaled together with the spin duration
+// in the CSS (3.2s -> 4.8s, so 0.28s -> 0.42s) to keep the exact same wave look, just slower.
+const WAVE_STEP_SECONDS = 0.42;
+
 export const TechMarquee: React.FC = () => {
   return (
     <section
@@ -16,7 +20,7 @@ export const TechMarquee: React.FC = () => {
               key={`g1-${item.id}-${index}`}
               className={styles.marqueeItem}
               style={{
-                animationDelay: `${(index % REAL_TECH_ITEMS.length) * 0.28}s`,
+                animationDelay: `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
               }}
               title={item.name}
             >
@@ -33,7 +37,7 @@ export const TechMarquee: React.FC = () => {
               key={`g2-${item.id}-${index}`}
               className={styles.marqueeItem}
               style={{
-                animationDelay: `${(index % REAL_TECH_ITEMS.length) * 0.28}s`,
+                animationDelay: `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
               }}
               title={item.name}
             >

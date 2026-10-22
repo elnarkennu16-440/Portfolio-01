@@ -13,10 +13,11 @@
   --cap3d-left-b: #292b30;
   --cap3d-right-a: #2b2d32;
   --cap3d-right-b: #1b1c1f;
-  --cap3d-rim: rgba(255, 255, 255, 0.3);
-  --cap3d-glyph-top: #eceef1;
-  --cap3d-glyph-side: #969aa2;
-  --cap3d-shadow: rgba(0, 0, 0, 0.55);
+  --cap3d-rim: rgba(255, 255, 255, 0.16);
+  --cap3d-glyph-top: #c3c6cc;
+  --cap3d-glyph-side: #62666e;
+  --cap3d-shadow: rgba(0, 0, 0, 0.4);
+  --cap3d-mono-hover: #ffffff;
 }
 
 /* 3D capability icons — grey palette (light theme) */
@@ -27,10 +28,11 @@
   --cap3d-left-b: #b4b8bf;
   --cap3d-right-a: #aeb2b9;
   --cap3d-right-b: #979ba2;
-  --cap3d-rim: rgba(255, 255, 255, 0.9);
-  --cap3d-glyph-top: #2f3237;
-  --cap3d-glyph-side: #70747b;
-  --cap3d-shadow: rgba(20, 24, 32, 0.28);
+  --cap3d-rim: rgba(255, 255, 255, 0.8);
+  --cap3d-glyph-top: #55595f;
+  --cap3d-glyph-side: #a6aab1;
+  --cap3d-shadow: rgba(20, 24, 32, 0.2);
+  --cap3d-mono-hover: #101216;
 }
 
 .watermark {
@@ -290,175 +292,140 @@
   }
 }
 
-/* Responsive Editorial Grid */
+/* =========================================================================
+   LAYOUT
+   - desktop (>=1024): 3 columns, categories stacked per column (as in the sketch)
+   - tablet (600-1023): 2 balanced columns (CSS columns, no empty holes)
+   - mobile (<600): 1 column
+   ========================================================================= */
 .capabilitiesGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: clamp(var(--space-8), 4vw, var(--space-12));
+  display: block;
+  column-count: 1;
+  column-gap: clamp(2rem, 6vw, 3.5rem);
   position: relative;
   z-index: 2;
   width: 100%;
 }
 
-@media (min-width: 640px) and (max-width: 1023px) {
+/* below desktop the column wrappers disappear so cards can flow/balance freely */
+.column {
+  display: contents;
+}
+
+.categoryCard {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-bottom: var(--space-6);
+  opacity: 0;
+  transform: translate3d(0, 28px, 0);
+  transition:
+    opacity 1s var(--ease-slowmo),
+    transform 1s var(--ease-slowmo);
+  transition-delay: calc(var(--i, 0) * 70ms + 100ms);
+}
+
+.isRevealed .categoryCard {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+@media (min-width: 600px) {
   .capabilitiesGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-8);
+    column-count: 2;
   }
 }
 
 @media (min-width: 1024px) {
   .capabilitiesGrid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--space-8);
+    display: grid;
+    column-count: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: clamp(3rem, 5vw, 5rem);
+    align-items: start;
   }
-}
 
-/* Category Card: Slow-motion upward emergence from plain black floor */
-.categoryCard {
-  display: flex;
-  flex-direction: column;
-  opacity: 0;
-  transform: translate3d(0, 48px, 0);
-  transition:
-    opacity 1.35s var(--ease-slowmo),
-    transform 1.35s var(--ease-slowmo);
-  will-change: transform, opacity;
-  width: 100%;
-}
+  .column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    min-width: 0;
+  }
 
-.isRevealed .categoryCard:nth-child(1) {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  transition-delay: 0.12s;
-}
-
-.isRevealed .categoryCard:nth-child(2) {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  transition-delay: 0.28s;
-}
-
-.isRevealed .categoryCard:nth-child(3) {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
-  transition-delay: 0.44s;
+  .categoryCard {
+    margin-bottom: 0;
+  }
 }
 
 .categoryHeader {
   display: flex;
-  justify-content: space-between;
   align-items: baseline;
-  border-bottom: 2px solid var(--border-strong);
+  border-bottom: 1px solid var(--border-strong);
   padding-bottom: var(--space-2);
   margin-bottom: var(--space-4);
-  flex-wrap: wrap;
-  gap: var(--space-2);
 }
 
 .categoryTitle {
   font-family: var(--font-serif);
-  font-size: clamp(1.15rem, 3vw, var(--text-xl));
+  font-size: clamp(1.05rem, 3vw, 1.25rem);
   font-weight: 400;
   color: var(--text-primary);
 }
 
-.categoryIndex {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  letter-spacing: var(--tracking-wider);
-  color: var(--text-muted);
-}
-
-.itemsList {
+/* =========================================================================
+   ICON GRID: fixed 4 columns, small icons, tight and even spacing
+   ========================================================================= */
+.iconGrid {
   list-style: none;
-  display: flex;
-  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-2);
+  align-items: start;
 }
 
-/* Row layout: [ name + description ] [ 3D icon + USING/LEARNING ]
-   (was a single stacked column; the text itself is unchanged) */
-.itemRow {
+.iconTile {
+  position: relative;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--border-hairline);
-  transition: transform var(--duration-fast) var(--ease-editorial);
-}
-
-@media (min-width: 640px) {
-  .itemRow {
-    min-height: 5.5rem;
-  }
-}
-
-.itemRow:hover {
-  transform: translateX(4px);
-}
-
-/* Left side: the original name + description stack */
-.itemText {
-  flex: 1 1 auto;
+  gap: 2px;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 3px;
+  text-align: center;
+  outline: none;
+  cursor: default;
 }
 
-.itemHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--space-2);
-  flex-wrap: wrap;
+.iconTile:hover,
+.iconTile:focus-visible {
+  z-index: 3;
 }
 
-.itemName {
+.iconLabel {
+  display: block;
+  width: 100%;
   font-family: var(--font-sans);
-  font-size: var(--text-sm);
+  font-size: 0.7rem;
   font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+  transition: color var(--duration-fast) var(--ease-editorial);
+}
+
+.iconTile:hover .iconLabel,
+.iconTile:focus-visible .iconLabel {
   color: var(--text-primary);
 }
 
-.levelBadge {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  letter-spacing: var(--tracking-wider);
-  text-transform: uppercase;
-  color: var(--text-muted);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.itemDescription {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  line-height: var(--leading-normal);
-  color: var(--text-secondary);
-}
-
-/* Right side: 3D icon with the USING / LEARNING level right under it */
-.itemAside {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  text-align: center;
-}
-
-.itemAside .levelBadge {
-  text-align: center;
-  line-height: 1.2;
-}
-
 /* =========================================================================
-   3D CAPABILITY ICONS (isometric grey slab + raised emblem, pure SVG)
+   3D CAPABILITY ICONS (isometric grey slab + raised logo, pure SVG)
+   Default = all grey. Hover/focus = zoom in + real brand colour.
    ========================================================================= */
 .isoDefs {
   position: absolute;
@@ -470,18 +437,21 @@
 
 .iconSvg {
   display: block;
-  width: clamp(58px, 15vw, 80px);
+  width: 100%;
+  max-width: 62px;
   height: auto;
   overflow: visible;
-  filter: drop-shadow(0 5px 5px var(--cap3d-shadow));
+  transform-origin: 50% 70%;
+  filter: drop-shadow(0 3px 3px var(--cap3d-shadow));
   transition:
-    transform var(--duration-fast) var(--ease-editorial),
-    filter var(--duration-fast) var(--ease-editorial);
+    transform 0.35s var(--ease-editorial),
+    filter 0.35s var(--ease-editorial);
 }
 
-.itemRow:hover .iconSvg {
-  transform: translateY(-3px);
-  filter: drop-shadow(0 9px 8px var(--cap3d-shadow));
+.iconTile:hover .iconSvg,
+.iconTile:focus-visible .iconSvg {
+  transform: translateY(-3px) scale(1.2);
+  filter: drop-shadow(0 7px 6px var(--cap3d-shadow));
 }
 
 .isoRim {
@@ -490,39 +460,106 @@
 
 .isoRimSoft {
   stroke: var(--cap3d-rim);
-  opacity: 0.35;
+  opacity: 0.3;
 }
 
-.isoGlyphTop {
-  color: var(--cap3d-glyph-top);
+.glyphTop {
+  fill: var(--cap3d-glyph-top);
+  transition: fill 0.35s var(--ease-editorial);
 }
 
-.isoGlyphSide {
-  color: var(--cap3d-glyph-side);
+.glyphSide {
+  fill: var(--cap3d-glyph-side);
+  transition: fill 0.35s var(--ease-editorial);
 }
 
-/* Three narrow columns: keep the text roomy */
+/* the slab emblem stays grey and dims while its logo floats up */
+.glyphTop,
+.glyphSide {
+  transition: opacity 0.35s var(--ease-editorial);
+}
+
+.iconTile:hover .glyphTop,
+.iconTile:focus-visible .glyphTop,
+.iconTile:hover .glyphSide,
+.iconTile:focus-visible .glyphSide {
+  opacity: 0.22;
+}
+
+/* Floating logo (hover / focus): logo only, no box. Subtle lift + gentle bob. */
+.floatLogo {
+  opacity: 0;
+  transform: translateY(9px) scale(0.8);
+  transition:
+    opacity 0.3s ease,
+    transform 0.5s var(--ease-editorial);
+  filter: drop-shadow(0 3px 2px var(--cap3d-shadow));
+  pointer-events: none;
+}
+
+.floatBob {
+  animation: floatBob 2.4s ease-in-out infinite alternate;
+  animation-play-state: paused;
+}
+
+.floatPath {
+  fill: var(--brand);
+}
+
+.iconTile:hover .floatLogo,
+.iconTile:focus-visible .floatLogo {
+  opacity: 1;
+  transform: translateY(-6px) scale(1);
+}
+
+.iconTile:hover .floatBob,
+.iconTile:focus-visible .floatBob {
+  animation-play-state: running;
+}
+
+@keyframes floatBob {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-3px);
+  }
+}
+
+/* Tablet */
+@media (min-width: 600px) and (max-width: 1023px) {
+  .iconSvg {
+    max-width: 58px;
+  }
+}
+
+/* Narrow desktop */
 @media (min-width: 1024px) and (max-width: 1279px) {
-  .iconSvg {
-    width: 64px;
+  .iconGrid {
+    column-gap: 4px;
   }
 
-  .itemRow {
-    gap: var(--space-3);
+  .iconSvg {
+    max-width: 56px;
   }
 }
 
-@media (max-width: 480px) {
-  .itemRow {
-    gap: var(--space-3);
+/* Phones: small, even 4-per-row grid */
+@media (max-width: 599px) {
+  .categoryCard {
+    margin-bottom: var(--space-6);
+  }
+
+  .iconGrid {
+    gap: var(--space-3) 4px;
   }
 
   .iconSvg {
-    width: 56px;
+    max-width: 52px;
   }
 
-  .itemAside {
-    gap: 2px;
+  .iconLabel {
+    font-size: 0.62rem;
   }
 }
 
@@ -530,11 +567,6 @@
   .introText {
     font-size: 0.8rem;
     line-height: 1.5;
-  }
-
-  .itemDescription {
-    font-size: 0.7rem;
-    line-height: 1.4;
   }
 }
 
@@ -544,18 +576,19 @@
     transform: none !important;
     transition: none !important;
   }
-  .introText,
+  .introRow,
   .categoryCard {
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
   }
-  .itemRow:hover {
-    transform: none !important;
-  }
   .iconSvg,
-  .itemRow:hover .iconSvg {
+  .iconTile:hover .iconSvg,
+  .iconTile:focus-visible .iconSvg {
     transform: none !important;
     transition: none !important;
+  }
+  .floatBob {
+    animation: none !important;
   }
 }

@@ -1,38 +1,57 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useMemo } from "react";
 import { siteContent } from "../../content/siteContent";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { getPlaceholderDebugAttr } from "../../utils/debugContent";
 import styles from "./About.module.css";
 
 /* ────────────────────────────────────────────────────────────────────────────
- * CORE FOCUS CARDS — TIMING (only these numbers control the new behaviour)
+ * CORE FOCUS — 3D CARD SWITCHER
  * ────────────────────────────────────────────────────────────────────────────
- * CARD_STAGGER_S           delay between each card: card 1 starts first, card 2
- *                          0.5s later, card 3 1.0s after card 1 (top → bottom)
- * CARDS_TRIGGER_ROOT_MARGIN  the reveal starts when the top of the CORE FOCUS column
- *                          reaches the MIDDLE of the screen (-50% = middle).
- *                          Smaller % (e.g. -35%) = starts a bit earlier,
- *                          bigger % (e.g. -60%) = waits until it is higher up.
+ * AUTO_SWITCH_MS   how long each card stays in focus before the next one rotates in
+ * EXTRA_PRINCIPLES the 3 additional cards (the first 3 still come from siteContent).
+ *                  You can move these into siteContent.about.principles later;
+ *                  anything added there is picked up automatically.
+ * X_OFFSETS        the small left/right zig-zag of each card in the stack (like your sketch)
  * ──────────────────────────────────────────────────────────────────────────── */
-const CARD_STAGGER_S = 0.5;
-const CARDS_TRIGGER_ROOT_MARGIN = "0px 0px -50% 0px";
+const AUTO_SWITCH_MS = 4000;
+
+const EXTRA_PRINCIPLES: { term: string; description: string }[] = [
+  {
+    term: "Regression & Retest Cycles",
+    description:
+      "Re-running affected flows after every fix to confirm the bug is gone and nothing else broke.",
+  },
+  {
+    term: "Cross-Device Responsive Checks",
+    description:
+      "Verifying layouts and interactions across desktop, tablet, and mobile screen sizes and browsers.",
+  },
+  {
+    term: "Clear Documentation & Handoff",
+    description:
+      "Keeping test notes, findings, and project records organized so teams can pick up work easily.",
+  },
+];
+
+const X_OFFSETS: Record<number, string> = {
+  [-3]: "0%",
+  [-2]: "-6%",
+  [-1]: "7%",
+  [0]: "0%",
+  [1]: "-7%",
+  [2]: "6%",
+};
+
+const pad = (n: number) => String(n).padStart(2, "0");
 
 export const About: React.FC = () => {
   const { about } = siteContent;
   const { elementRef: sectionRef, isRevealed: isHeaderRevealed } =
     useScrollReveal<HTMLElement>({ threshold: 0.1 });
 
-  // Dedicated observer for the 3 Core Focus cards: triggers architectural split-reveal when scrolled into view
+  // Observer for the layout: starts the contribution-graph rise and fades the card stack in
   const cardsContainerRef = useRef<HTMLDivElement | null>(null);
   const [isCardsRevealed, setIsCardsRevealed] = useState(false);
-  const [animationFinished, setAnimationFinished] = useState(false);
-
-  // Dedicated observer ONLY for the 3 pillar cards (right column).
-  // It watches the cards column itself — not the whole layout — so on mobile (where the
-  // cards sit far below the text) the animation waits until the cards are really on screen.
-  const pillarsRef = useRef<HTMLDivElement | null>(null);
-  const [arePillarsRevealed, setArePillarsRevealed] = useState(false);
-  const [pillarsFinished, setPillarsFinished] = useState(false);
 
   useEffect(() => {
     if (isCardsRevealed) return;
@@ -66,60 +85,44 @@ export const About: React.FC = () => {
     };
   }, [isCardsRevealed]);
 
-  // Once both split phases have landed (1.25s + 0.7s delay = ~1.95s), cleanly merge into unified interactive cards
+  /* ── 3D card switcher state ─────────────────────────────────────────── */
+  const principles = useMemo(
+    () => [...about.principles, ...EXTRA_PRINCIPLES],
+    [about.principles],
+  );
+  const total = principles.length;
+  const half = Math.floor(total / 2);
+
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [reducedMotion] = useState<boolean>(
+    () =>
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+  );
+
+  // Remember the previous active card so a card that "wraps around" the stack can snap
+  // (invisibly) instead of flying across the other cards.
+  const prevActiveRef = useRef(0);
+  const prevActive = prevActiveRef.current;
   useEffect(() => {
-    if (isCardsRevealed && !animationFinished) {
-      const timer = setTimeout(() => {
-        setAnimationFinished(true);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [isCardsRevealed, animationFinished]);
+    prevActiveRef.current = active;
+  }, [active]);
 
-  // Pillar cards: start the split-reveal only when the cards column reaches the middle of the screen
+  // Auto switch every AUTO_SWITCH_MS (starts once the section is on screen, pauses on hover/focus)
   useEffect(() => {
-    if (arePillarsRevealed) return;
-
-    const el = pillarsRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") {
-      setArePillarsRevealed(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setArePillarsRevealed(true);
-            observer.unobserve(entry.target);
-            observer.disconnect();
-          }
-        });
-      },
-      {
-        threshold: 0,
-        rootMargin: CARDS_TRIGGER_ROOT_MARGIN,
-      },
+    if (!isCardsRevealed || paused || reducedMotion || total < 2) return;
+    const timer = window.setTimeout(
+      () => setActive((a) => (a + 1) % total),
+      AUTO_SWITCH_MS,
     );
+    return () => window.clearTimeout(timer);
+  }, [isCardsRevealed, paused, reducedMotion, total, active]);
 
-    observer.observe(el);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [arePillarsRevealed]);
-
-  // After the LAST card has landed (1.25s + 0.7s delay + stagger of the last card), merge into the unified interactive cards
-  useEffect(() => {
-    if (arePillarsRevealed && !pillarsFinished) {
-      const lastCardDelayMs =
-        Math.max(about.principles.length - 1, 0) * CARD_STAGGER_S * 1000;
-      const timer = setTimeout(() => {
-        setPillarsFinished(true);
-      }, 2000 + lastCardDelayMs);
-      return () => clearTimeout(timer);
-    }
-  }, [arePillarsRevealed, pillarsFinished, about.principles.length]);
+  // Signed position of card i relative to the active one (0 = in focus, negative = above, positive = below)
+  const getPos = (i: number, a: number) =>
+    ((((i - a + half) % total) + total) % total) - half;
 
   return (
     <section
@@ -154,7 +157,7 @@ export const About: React.FC = () => {
           ref={cardsContainerRef}
           className={`${styles.editorialLayout} ${
             isCardsRevealed ? styles.isCardsRevealed : ""
-          } ${animationFinished ? styles.animationFinished : ""}`}
+          }`}
         >
           {/* Left Column: Narrative */}
           <div className={styles.narrativeCol}>
@@ -196,79 +199,113 @@ export const About: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: 3 Core Focus Cards with Original Two-Phase Architectural Split-Reveal Animation */}
+          {/* Right Column: CORE FOCUS — 6 cards in an auto-switching 3D stack */}
           <div
-            ref={pillarsRef}
-            className={`${styles.principlesCol} ${
-              arePillarsRevealed ? styles.isPillarsRevealed : ""
-            } ${pillarsFinished ? styles.pillarsFinished : ""}`}
+            className={styles.principlesCol}
+            onPointerEnter={(e) => {
+              if (e.pointerType === "mouse") setPaused(true);
+            }}
+            onPointerLeave={(e) => {
+              if (e.pointerType === "mouse") setPaused(false);
+            }}
+            onFocus={() => setPaused(true)}
+            onBlur={() => setPaused(false)}
           >
             <div className={styles.principlesHeader}>
               <span>CORE FOCUS</span>
+              <span className={styles.principlesCounter} aria-hidden="true">
+                {pad(active + 1)} / {pad(total)}
+              </span>
             </div>
 
-            {about.principles.map((principle, index) => {
-              const formattedIndex = String(index + 1).padStart(2, "0");
+            <div
+              className={styles.stage}
+              role="group"
+              aria-roledescription="carousel"
+              aria-label="Core focus areas"
+            >
+              {principles.map((principle, index) => {
+                const pos = getPos(index, active);
+                const abs = Math.abs(pos);
+                const wrapped =
+                  Math.abs(pos - getPos(index, prevActive)) > half;
 
-              return (
-                <div
-                  key={principle.term}
-                  className={styles.splitCardContainer}
-                  style={
-                    {
-                      // top card first, then each next card slightly later
-                      "--card-delay": `${index * CARD_STAGGER_S}s`,
-                    } as React.CSSProperties
-                  }
-                >
-                  {/* Base card for permanent layout, elevation & interaction */}
-                  <div className={styles.principleCard}>
+                const cardClass = [
+                  styles.card,
+                  pos === 0 ? styles.cardActive : "",
+                  abs === 1 ? styles.cardNear : "",
+                  abs === 2 ? styles.cardFar : "",
+                  abs >= 3 ? styles.cardHidden : "",
+                ]
+                  .filter(Boolean)
+                  .join(" ");
+
+                return (
+                  <div
+                    key={principle.term}
+                    className={cardClass}
+                    style={
+                      {
+                        "--pos": pos,
+                        "--abs": abs,
+                        "--x": X_OFFSETS[pos] ?? "0%",
+                        zIndex: 10 - abs,
+                        // a card wrapping around the stack snaps instantly (only fades)
+                        transition: wrapped ? "opacity 0.25s ease" : undefined,
+                      } as React.CSSProperties
+                    }
+                    aria-hidden={pos !== 0}
+                    aria-label={`${index + 1} of ${total}`}
+                    onClick={() => {
+                      if (pos !== 0 && abs <= 2) setActive(index);
+                    }}
+                  >
                     <div className={styles.principleMeta}>
                       <span className={styles.principleNumber}>
-                        {formattedIndex}
+                        {pad(index + 1)}
                       </span>
-                      <span className={styles.principleLabel}></span>
                     </div>
                     <h3 className={styles.principleTerm}>{principle.term}</h3>
                     <p className={styles.principleDesc}>
                       {principle.description}
                     </p>
                   </div>
+                );
+              })}
+            </div>
 
-                  {/* Phase 1: All 3 Right Halves Slide In Horizontally from the Right Wall */}
-                  <div className={styles.rightHalfSegment} aria-hidden="true">
-                    <div className={styles.halfCardBody}>
-                      <div className={styles.principleMeta}>
-                        <span className={styles.principleNumber}>
-                          {formattedIndex}
-                        </span>
-                        <span className={styles.principleLabel}></span>
-                      </div>
-                      <h3 className={styles.principleTerm}>{principle.term}</h3>
-                      <p className={styles.principleDesc}>
-                        {principle.description}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Phase 2: All 3 Left Halves Rise Up Vertically from the Bottom */}
-                  <div className={styles.leftHalfSegment} aria-hidden="true">
-                    <div className={styles.halfCardBody}>
-                      <div className={styles.principleMeta}>
-                        <span className={styles.principleNumber}>
-                          {formattedIndex}
-                        </span>
-                        <span className={styles.principleLabel}></span>
-                      </div>
-                      <h3 className={styles.principleTerm}>{principle.term}</h3>
-                      <p className={styles.principleDesc}>
-                        {principle.description}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {/* Minimal progress lines — also act as manual controls */}
+            <div
+              className={styles.controls}
+              role="group"
+              aria-label="Choose card"
+            >
+              {principles.map((principle, index) => {
+                const isActive = index === active;
+                return (
+                  <button
+                    key={principle.term}
+                    type="button"
+                    className={styles.dot}
+                    onClick={() => setActive(index)}
+                    aria-label={`Show ${principle.term}`}
+                    aria-current={isActive ? "true" : undefined}
+                  >
+                    <span className={styles.dotTrack}>
+                      {isActive && (
+                        <span
+                          key={`${active}-${paused}`}
+                          className={`${styles.dotFill} ${
+                            paused || reducedMotion ? styles.dotFillHeld : ""
+                          }`}
+                          style={{ animationDuration: `${AUTO_SWITCH_MS}ms` }}
+                        />
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
