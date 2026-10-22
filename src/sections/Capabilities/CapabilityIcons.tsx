@@ -17,7 +17,8 @@ import { BRAND_ICONS } from "./brandIconData";
 
 export type CapabilityIconKey = keyof typeof BRAND_ICONS;
 
-const EXTRUDE_LAYERS = 4; // thickness of the raised logo
+const EXTRUDE_LAYERS = 2; // side layers of the raised logo (fewer = faster scrolling)
+const EXTRUDE_STEP = 2; // vertical distance between layers (total thickness = 4)
 const GLYPH_SIDE = 33; // logo size (before projection) on the slab's top face
 const FLOAT_SIDE = 34; // size of the flat logo that floats up on hover
 
@@ -83,7 +84,7 @@ export const CapabilityIconDefs: React.FC = () => (
   </svg>
 );
 
-export const CapabilityIcon: React.FC<{ iconKey: CapabilityIconKey }> = ({
+const CapabilityIconBase: React.FC<{ iconKey: CapabilityIconKey }> = ({
   iconKey,
 }) => {
   const def = BRAND_ICONS[iconKey];
@@ -103,6 +104,16 @@ export const CapabilityIcon: React.FC<{ iconKey: CapabilityIconKey }> = ({
         } as React.CSSProperties
       }
     >
+      {/* cheap soft shadow: two flat shapes under the slab (no CSS filter) */}
+      <polygon
+        points="6,60 48,38 90,60 90,72 48,94 6,72"
+        className={styles.isoShadow2}
+      />
+      <polygon
+        points="6,56 48,34 90,56 90,68 48,90 6,68"
+        className={styles.isoShadow}
+      />
+
       {/* slab: left face, right face, top face */}
       <polygon
         points="6,52 48,74 48,86 6,64"
@@ -144,9 +155,18 @@ export const CapabilityIcon: React.FC<{ iconKey: CapabilityIconKey }> = ({
 
       {/* raised real logo: stacked layers = thickness, top layer = lit surface */}
       {layers.map((i) => (
-        <GlyphLayer key={i} iconKey={iconKey} offset={i} top={false} />
+        <GlyphLayer
+          key={i}
+          iconKey={iconKey}
+          offset={i * EXTRUDE_STEP}
+          top={false}
+        />
       ))}
-      <GlyphLayer iconKey={iconKey} offset={EXTRUDE_LAYERS} top />
+      <GlyphLayer
+        iconKey={iconKey}
+        offset={EXTRUDE_LAYERS * EXTRUDE_STEP}
+        top
+      />
 
       {/* hover: ONLY the logo (no slab) lifts off and floats in its brand colour */}
       <g transform="translate(48 31)" aria-hidden="true">
@@ -171,3 +191,5 @@ export const CapabilityIcon: React.FC<{ iconKey: CapabilityIconKey }> = ({
     </svg>
   );
 };
+
+export const CapabilityIcon = React.memo(CapabilityIconBase);

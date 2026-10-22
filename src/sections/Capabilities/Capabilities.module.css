@@ -125,7 +125,6 @@
   transition:
     opacity 1.25s var(--ease-slowmo) 0.15s,
     transform 1.25s var(--ease-slowmo) 0.15s;
-  will-change: transform, opacity;
 }
 
 .isRevealed .introRow {
@@ -300,7 +299,6 @@
    ========================================================================= */
 .capabilitiesGrid {
   display: block;
-  column-count: 1;
   column-gap: clamp(2rem, 6vw, 3.5rem);
   position: relative;
   z-index: 2;
@@ -442,16 +440,25 @@
   height: auto;
   overflow: visible;
   transform-origin: 50% 70%;
-  filter: drop-shadow(0 3px 3px var(--cap3d-shadow));
-  transition:
-    transform 0.35s var(--ease-editorial),
-    filter 0.35s var(--ease-editorial);
+  /* NOTE: no CSS filter here on purpose — drop-shadow on 31 SVGs made mobile scrolling laggy.
+     The shadow is now cheap static geometry inside the SVG (.isoShadow). */
+  transition: transform 0.35s var(--ease-editorial);
 }
 
 .iconTile:hover .iconSvg,
 .iconTile:focus-visible .iconSvg {
   transform: translateY(-3px) scale(1.2);
-  filter: drop-shadow(0 7px 6px var(--cap3d-shadow));
+}
+
+/* cheap, filter-free soft shadow (two stacked flat shapes) */
+.isoShadow {
+  fill: var(--cap3d-shadow);
+  opacity: 0.85;
+}
+
+.isoShadow2 {
+  fill: var(--cap3d-shadow);
+  opacity: 0.5;
 }
 
 .isoRim {
@@ -486,20 +493,21 @@
   opacity: 0.22;
 }
 
-/* Floating logo (hover / focus): logo only, no box. Subtle lift + gentle bob. */
+/* Floating logo (hover / focus): logo only, no box. Subtle lift + gentle bob.
+   visibility:hidden = not painted while idle (saves lots of work while scrolling). */
 .floatLogo {
   opacity: 0;
+  visibility: hidden;
   transform: translateY(9px) scale(0.8);
   transition:
     opacity 0.3s ease,
-    transform 0.5s var(--ease-editorial);
-  filter: drop-shadow(0 3px 2px var(--cap3d-shadow));
+    transform 0.5s var(--ease-editorial),
+    visibility 0s linear 0.5s;
   pointer-events: none;
 }
 
 .floatBob {
-  animation: floatBob 2.4s ease-in-out infinite alternate;
-  animation-play-state: paused;
+  animation: none;
 }
 
 .floatPath {
@@ -509,12 +517,17 @@
 .iconTile:hover .floatLogo,
 .iconTile:focus-visible .floatLogo {
   opacity: 1;
+  visibility: visible;
   transform: translateY(-6px) scale(1);
+  transition:
+    opacity 0.3s ease,
+    transform 0.5s var(--ease-editorial),
+    visibility 0s linear 0s;
 }
 
 .iconTile:hover .floatBob,
 .iconTile:focus-visible .floatBob {
-  animation-play-state: running;
+  animation: floatBob 2.4s ease-in-out infinite alternate;
 }
 
 @keyframes floatBob {

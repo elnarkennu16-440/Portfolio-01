@@ -185,8 +185,8 @@ export const siteContent = {
           "MIRAMS Manufacturing Internal Request & Asset Management System interface preview",
         iconUrl: "/images/projects/icons/Mirams-Icon-Logo.png",
         status: "final" as const,
-        modalStatus: "In Progress",
-        duration: "Sep 2025 – Present",
+        modalStatus: "Completed",
+        duration: "2026",
         projectType: "Enterprise Web Application",
         overview:
           "Full-stack, role-aware enterprise web application built for high-throughput electronics manufacturing environments. Integrates hardware lifecycle tracking, IT helpdesk ticketing, equipment preventive maintenance schedules, and departmental supply requisitions across 8 operational tiers with granular Spatie RBAC security.",
@@ -200,7 +200,8 @@ export const siteContent = {
       {
         id: "project-02",
         number: "02",
-        title: "NCAMIS — Senior High School Management Information System",
+        title:
+          "NCAMIS — Northills College of Asia Management Information System for Senior High School",
         tags: [
           "PHP",
           "JavaScript",
@@ -218,7 +219,7 @@ export const siteContent = {
         status: "final" as const,
         modalStatus: "Completed",
         duration: "2024 – 2025",
-        projectType: "Academic Information System",
+        projectType: "Academic Project for Capstone 1 & 2",
         overview:
           "Comprehensive web platform streamlining academic and administrative operations for Northills College of Asia. Centralizes student records, faculty grading schedules, and admissions workflows with dedicated role-based portals for school administrators, faculty instructors, students, and parents.",
         keyFeatures: [
@@ -250,7 +251,7 @@ export const siteContent = {
         status: "final" as const,
         modalStatus: "Completed",
         duration: "2024",
-        projectType: "E-Commerce Bookstore",
+        projectType: "Academic Project for System Analysis & Design 2",
         overview:
           "Curated literary e-commerce platform featuring dynamic shopping cart calculation, multi-step checkout, and order status tracking, backed by an administrative dashboard for catalog management, stock control, customer inquiries, and secure user credentials.",
         keyFeatures: [
@@ -281,7 +282,7 @@ export const siteContent = {
         iconUrl: "/images/projects/icons/Readcapai-Icon-Logo.png",
         status: "final" as const,
         modalStatus: "Active Development",
-        duration: "Jan 2026 – Present",
+        duration: "2026",
         projectType: "AI Reading & Workspace Tool",
         overview:
           "AI-powered distraction-free reading room and thought workspace. Allows readers to untangle raw thoughts, capture signals from long-form writing, and converse with localized private sessions through clean conversational threads.",
@@ -314,7 +315,7 @@ export const siteContent = {
           "QueueLess dashboard showing the live patient queue and the number now being served",
         status: "placeholder" as const,
         modalStatus: "In Progress",
-        duration: "2025",
+        duration: "2026",
         projectType: "Healthcare & Queue System",
         overview:
           "Walk-in and online appointment system for community clinics with real-time queue tracking, SMS-ready patient alerts, and a triage dashboard that estimates waiting time so patients stop waiting in crowded lobbies.",
@@ -346,7 +347,7 @@ export const siteContent = {
           "TindaTrack dashboard with weekly sales, stock levels and the customer credit ledger",
         status: "placeholder" as const,
         modalStatus: "Prototype",
-        duration: "2025",
+        duration: "2026",
         projectType: "Point-of-Sale & Inventory",
         overview:
           "Offline-friendly point-of-sale and inventory tool designed for neighborhood micro-retailers: low-stock alerts, daily sales summaries, and a customer credit (utang) ledger with payment reminders and printable statements.",
@@ -361,21 +362,21 @@ export const siteContent = {
     otherProjects: [
       {
         id: "other-01",
-        title: "DroidCaffeine",
-        category: "MOBILE APPLICATION",
+        title: "RoamWeb",
+        category: "WEB APPLICATION",
         description:
-          "A college cafe ordering and point-of-sale application built in Visual Studio using C# and .NET with interactive food item menus, order queue calculations, and local receipt logging.",
-        link: "https://github.com/elnarkennu16-440/DroidCafe",
-        year: "2024",
+          "An automated end-to-end (E2E) web testing  and data extraction platform designed to eliminate repetitive manual validation workflows. Built using a modular architecture, the platform orchistrates background automated headless browsers to navitation complex web applications, validate interface structures, and continuously monitor API endpoints for data integrity.",
+        link: "https://github.com/elnarkennu16-440",
+        year: "2026",
       },
       {
         id: "other-02",
         title: "HatidIsked",
-        category: "WEB APPLICATION",
+        category: "MOBILE APPLICATION",
         description:
           "A college campus distribution and queue coordinator built with localized timeslot allocations, real-time release status updates, and automated pickup schedule tracking.",
         link: "https://github.com/elnarkennu16-440",
-        year: "2024",
+        year: "2025",
       },
       {
         id: "other-03",
@@ -384,6 +385,15 @@ export const siteContent = {
         description:
           "A robust web application built to accelerate API testing and file manipulation workflows. By eliminating tedious manual scripting, it offers a secure, intuitive interface to validate endpoints, transforms file schemas, and monitors data payloads in real time.",
         link: "https://github.com/elnarkennu16-440",
+        year: "2026",
+      },
+      {
+        id: "other-04",
+        title: "DroidCaffeine",
+        category: "MOBILE APPLICATION",
+        description:
+          "A college cafe ordering and point-of-sale application built in Visual Studio using C# and .NET with interactive food item menus, order queue calculations, and local receipt logging.",
+        link: "https://github.com/elnarkennu16-440/DroidCafe",
         year: "2023",
       },
     ] as OtherProjectItem[],

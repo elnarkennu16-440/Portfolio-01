@@ -720,8 +720,8 @@ export const QA_DATABASE: QAEntry[] = [
     ],
     keywords: ["vs code", "cursor", "devtools", "tools"],
     category: "skills",
-    en: "Here is the full breakdown of my technical capabilities:\n\nFront-end:\n• Modern HTML5 & CSS3\n• JavaScript (ES6+)\n• React & Tailwind CSS\n• TypeScript\n• Vue.js\n\nQA & Testing:\n• Manual Testing\n• Test Case Design\n• Bug Reporting & Triage\n• Playwright\n• API Testing\n\nTools:\n• Git & GitHub\n• VS Code & Cursor\n• Chrome DevTools\n• Node.js\n• Vite & Modern Tooling",
-    tl: "Narito ang buong listahan ng aking mga kakayahan at tools:\n\nFront-end:\n• Modern HTML5 & CSS3\n• JavaScript (ES6+)\n• React & Tailwind CSS\n• TypeScript\n• Vue.js\n\nQA & Testing:\n• Manual Testing\n• Test Case Design\n• Bug Reporting & Triage\n• Playwright\n• API Testing\n\nTools:\n• Git & GitHub\n• VS Code & Cursor\n• Chrome DevTools\n• Node.js\n• Vite & Modern Tooling",
+    en: "Here is a complete breakdown of my technical capabilities and the technologies I work with:\n\nFrontend:\n• React\n• Vue.js\n• Tailwind CSS\n• Next.js\n• TypeScript\n• JavaScript\n\nBackend:\n• Node.js\n• Express.js\n• Laravel\n\nDatabases:\n• MySQL\n• Supabase\n• Firebase\n• MongoDB\n\nTesting Tools:\n• Asana\n• Jira\n• Chrome DevTools\n• Postman\n\nAI Technologies:\n• Gemini\n• Claude\n• Manus\n• Google AI Studio\n• OpenAI\n\nPlatforms & Dev Tools:\n• Git / GitHub\n• Vercel\n• Notion\n• VS Code\n• Vite\n• npm\n• Cline\n• Antigravity\n\nMobile:\n• Flutter\n• React Native",
+    tl: "Narito ang kumpletong listahan ng aking mga technical capabilities at mga teknolohiyang ginagamit ko:\n\nFrontend:\n• React\n• Vue.js\n• Tailwind CSS\n• Next.js\n• TypeScript\n• JavaScript\n\nBackend:\n• Node.js\n• Express.js\n• Laravel\n\nDatabases:\n• MySQL\n• Supabase\n• Firebase\n• MongoDB\n\nTesting Tools:\n• Asana\n• Jira\n• Chrome DevTools\n• Postman\n\nAI Technologies:\n• Gemini\n• Claude\n• Manus\n• Google AI Studio\n• OpenAI\n\nPlatforms & Dev Tools:\n• Git / GitHub\n• Vercel\n• Notion\n• VS Code\n• Vite\n• npm\n• Cline\n• Antigravity\n\nMobile:\n• Flutter\n• React Native",
   },
 
   // 50. TEAMWORK AND COLLABORATION

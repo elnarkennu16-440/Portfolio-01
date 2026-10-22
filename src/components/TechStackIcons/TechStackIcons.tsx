@@ -1,14 +1,18 @@
 import React from "react";
 import styles from "./TechStackIcons.module.css";
-import { getRealIconForTag } from "./techTagIcons";
+import { getRealIconForTag, getConceptIconForTag } from "./techTagIcons";
+
+// Wave offset between neighbouring icons. Scaled together with the spin duration in the CSS
+// (3.2s -> 4.8s, so 0.35s -> 0.525s) to keep the same wave look, just slower.
+const WAVE_STEP_SECONDS = 0.525;
 
 interface TechStackIconsProps {
   tags: string[];
 }
 
 /**
- * Generic (line) icons — now only used for tags that have NO real brand logo
- * (e.g. RBAC, Manual Testing, Admin Panel, Cart & Checkout ...).
+ * Generic (line) icons — now only the LAST fallback for tags that match neither a
+ * brand logo nor a concept icon.
  */
 const getGenericIconForTag = (tag: string) => {
   const normalized = tag.toLowerCase().trim();
@@ -464,11 +468,16 @@ const getGenericIconForTag = (tag: string) => {
 /**
  * Public helper (also used by the project modals).
  * 1) Real brand logo when the tag is a real tool (React, TypeScript, Laravel, MySQL ...)
- * 2) Otherwise the generic line icon above (RBAC, Manual Testing, Admin Panel ...)
+ * 2) Professional concept icon (RBAC, Manual Testing, Admin Panel, Cart & Checkout ...)
+ * 3) Last resort: the generic line icon above (only for tags nothing else matches)
  */
 export const getIconForTag = (tag?: string) => {
   if (!tag || typeof tag !== "string") return null;
-  return getRealIconForTag(tag) ?? getGenericIconForTag(tag);
+  return (
+    getRealIconForTag(tag) ??
+    getConceptIconForTag(tag) ??
+    getGenericIconForTag(tag)
+  );
 };
 
 export const TechStackIcons: React.FC<TechStackIconsProps> = ({
@@ -487,7 +496,7 @@ export const TechStackIcons: React.FC<TechStackIconsProps> = ({
         <li
           key={`${tag}-${index}`}
           className={styles.techIconBadge}
-          style={{ animationDelay: `${index * 0.35}s` }}
+          style={{ animationDelay: `${index * WAVE_STEP_SECONDS}s` }}
           title={tag}
           aria-label={tag}
         >
