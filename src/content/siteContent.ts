@@ -614,7 +614,7 @@ export const siteContent = {
         id: "exp-01",
         period: "JULY 2026 – PRESENT",
         role: "Freelance Software Developer",
-        company: "Self-Employed",
+        company: "Self-Employed - Fiverr and uTest",
         type: "Independent Contracting",
         badge: "Active",
         summary:
