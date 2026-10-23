@@ -453,8 +453,8 @@ export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
                 <h2 className={styles.otherSectionTitle}>Other Projects</h2>
               </div>
               <p className={styles.otherSectionDesc}>
-                Academic applications, desktop tools, and experimental
-                utilities.
+                Academic Applications, APIs built for testing, and additional
+                freelance projects.
               </p>
             </div>
 
