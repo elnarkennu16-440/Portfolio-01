@@ -498,6 +498,7 @@ export const siteContent = {
         items: [
           { name: "Node.js", icon: "node" },
           { name: "Express.js", icon: "express" },
+          { name: "PHP", icon: "php" },
           { name: "Laravel", icon: "laravel" },
         ],
       },
@@ -542,18 +543,7 @@ export const siteContent = {
           { name: "Gemini", icon: "gemini" },
           { name: "Claude", icon: "claude" },
           { name: "Manus", icon: "manus" },
-          { name: "Google AI Studio", icon: "aistudio" },
-          { name: "OpenAI", icon: "openai" },
           { name: "Perplexity", icon: "perplexity" },
-        ],
-      },
-
-      {
-        category: "Mobile",
-        column: 3,
-        items: [
-          { name: "Flutter", icon: "flutter" },
-          { name: "React Native", icon: "reactnative" },
         ],
       },
       {
@@ -563,6 +553,24 @@ export const siteContent = {
           { name: "Vercel", icon: "vercel" },
           { name: "Hostinger", icon: "hostinger" },
           { name: "Cloudflare", icon: "cloudflare" },
+        ],
+      },
+      {
+        category: "Mobile",
+        column: 3,
+        items: [
+          { name: "Flutter", icon: "flutter" },
+          { name: "React Native", icon: "reactnative" },
+        ],
+      },
+      {
+        category: "Security & Authentication",
+        column: 2,
+        items: [
+          { name: "JWT", icon: "jwt" },
+          { name: "GitGuardian", icon: "gitguardian" },
+          { name: "Dependabot", icon: "dependabot" },
+          { name: "OWASP ZAP", icon: "owasp zap" },
         ],
       },
     ] as CapabilityGroup[],

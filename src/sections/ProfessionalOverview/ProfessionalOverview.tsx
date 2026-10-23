@@ -344,7 +344,7 @@ export const ProfessionalOverview: React.FC<ProfessionalOverviewProps> = ({
                     <span className={styles.metaText}>
                       {pillar.number} — {pillar.tagline}
                     </span>
-                    <span className={styles.countBadge}>{pillar.count}</span>
+                    <span className={styles.countBadge}>{details.length}</span>
                   </div>
 
                   <h3 className={styles.bigTitle}>{pillar.title}</h3>
