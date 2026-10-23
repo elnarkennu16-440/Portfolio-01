@@ -67,28 +67,76 @@ const LEAD_WORDS: { text: string; emphasis?: boolean; suffix?: string }[] = [
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
+/**
+ * Splits a text into words; every word sits in its own clipping mask and rises
+ * from below with a wave (see .wMask / .wInner in the CSS). Used for the body
+ * paragraphs and the contribution title.
+ */
+const renderWords = (text: string) => {
+  const words = text.split(" ");
+  return words.map((word, i) => (
+    <React.Fragment key={i}>
+      <span className={styles.wMask} aria-hidden="true">
+        <span
+          className={styles.wInner}
+          style={{ "--w": i } as React.CSSProperties}
+        >
+          {word}
+        </span>
+      </span>
+      {i < words.length - 1 ? " " : null}
+    </React.Fragment>
+  ));
+};
+
 export const About: React.FC = () => {
   const { about } = siteContent;
   const { elementRef: sectionRef, isRevealed: isHeaderRevealed } =
     useScrollReveal<HTMLElement>({ threshold: 0.1 });
 
-  // Separate scroll-reveal triggers, so every block animates when YOU actually reach it
-  // (important on mobile where the columns are stacked and far apart)
-  const { elementRef: narrativeRef, isRevealed: isNarrativeRevealed } =
-    useScrollReveal<HTMLDivElement>({
-      threshold: 0.12,
-      rootMargin: "0px 0px -10% 0px",
-    });
-  const { elementRef: widgetRef, isRevealed: isWidgetRevealed } =
-    useScrollReveal<HTMLDivElement>({
-      threshold: 0.25,
-      rootMargin: "0px 0px -8% 0px",
-    });
+  // The Core Focus column keeps its own trigger (unchanged)
   const { elementRef: principlesRef, isRevealed: isPrinciplesRevealed } =
     useScrollReveal<HTMLDivElement>({
       threshold: 0.18,
       rootMargin: "0px 0px -10% 0px",
     });
+
+  // Left column: EVERY block (lead sentence, each paragraph, contribution widget)
+  // reveals on its own the moment it scrolls into view, so nothing animates off-screen
+  // on mobile and nothing happens all at once.
+  const narrativeColRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const root = narrativeColRef.current;
+    if (!root) return;
+
+    const blocks = Array.from(
+      root.querySelectorAll<HTMLElement>("[data-reveal]"),
+    );
+    const reduceMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion || typeof IntersectionObserver === "undefined") {
+      blocks.forEach((b) => b.setAttribute("data-revealed", "true"));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.setAttribute("data-revealed", "true");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" },
+    );
+
+    blocks.forEach((b) => observer.observe(b));
+    return () => observer.disconnect();
+  }, []);
 
   // Observer for the layout (kept from before)
   const cardsContainerRef = useRef<HTMLDivElement | null>(null);
@@ -188,7 +236,18 @@ export const About: React.FC = () => {
                 {about.sectionNumber}
               </span>
             ) : null}
-            <h2 className={styles.sectionTitle}>{about.sectionTitle}</h2>
+            <h2 className={styles.sectionTitle} aria-label={about.sectionTitle}>
+              {Array.from(about.sectionTitle).map((letter, i) => (
+                <span
+                  key={i}
+                  className={styles.titleChar}
+                  aria-hidden="true"
+                  style={{ "--ch": i } as React.CSSProperties}
+                >
+                  {letter}
+                </span>
+              ))}
+            </h2>
           </div>
           <div className={styles.headerUnderline} aria-hidden="true" />
         </div>
@@ -201,14 +260,10 @@ export const About: React.FC = () => {
           }`}
         >
           {/* Left Column: Narrative */}
-          <div
-            ref={narrativeRef}
-            className={`${styles.narrativeCol} ${
-              isNarrativeRevealed ? styles.narrativeRevealed : ""
-            }`}
-          >
+          <div ref={narrativeColRef} className={styles.narrativeCol}>
             <p
               className={styles.leadStatement}
+              data-reveal
               aria-label="A Personal Workspace. Notes, Builds, and Progress."
             >
               {LEAD_WORDS.map((word, i) => (
@@ -235,27 +290,27 @@ export const About: React.FC = () => {
 
             <div className={styles.bodyCopy}>
               {about.paragraphs.map((paragraph, index) => (
-                <div key={index} className={styles.maskBlock}>
-                  <p
-                    className={styles.maskBlockInner}
-                    style={{ "--i": index } as React.CSSProperties}
-                  >
-                    {paragraph}
+                <div
+                  key={index}
+                  className={styles.maskBlock}
+                  data-reveal
+                  style={{ "--bi": index } as React.CSSProperties}
+                >
+                  <p className={styles.paragraph} aria-label={paragraph}>
+                    {renderWords(paragraph)}
                   </p>
                 </div>
               ))}
             </div>
 
             {/* GitHub Repository Contribution Activity */}
-            <div
-              ref={widgetRef}
-              className={`${styles.contributionWidget} ${
-                isWidgetRevealed ? styles.widgetRevealed : ""
-              }`}
-            >
+            <div className={styles.contributionWidget} data-reveal>
               <div className={styles.contributionHeader}>
-                <span className={styles.contributionTitle}>
-                  612 CONTRIBUTIONS IN THE LAST YEAR
+                <span
+                  className={styles.contributionTitle}
+                  aria-label="612 contributions in the last year"
+                >
+                  {renderWords("612 CONTRIBUTIONS IN THE LAST YEAR")}
                 </span>
               </div>
 

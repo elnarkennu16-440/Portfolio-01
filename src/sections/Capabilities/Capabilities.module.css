@@ -311,6 +311,8 @@
 }
 
 .categoryCard {
+  /* column delay: only used on desktop so the 3 columns don't reveal at once */
+  --cd: calc(var(--c, 0) * 140ms);
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -318,17 +320,13 @@
   break-inside: avoid;
   page-break-inside: avoid;
   margin-bottom: var(--space-6);
-  opacity: 0;
-  transform: translate3d(0, 28px, 0);
-  transition:
-    opacity 1s var(--ease-slowmo),
-    transform 1s var(--ease-slowmo);
-  transition-delay: calc(var(--i, 0) * 70ms + 100ms);
 }
 
-.isRevealed .categoryCard {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
+/* tablet + mobile: every card reveals on its own, right as it scrolls in */
+@media (max-width: 1023px) {
+  .categoryCard {
+    --cd: 0ms;
+  }
 }
 
 @media (min-width: 600px) {
@@ -359,11 +357,26 @@
 }
 
 .categoryHeader {
+  position: relative;
   display: flex;
   align-items: baseline;
-  border-bottom: 1px solid var(--border-strong);
   padding-bottom: var(--space-2);
   margin-bottom: var(--space-4);
+}
+
+/* the 1px underline now draws left -> right (same line as before) */
+.categoryHeader::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--border-strong);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1.1s var(--ease-slowmo);
+  transition-delay: var(--cd, 0ms);
 }
 
 .categoryTitle {
@@ -371,6 +384,24 @@
   font-size: clamp(1.05rem, 3vw, 1.25rem);
   font-weight: 400;
   color: var(--text-primary);
+  /* the "mask line": letters rise from under this box, like the reference */
+  overflow: hidden;
+  padding: 0.1em 0 0.24em;
+  margin: -0.1em 0 -0.24em;
+}
+
+.titleWord {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.titleChar {
+  display: inline-block;
+  transform-origin: 0% 100%;
+  transform: translate3d(0, 118%, 0) rotate(calc(6deg + var(--ch, 0) * 0.9deg));
+  transition: transform 1.05s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--cd, 0ms) + var(--ch, 0) * 34ms + 60ms);
+  will-change: transform;
 }
 
 /* =========================================================================
@@ -388,14 +419,33 @@
 
 .iconTile {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  display: block;
   min-width: 0;
   text-align: center;
   outline: none;
   cursor: default;
+  /* fixed "mask line" on the bottom edge of the tile: the icon rises from under it.
+     The other 3 sides stay open so hover zoom / floating logo are never clipped. */
+  clip-path: inset(-90px -40px -2px -40px);
+}
+
+/* inner wrapper carries the reveal so the SVG keeps its own hover transform */
+.tileInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  /* starts below the mask + tilted; the tilt grows to the right = wave like the reference */
+  transform: translate3d(0, 118%, 0) rotate(calc(4deg + var(--col, 0) * 2.5deg));
+  transform-origin: 0% 100%;
+  transition: transform 1.15s cubic-bezier(0.16, 1, 0.3, 1);
+  /* wave: columns ripple left -> right, rows follow one after another */
+  transition-delay: calc(
+    var(--cd, 0ms) + var(--col, 0) * 95ms + var(--row, 0) * 150ms + 180ms
+  );
+  will-change: transform;
 }
 
 .iconTile:hover,
@@ -413,12 +463,31 @@
   letter-spacing: 0.02em;
   color: var(--text-muted);
   overflow-wrap: anywhere;
-  transition: color var(--duration-fast) var(--ease-editorial);
+  /* label follows the icon a beat later (second layer of the wave) */
+  transform: translate3d(0, 140%, 0);
+  transition:
+    color var(--duration-fast) var(--ease-editorial),
+    transform 0.95s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay:
+    0s,
+    calc(var(--cd, 0ms) + var(--col, 0) * 95ms + var(--row, 0) * 150ms + 420ms);
 }
 
 .iconTile:hover .iconLabel,
 .iconTile:focus-visible .iconLabel {
   color: var(--text-primary);
+}
+
+/* ---- revealed state (set per card by IntersectionObserver) ---- */
+.categoryCard[data-revealed="true"] .categoryHeader::after {
+  transform: scaleX(1);
+}
+
+.categoryCard[data-revealed="true"] .titleChar,
+.categoryCard[data-revealed="true"] .tileInner,
+.categoryCard[data-revealed="true"] .iconLabel {
+  transform: none;
+  will-change: auto;
 }
 
 /* =========================================================================
@@ -574,6 +643,22 @@
   .iconLabel {
     font-size: 0.62rem;
   }
+
+  /* faster wave on phones so the reveal keeps up with scrolling */
+  .tileInner {
+    transition-delay: calc(
+      var(--col, 0) * 70ms + var(--row, 0) * 110ms + 100ms
+    );
+  }
+
+  .iconLabel {
+    transition-delay:
+      0s, calc(var(--col, 0) * 70ms + var(--row, 0) * 110ms + 300ms);
+  }
+
+  .titleChar {
+    transition-delay: calc(var(--ch, 0) * 28ms + 40ms);
+  }
 }
 
 @media (max-width: 768px) {
@@ -589,10 +674,22 @@
     transform: none !important;
     transition: none !important;
   }
-  .introRow,
-  .categoryCard {
+  .introRow {
     opacity: 1 !important;
     transform: none !important;
+    transition: none !important;
+  }
+  .titleChar,
+  .tileInner,
+  .iconLabel {
+    transform: none !important;
+    transition: none !important;
+  }
+  .iconTile {
+    clip-path: none !important;
+  }
+  .categoryHeader::after {
+    transform: scaleX(1) !important;
     transition: none !important;
   }
   .iconSvg,

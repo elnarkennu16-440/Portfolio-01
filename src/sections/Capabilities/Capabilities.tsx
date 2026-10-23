@@ -20,6 +20,40 @@ export const Capabilities: React.FC = () => {
   });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Per-card scroll reveal: each card animates when IT enters the viewport
+  useEffect(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+
+    const cards = Array.from(
+      grid.querySelectorAll<HTMLElement>("[data-reveal-card]"),
+    );
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (reduceMotion || typeof IntersectionObserver === "undefined") {
+      cards.forEach((card) => card.setAttribute("data-revealed", "true"));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.setAttribute("data-revealed", "true");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.18, rootMargin: "0px 0px -8% 0px" },
+    );
+
+    cards.forEach((card) => observer.observe(card));
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!isMenuOpen) return;
@@ -145,16 +179,18 @@ export const Capabilities: React.FC = () => {
         </div>
 
         {/* 3 columns, each with stacked categories (matches the sketch) */}
-        <div className={styles.capabilitiesGrid}>
+        <div className={styles.capabilitiesGrid} ref={gridRef}>
           {columns.map((column, colIndex) => (
             <div key={colIndex} className={styles.column}>
               {column.map((category, rowIndex) => (
                 <div
                   key={category.category}
                   className={styles.categoryCard}
+                  data-reveal-card
                   style={
                     {
                       "--i": cardIndex++,
+                      "--c": colIndex,
                       // desktop: row N of every column lines up across the 3 columns
                       gridColumn: colIndex + 1,
                       gridRow: rowIndex + 1,
@@ -162,22 +198,60 @@ export const Capabilities: React.FC = () => {
                   }
                 >
                   <div className={styles.categoryHeader}>
-                    <h3 className={styles.categoryTitle}>
-                      {category.category}
+                    <h3
+                      className={styles.categoryTitle}
+                      aria-label={category.category}
+                    >
+                      {/* split per letter (grouped by word) for the wave rise */}
+                      {(() => {
+                        let ch = 0;
+                        return category.category
+                          .split(" ")
+                          .map((word, wi, words) => (
+                            <React.Fragment key={wi}>
+                              <span
+                                className={styles.titleWord}
+                                aria-hidden="true"
+                              >
+                                {Array.from(word).map((letter, li) => (
+                                  <span
+                                    key={li}
+                                    className={styles.titleChar}
+                                    style={
+                                      { "--ch": ch++ } as React.CSSProperties
+                                    }
+                                  >
+                                    {letter}
+                                  </span>
+                                ))}
+                              </span>
+                              {wi < words.length - 1 ? (ch++, " ") : null}
+                            </React.Fragment>
+                          ));
+                      })()}
                     </h3>
                   </div>
 
                   <ul className={styles.iconGrid}>
-                    {category.items.map((item) => (
+                    {category.items.map((item, itemIndex) => (
                       <li
                         key={item.name}
                         className={styles.iconTile}
                         tabIndex={0}
+                        style={
+                          {
+                            // wave position inside the 4-column icon grid
+                            "--col": itemIndex % 4,
+                            "--row": Math.floor(itemIndex / 4),
+                          } as React.CSSProperties
+                        }
                       >
-                        <CapabilityIcon
-                          iconKey={item.icon as CapabilityIconKey}
-                        />
-                        <span className={styles.iconLabel}>{item.name}</span>
+                        <span className={styles.tileInner}>
+                          <CapabilityIcon
+                            iconKey={item.icon as CapabilityIconKey}
+                          />
+                          <span className={styles.iconLabel}>{item.name}</span>
+                        </span>
                       </li>
                     ))}
                   </ul>

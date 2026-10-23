@@ -68,6 +68,7 @@
   color: var(--text-muted);
 }
 
+/* Section title: letters rise out of a clipping line, one by one (wave) */
 .sectionTitle {
   font-family: var(--font-serif);
   font-size: clamp(1.6rem, 5vw, var(--text-3xl));
@@ -75,12 +76,24 @@
   letter-spacing: var(--tracking-wide);
   color: var(--text-primary);
   text-transform: uppercase;
-  clip-path: inset(0 100% 0 0);
-  transition: clip-path 1.25s var(--ease-slowmo);
+  overflow: hidden;
+  padding: 0.1em 0 0.24em;
+  margin: -0.1em 0 -0.24em;
 }
 
-.isRevealed .sectionTitle {
-  clip-path: inset(0 0 0 0);
+.titleChar {
+  display: inline-block;
+  white-space: pre;
+  transform-origin: 0% 100%;
+  transform: translate3d(0, 118%, 0) rotate(calc(6deg + var(--ch, 0) * 1.2deg));
+  transition: transform 1.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--ch, 0) * 75ms + 120ms);
+  will-change: transform;
+}
+
+.isRevealed .titleChar {
+  transform: none;
+  will-change: auto;
 }
 
 .editorialLayout {
@@ -145,9 +158,11 @@
 }
 
 /* =========================================================================
-   SCROLL REVEAL (About) — masked rise, slow + smooth + minimalist
-   Words / paragraphs rise out of an invisible clipping line, like the reference video.
-   Triggered by .narrativeRevealed / .widgetRevealed / .principlesRevealed (see About.tsx)
+   SCROLL REVEAL (About, left column) — masked rise with a wave
+   Every block (lead sentence, each paragraph, contribution widget) is triggered
+   on its own by [data-revealed="true"] (set in About.tsx when the block scrolls
+   into view). Words rise out of an invisible clipping line, tilted, one after
+   another — like the reference video. Only transform is animated (smooth on mobile).
    ========================================================================= */
 
 /* lead sentence: every word rises from below its own line */
@@ -162,37 +177,56 @@
 
 .maskWordInner {
   display: inline-block;
-  transform: translate3d(0, 118%, 0);
-  transition: transform 1.35s var(--ease-slowmo);
-  transition-delay: calc(var(--i, 0) * 75ms + 120ms);
+  transform-origin: 0% 100%;
+  transform: translate3d(0, 118%, 0) rotate(calc(3deg + var(--i, 0) * 0.8deg));
+  transition: transform 1.45s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--i, 0) * 95ms + 220ms);
+  will-change: transform;
 }
 
-.narrativeRevealed .maskWordInner {
-  transform: translate3d(0, 0, 0);
+.leadStatement[data-revealed="true"] .maskWordInner {
+  transform: none;
+  will-change: auto;
 }
 
-/* body paragraphs: each block rises from below a clipping line */
+/* body paragraphs: word-by-word wave; each paragraph waits for the one before it */
 .maskBlock {
-  overflow: hidden;
+  /* desktop: paragraphs follow the lead sentence, one after another */
+  --base: calc(var(--bi, 0) * 550ms + 900ms);
 }
 
-.maskBlockInner {
+.paragraph {
   margin: 0;
-  opacity: 0;
-  transform: translate3d(0, 105%, 0);
-  transition:
-    transform 1.5s var(--ease-slowmo),
-    opacity 1.1s ease-out;
-  transition-delay: calc(var(--i, 0) * 150ms + 650ms);
 }
 
-.narrativeRevealed .maskBlockInner {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
+.wMask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding: 0.05em 0 0.28em;
+  margin: -0.05em 0 -0.28em;
+}
+
+.wInner {
+  display: inline-block;
+  transform-origin: 0% 100%;
+  transform: translate3d(0, 120%, 0) rotate(3.5deg);
+  transition: transform 1.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--base, 0ms) + var(--w, 0) * 18ms);
+  will-change: transform;
+}
+
+.maskBlock[data-revealed="true"] .wInner,
+.contributionWidget[data-revealed="true"] .wInner {
+  transform: none;
+  will-change: auto;
 }
 
 /* GitHub Repository Contribution Widget (Plain black background, no blue borders, aligned to bottom) */
 .contributionWidget {
+  /* desktop: the widget comes last in the sequence */
+  --base: 2000ms;
+
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -201,22 +235,40 @@
   width: 100%;
 }
 
+/* stacked layout (tablet / phone): every block is on its own scroll position,
+   so it only needs a short delay */
+@media (max-width: 1023px) {
+  .maskBlock,
+  .contributionWidget {
+    --base: 160ms;
+  }
+}
+
 .contributionHeader {
+  position: relative;
   display: flex;
   align-items: center;
   padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--border-hairline);
   width: 100%;
-  opacity: 0;
-  transform: translate3d(0, 14px, 0);
-  transition:
-    opacity 1.1s var(--ease-slowmo),
-    transform 1.1s var(--ease-slowmo);
 }
 
-.widgetRevealed .contributionHeader {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
+/* hairline under the title draws left -> right */
+.contributionHeader::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--border-hairline);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 1.2s var(--ease-slowmo);
+  transition-delay: var(--base, 0ms);
+}
+
+.contributionWidget[data-revealed="true"] .contributionHeader::after {
+  transform: scaleX(1);
 }
 
 .contributionTitle {
@@ -291,17 +343,22 @@
   margin-top: -4px;
 }
 
-/* GitHub Repository Contribution Card: Independent rise from bottom (not split) */
+/* GitHub Repository Contribution Card: rises from the baseline with a slight tilt,
+   right after its title (same wave language as the text) */
 .buildingMask .contributionBuildingRise {
-  transform: translate3d(0, 105%, 0);
+  transform-origin: 0% 100%;
+  transform: translate3d(0, 105%, 0) rotate(2.5deg);
   opacity: 0;
   transition:
-    transform 1.5s var(--ease-slowmo) 0.25s,
-    opacity 0.8s ease-out 0.25s;
+    transform 1.6s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.7s ease-out;
+  transition-delay: calc(var(--base, 0ms) + 450ms);
 }
 
-.widgetRevealed .buildingMask .contributionBuildingRise {
-  transform: translate3d(0, 0, 0);
+.contributionWidget[data-revealed="true"]
+  .buildingMask
+  .contributionBuildingRise {
+  transform: none;
   opacity: 1;
 }
 
@@ -612,6 +669,19 @@
     gap: var(--space-3);
   }
 
+  /* faster wave on phones so the reveal keeps up with scrolling */
+  .titleChar {
+    transition-delay: calc(var(--ch, 0) * 60ms + 80ms);
+  }
+
+  .maskWordInner {
+    transition-delay: calc(var(--i, 0) * 80ms + 120ms);
+  }
+
+  .wInner {
+    transition-delay: calc(var(--base, 0ms) + var(--w, 0) * 14ms);
+  }
+
   /* Phone: smaller blocks so nothing feels squeezed */
   .stage {
     --card-h: 8.75rem;
@@ -675,15 +745,21 @@
     transform: none !important;
     transition: none !important;
   }
-  .narrativeCol,
   .principlesCol {
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
   }
+  .titleChar,
   .maskWordInner,
-  .maskBlockInner,
-  .contributionHeader,
+  .wInner {
+    transform: none !important;
+    transition: none !important;
+  }
+  .contributionHeader::after {
+    transform: scaleX(1) !important;
+    transition: none !important;
+  }
   .principlesHeader,
   .buildingMask .contributionBuildingRise {
     opacity: 1 !important;

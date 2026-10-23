@@ -584,7 +584,6 @@ export const siteContent = {
         tagline: "Career History & Education",
         summary:
           "Documented trajectory across hands-on freelance client work, industry IT support internship, and accredited academic systems engineering.",
-        count: "03 Milestones",
         cta: "Explore Experience",
       },
       {
@@ -594,7 +593,6 @@ export const siteContent = {
         tagline: "Engineering Architecture & QA",
         summary:
           "A 4-phase systematic lifecycle: requirement analysis, component-driven prototyping, defect detection, and production hardening.",
-        count: "04 Phases",
         cta: "Inspect Workflows",
       },
       {
@@ -604,7 +602,6 @@ export const siteContent = {
         tagline: "Technical Offerings & Delivery",
         summary:
           "Targeted technical offerings spanning frontend engineering, quality assurance test design, DOM inspection, and IT support.",
-        count: "04 Services",
         cta: "View Services",
       },
     ],
