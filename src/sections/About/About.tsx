@@ -12,6 +12,8 @@ import styles from "./About.module.css";
  *                  You can move these into siteContent.about.principles later;
  *                  anything added there is picked up automatically.
  * X_OFFSETS        the small left/right zig-zag of each card in the stack (like your sketch)
+ * ANGLES           a different turn (rotateY) + tiny twist (rotateZ) for every position in the
+ *                  stack, so the cards before / after the active one all sit at their own angle
  * ──────────────────────────────────────────────────────────────────────────── */
 const AUTO_SWITCH_MS = 4000;
 
@@ -35,12 +37,33 @@ const EXTRA_PRINCIPLES: { term: string; description: string }[] = [
 
 const X_OFFSETS: Record<number, string> = {
   [-3]: "0%",
-  [-2]: "-6%",
-  [-1]: "7%",
+  [-2]: "-5%",
+  [-1]: "6%",
   [0]: "0%",
-  [1]: "-7%",
-  [2]: "6%",
+  [1]: "-6%",
+  [2]: "5%",
 };
+
+// Different angle for every spot in the stack (above = negative, below = positive)
+const ANGLES: Record<number, { ry: string; rz: string }> = {
+  [-3]: { ry: "0deg", rz: "0deg" },
+  [-2]: { ry: "16deg", rz: "-2.2deg" },
+  [-1]: { ry: "-11deg", rz: "1.6deg" },
+  [0]: { ry: "0deg", rz: "0deg" },
+  [1]: { ry: "11deg", rz: "-1.6deg" },
+  [2]: { ry: "-16deg", rz: "2.2deg" },
+};
+
+// Lead sentence, split into words so each word can rise out of a clipping line on scroll
+const LEAD_WORDS: { text: string; emphasis?: boolean; suffix?: string }[] = [
+  { text: "A" },
+  { text: "Personal" },
+  { text: "Workspace", emphasis: true, suffix: "." },
+  { text: "Notes," },
+  { text: "Builds," },
+  { text: "and" },
+  { text: "Progress", emphasis: true, suffix: "." },
+];
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -49,7 +72,25 @@ export const About: React.FC = () => {
   const { elementRef: sectionRef, isRevealed: isHeaderRevealed } =
     useScrollReveal<HTMLElement>({ threshold: 0.1 });
 
-  // Observer for the layout: starts the contribution-graph rise and fades the card stack in
+  // Separate scroll-reveal triggers, so every block animates when YOU actually reach it
+  // (important on mobile where the columns are stacked and far apart)
+  const { elementRef: narrativeRef, isRevealed: isNarrativeRevealed } =
+    useScrollReveal<HTMLDivElement>({
+      threshold: 0.12,
+      rootMargin: "0px 0px -10% 0px",
+    });
+  const { elementRef: widgetRef, isRevealed: isWidgetRevealed } =
+    useScrollReveal<HTMLDivElement>({
+      threshold: 0.25,
+      rootMargin: "0px 0px -8% 0px",
+    });
+  const { elementRef: principlesRef, isRevealed: isPrinciplesRevealed } =
+    useScrollReveal<HTMLDivElement>({
+      threshold: 0.18,
+      rootMargin: "0px 0px -10% 0px",
+    });
+
+  // Observer for the layout (kept from before)
   const cardsContainerRef = useRef<HTMLDivElement | null>(null);
   const [isCardsRevealed, setIsCardsRevealed] = useState(false);
 
@@ -110,15 +151,15 @@ export const About: React.FC = () => {
     prevActiveRef.current = active;
   }, [active]);
 
-  // Auto switch every AUTO_SWITCH_MS (starts once the section is on screen, pauses on hover/focus)
+  // Auto switch every AUTO_SWITCH_MS (starts once the cards are actually on screen, pauses on hover/focus)
   useEffect(() => {
-    if (!isCardsRevealed || paused || reducedMotion || total < 2) return;
+    if (!isPrinciplesRevealed || paused || reducedMotion || total < 2) return;
     const timer = window.setTimeout(
       () => setActive((a) => (a + 1) % total),
       AUTO_SWITCH_MS,
     );
     return () => window.clearTimeout(timer);
-  }, [isCardsRevealed, paused, reducedMotion, total, active]);
+  }, [isPrinciplesRevealed, paused, reducedMotion, total, active]);
 
   // Signed position of card i relative to the active one (0 = in focus, negative = above, positive = below)
   const getPos = (i: number, a: number) =>
@@ -160,25 +201,61 @@ export const About: React.FC = () => {
           }`}
         >
           {/* Left Column: Narrative */}
-          <div className={styles.narrativeCol}>
-            <p className={styles.leadStatement}>
-              A Personal{" "}
-              <span className={styles.underlinedEmphasis}>Workspace</span>.
-              Notes, Builds, and{" "}
-              <span className={styles.underlinedEmphasis}>Progress</span>.
+          <div
+            ref={narrativeRef}
+            className={`${styles.narrativeCol} ${
+              isNarrativeRevealed ? styles.narrativeRevealed : ""
+            }`}
+          >
+            <p
+              className={styles.leadStatement}
+              aria-label="A Personal Workspace. Notes, Builds, and Progress."
+            >
+              {LEAD_WORDS.map((word, i) => (
+                <React.Fragment key={word.text + i}>
+                  <span className={styles.maskWord} aria-hidden="true">
+                    <span
+                      className={styles.maskWordInner}
+                      style={{ "--i": i } as React.CSSProperties}
+                    >
+                      <span
+                        className={
+                          word.emphasis ? styles.underlinedEmphasis : undefined
+                        }
+                      >
+                        {word.text}
+                      </span>
+                      {word.suffix}
+                    </span>
+                  </span>
+                  {i < LEAD_WORDS.length - 1 ? " " : null}
+                </React.Fragment>
+              ))}
             </p>
 
             <div className={styles.bodyCopy}>
               {about.paragraphs.map((paragraph, index) => (
-                <p key={index}>{paragraph}</p>
+                <div key={index} className={styles.maskBlock}>
+                  <p
+                    className={styles.maskBlockInner}
+                    style={{ "--i": index } as React.CSSProperties}
+                  >
+                    {paragraph}
+                  </p>
+                </div>
               ))}
             </div>
 
             {/* GitHub Repository Contribution Activity */}
-            <div className={styles.contributionWidget}>
+            <div
+              ref={widgetRef}
+              className={`${styles.contributionWidget} ${
+                isWidgetRevealed ? styles.widgetRevealed : ""
+              }`}
+            >
               <div className={styles.contributionHeader}>
                 <span className={styles.contributionTitle}>
-                  REPOSITORY CONTRIBUTIONS
+                  612 CONTRIBUTIONS IN THE LAST YEAR
                 </span>
               </div>
 
@@ -201,7 +278,10 @@ export const About: React.FC = () => {
 
           {/* Right Column: CORE FOCUS — 6 cards in an auto-switching 3D stack */}
           <div
-            className={styles.principlesCol}
+            ref={principlesRef}
+            className={`${styles.principlesCol} ${
+              isPrinciplesRevealed ? styles.principlesRevealed : ""
+            }`}
             onPointerEnter={(e) => {
               if (e.pointerType === "mouse") setPaused(true);
             }}
@@ -229,6 +309,7 @@ export const About: React.FC = () => {
                 const abs = Math.abs(pos);
                 const wrapped =
                   Math.abs(pos - getPos(index, prevActive)) > half;
+                const angle = ANGLES[pos] ?? ANGLES[0];
 
                 const cardClass = [
                   styles.card,
@@ -249,6 +330,8 @@ export const About: React.FC = () => {
                         "--pos": pos,
                         "--abs": abs,
                         "--x": X_OFFSETS[pos] ?? "0%",
+                        "--ry": angle.ry,
+                        "--rz": angle.rz,
                         zIndex: 10 - abs,
                         // a card wrapping around the stack snaps instantly (only fades)
                         transition: wrapped ? "opacity 0.25s ease" : undefined,
@@ -260,6 +343,7 @@ export const About: React.FC = () => {
                       if (pos !== 0 && abs <= 2) setActive(index);
                     }}
                   >
+                    {/* Card numbers (01–06) are hidden via CSS (.principleMeta) */}
                     <div className={styles.principleMeta}>
                       <span className={styles.principleNumber}>
                         {pad(index + 1)}
@@ -274,7 +358,7 @@ export const About: React.FC = () => {
               })}
             </div>
 
-            {/* Minimal progress lines — also act as manual controls */}
+            {/* Minimal progress lines — also act as manual controls (hidden via CSS) */}
             <div
               className={styles.controls}
               role="group"

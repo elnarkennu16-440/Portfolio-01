@@ -1,0 +1,238 @@
+/* Professional Overview Section Styles
+ * Replaces Process section on the homepage with an advanced, minimalist
+ * architectural display matching the site's strict monochrome theme.
+ */
+
+.section {
+  position: relative;
+  width: 100%;
+  padding: clamp(var(--space-16), 10vh, var(--space-24)) var(--gutter);
+  background-color: var(--bg-primary);
+  border-top: 1px solid var(--border-hairline);
+  overflow: hidden;
+  transition: background-color var(--duration-normal) var(--ease-editorial);
+}
+
+.inner {
+  position: relative;
+  width: 100%;
+  max-width: var(--container-width);
+  margin: 0 auto;
+  z-index: 1;
+}
+
+/* Faint background architectural watermark */
+.watermark {
+  position: absolute;
+  top: -10%;
+  right: -5%;
+  font-family: var(--font-serif);
+  font-size: clamp(6rem, 16vw, 15rem);
+  font-weight: 700;
+  color: var(--text-ghost);
+  letter-spacing: var(--tracking-widest);
+  line-height: 0.8;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  text-transform: uppercase;
+}
+
+/* Section Header */
+.sectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: clamp(var(--space-8), 6vw, var(--space-12));
+}
+
+.eyebrowRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.eyebrowDash {
+  font-family: var(--font-sans);
+  color: var(--text-muted);
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-widest);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.headline {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 4vw, var(--text-3xl));
+  font-weight: 400;
+  color: var(--text-primary);
+  line-height: var(--leading-tight);
+  max-width: 24ch;
+  margin: 0;
+}
+
+.intro {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-normal);
+  max-width: 65ch;
+  margin: 0;
+}
+
+/* =========================================================================
+   3-PILLAR ARCHITECTURAL DISPLAY GRID
+   ========================================================================= */
+.pillarsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(1rem, 2vw, 1.5rem);
+  margin-top: var(--space-6);
+}
+
+.pillarCard {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: 8px;
+  padding: clamp(1.5rem, 2.8vw, 2.25rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1.5rem;
+  transition:
+    transform 0.25s var(--ease-editorial),
+    border-color 0.25s var(--ease-editorial),
+    background-color 0.25s var(--ease-editorial),
+    box-shadow 0.25s var(--ease-editorial);
+  cursor: pointer;
+  text-align: left;
+}
+
+.pillarCard:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface-elevated);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="light"] .pillarCard:hover {
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.08);
+}
+
+.cardTop {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cardMetaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.cardNumberMono {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.cardCountBadge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+}
+
+.titleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cardTagline {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.cardTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(1.65rem, 2.5vw, 2.2rem);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.cardSummary {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Card Action Button */
+.cardActionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--border-hairline);
+  padding-top: 1rem;
+  width: 100%;
+}
+
+.cardActionText {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  font-weight: 500;
+  transition: transform 0.2s ease;
+}
+
+.cardActionArrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  transition:
+    transform 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.pillarCard:hover .cardActionArrow {
+  transform: translateX(3px);
+  background-color: var(--text-primary);
+  color: var(--bg-primary);
+  border-color: var(--text-primary);
+}
+
+@media (max-width: 960px) {
+  .pillarsGrid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+}

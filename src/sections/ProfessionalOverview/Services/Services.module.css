@@ -1,0 +1,436 @@
+/* Services Subpage Styles
+ * Editorial services catalogue, technical deliverables checklist,
+ * sleek monochrome styling, and integrated contact actions.
+ */
+
+.pageContainer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  z-index: 99999;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+.backgroundAtmosphere {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(255, 255, 255, 0.035) 0%,
+    transparent 70%
+  );
+  z-index: 0;
+}
+
+[data-theme="light"] .backgroundAtmosphere {
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(0, 0, 0, 0.02) 0%,
+    transparent 70%
+  );
+}
+
+/* =========================================================================
+   TOP NAVIGATION BAR
+   ========================================================================= */
+.topNav {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-hairline);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 0.85rem clamp(1rem, 3.5vw, 2.5rem);
+  transition:
+    background-color var(--duration-normal) var(--ease-editorial),
+    border-color var(--duration-normal) var(--ease-editorial);
+}
+
+.topNavInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.brandMark {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.brandMark:hover {
+  opacity: 0.8;
+  transform: scale(1.04);
+}
+
+.brandLogoSmall {
+  height: 28px;
+  width: auto;
+  aspect-ratio: 212 / 235;
+  object-fit: contain;
+  display: block;
+}
+
+[data-theme="light"] .brandLogoSmall {
+  filter: invert(1);
+}
+
+.topNavActions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.navCloseBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) ease,
+    background-color var(--duration-fast) ease,
+    transform 0.15s ease;
+}
+
+.navCloseBtn:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface-elevated);
+  transform: scale(1.05);
+}
+
+/* =========================================================================
+   MAIN CONTENT AREA
+   ========================================================================= */
+.mainContent {
+  position: relative;
+  z-index: 1;
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 3.5rem) clamp(1rem, 3.5vw, 2.5rem);
+}
+
+.subHeaderRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.titleAccentBar {
+  display: inline-block;
+  width: 4px;
+  height: 1.75rem;
+  background-color: var(--border-strong);
+  border-radius: 2px;
+}
+
+.pageTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 4.5vw, 3.25rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.pageDescription {
+  font-family: var(--font-sans);
+  font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 72ch;
+  margin: 0;
+}
+
+/* =========================================================================
+   SERVICES CATALOG LIST (Editorial Row Format)
+   ========================================================================= */
+.servicesList {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.75rem, 3vw, 2.5rem);
+}
+
+.serviceCard {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: 8px;
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  transition:
+    border-color 0.22s var(--ease-editorial),
+    background-color 0.22s var(--ease-editorial);
+}
+
+.serviceCard:hover {
+  border-color: var(--border-medium);
+  background-color: var(--bg-surface-elevated);
+}
+
+/* Service Card Header */
+.serviceHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border-hairline);
+  padding-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.serviceNumber {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.titleArea {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.serviceCategory {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.serviceTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(1.4rem, 2.8vw, 1.95rem);
+  font-weight: 400;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.inquireButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.inquireButton:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface-elevated);
+  transform: translateY(-1px);
+}
+
+/* Summary narrative */
+.serviceSummary {
+  font-family: var(--font-sans);
+  font-size: clamp(0.88rem, 1.2vw, 0.96rem);
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 80ch;
+}
+
+/* 2-Column Split: Scope of Work vs Deliverables */
+.serviceDetailsGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: clamp(1.25rem, 2.5vw, 2.25rem);
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: 6px;
+  padding: 1.25rem clamp(1rem, 2.5vw, 1.75rem);
+}
+
+.detailCol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.colHeading {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.scopeList {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.scopeItem {
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.deliverablesList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.deliverableRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+}
+
+.checkIcon {
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+/* Tools strip */
+.toolsFooter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.toolsLabel {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-right: 0.25rem;
+}
+
+.toolPill {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+}
+
+/* =========================================================================
+   PAGE FOOTER
+   ========================================================================= */
+.pageFooter {
+  width: 100%;
+  border-top: 1px solid var(--border-hairline);
+  padding: 1.75rem clamp(1rem, 3.5vw, 2.5rem);
+  background-color: var(--bg-primary);
+  margin-top: clamp(2rem, 5vw, 4rem);
+}
+
+.footerInner {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.footerText {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  letter-spacing: var(--tracking-wide);
+}
+
+.footerBackTop {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--duration-fast) ease;
+}
+
+.footerBackTop:hover {
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .serviceDetailsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .footerInner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}

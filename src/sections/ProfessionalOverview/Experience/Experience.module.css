@@ -1,0 +1,443 @@
+/* Experience Subpage Styles
+ * Full-screen standalone page with editorial typography, architectural timeline rail,
+ * zero-card minimalist scroll design, and matching dark/light mode theme tokens.
+ */
+
+.pageContainer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  z-index: 99999;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Subtle architectural atmosphere */
+.backgroundAtmosphere {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(255, 255, 255, 0.035) 0%,
+    transparent 70%
+  );
+  z-index: 0;
+}
+
+[data-theme="light"] .backgroundAtmosphere {
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(0, 0, 0, 0.02) 0%,
+    transparent 70%
+  );
+}
+
+/* =========================================================================
+   TOP NAVIGATION BAR (Exact contract matching ViewAllProjects)
+   ========================================================================= */
+.topNav {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-hairline);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 0.85rem clamp(1rem, 3.5vw, 2.5rem);
+  transition:
+    background-color var(--duration-normal) var(--ease-editorial),
+    border-color var(--duration-normal) var(--ease-editorial);
+}
+
+.topNavInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.brandMark {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.brandMark:hover {
+  opacity: 0.8;
+  transform: scale(1.04);
+}
+
+.brandLogoSmall {
+  height: 28px;
+  width: auto;
+  aspect-ratio: 212 / 235;
+  object-fit: contain;
+  display: block;
+}
+
+[data-theme="light"] .brandLogoSmall {
+  filter: invert(1);
+}
+
+.topNavActions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.navCloseBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) ease,
+    background-color var(--duration-fast) ease,
+    transform 0.15s ease;
+}
+
+.navCloseBtn:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface-elevated);
+  transform: scale(1.05);
+}
+
+/* =========================================================================
+   MAIN CONTENT AREA (Spacious, Editorial Layout)
+   ========================================================================= */
+.mainContent {
+  position: relative;
+  z-index: 1;
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 3.5rem) clamp(1rem, 3.5vw, 2.5rem);
+}
+
+.subHeaderRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: clamp(2.5rem, 6vw, 4rem);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.titleAccentBar {
+  display: inline-block;
+  width: 4px;
+  height: 1.75rem;
+  background-color: var(--border-strong);
+  border-radius: 2px;
+}
+
+.pageTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 4.5vw, 3.25rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.pageDescription {
+  font-family: var(--font-sans);
+  font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 68ch;
+  margin: 0;
+}
+
+/* =========================================================================
+   ARCHITECTURAL TIMELINE STREAM (Zero-Card Minimalist Aesthetic)
+   ========================================================================= */
+.timelineStream {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-left: clamp(1.25rem, 3vw, 2.5rem);
+  border-left: 1px solid var(--border-hairline);
+  margin-left: clamp(0.5rem, 1.5vw, 1rem);
+  gap: clamp(3rem, 7vw, 4.5rem);
+}
+
+.timelineItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Node indicator along the vertical architectural axis */
+.timelineNode {
+  position: absolute;
+  left: calc(-1 * clamp(1.25rem, 3vw, 2.5rem) - 5px);
+  top: 0.4rem;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: var(--bg-primary);
+  border: 2px solid var(--text-primary);
+  transition: transform 0.25s var(--ease-editorial);
+}
+
+.timelineItem:hover .timelineNode {
+  transform: scale(1.4);
+  background-color: var(--text-primary);
+}
+
+/* Header within timeline item */
+.itemHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.itemMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.periodMono {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.typeBadge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+}
+
+.roleTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(1.5rem, 3.2vw, 2.25rem);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.companyRow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: var(--font-sans);
+  font-size: clamp(0.85rem, 1.2vw, 0.98rem);
+  color: var(--text-secondary);
+}
+
+.companyName {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.companyDivider {
+  color: var(--border-medium);
+}
+
+/* Narrative prose */
+.itemNarrative {
+  font-family: var(--font-sans);
+  font-size: clamp(0.88rem, 1.2vw, 0.96rem);
+  line-height: 1.68;
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 82ch;
+}
+
+/* Responsibilities block */
+.responsibilitiesBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.blockHeading {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.responsibilitiesList {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.responsibilityItem {
+  font-family: var(--font-sans);
+  font-size: clamp(0.84rem, 1.15vw, 0.92rem);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+/* Key Highlights strip */
+.highlightsBox {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.highlightItem {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.highlightDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--text-primary);
+  flex-shrink: 0;
+  transform: translateY(-2px);
+}
+
+/* Skills pills */
+.skillsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  padding-top: 0.25rem;
+}
+
+.skillPill {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.timelineItem:hover .skillPill {
+  color: var(--text-primary);
+  border-color: var(--border-medium);
+}
+
+/* =========================================================================
+   PAGE FOOTER (Identical to ViewAllProjects footer)
+   ========================================================================= */
+.pageFooter {
+  width: 100%;
+  border-top: 1px solid var(--border-hairline);
+  padding: 1.75rem clamp(1rem, 3.5vw, 2.5rem);
+  background-color: var(--bg-primary);
+  margin-top: clamp(2rem, 5vw, 4rem);
+}
+
+.footerInner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.footerText {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  letter-spacing: var(--tracking-wide);
+}
+
+.footerBackTop {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--duration-fast) ease;
+}
+
+.footerBackTop:hover {
+  color: var(--text-primary);
+}
+
+@media (max-width: 640px) {
+  .timelineStream {
+    padding-left: 1rem;
+    margin-left: 0.25rem;
+    gap: 2.5rem;
+  }
+
+  .timelineNode {
+    left: calc(-1rem - 5px);
+  }
+
+  .footerInner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}

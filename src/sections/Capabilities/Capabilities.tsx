@@ -148,11 +148,18 @@ export const Capabilities: React.FC = () => {
         <div className={styles.capabilitiesGrid}>
           {columns.map((column, colIndex) => (
             <div key={colIndex} className={styles.column}>
-              {column.map((category) => (
+              {column.map((category, rowIndex) => (
                 <div
                   key={category.category}
                   className={styles.categoryCard}
-                  style={{ "--i": cardIndex++ } as React.CSSProperties}
+                  style={
+                    {
+                      "--i": cardIndex++,
+                      // desktop: row N of every column lines up across the 3 columns
+                      gridColumn: colIndex + 1,
+                      gridRow: rowIndex + 1,
+                    } as React.CSSProperties
+                  }
                 >
                   <div className={styles.categoryHeader}>
                     <h3 className={styles.categoryTitle}>

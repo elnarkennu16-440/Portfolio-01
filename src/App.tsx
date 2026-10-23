@@ -13,7 +13,10 @@ import { TechMarquee } from "./components/TechMarquee/TechMarquee";
 import { Works } from "./sections/Works/Works";
 import { ViewAllProjects } from "./sections/Works/ViewAllProjects";
 import { Capabilities } from "./sections/Capabilities/Capabilities";
-import { Process } from "./sections/Process/Process";
+import { ProfessionalOverview } from "./sections/ProfessionalOverview/ProfessionalOverview";
+import { Experience } from "./sections/ProfessionalOverview/Experience/Experience";
+import { Workflows } from "./sections/ProfessionalOverview/Workflows/Workflows";
+import { Services } from "./sections/ProfessionalOverview/Services/Services";
 import { Philosophy } from "./sections/Philosophy/Philosophy";
 import { Footer } from "./sections/Footer/Footer";
 import { ContactModal } from "./components/ContactModal/ContactModal";
@@ -24,6 +27,9 @@ export default function App() {
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
   const [isViewAllProjectsOpen, setIsViewAllProjectsOpen] = useState(false);
+  const [activeSubpage, setActiveSubpage] = useState<
+    "experience" | "workflows" | "services" | null
+  >(null);
 
   const handleOpenContact = () => {
     setIsContactModalOpen(true);
@@ -41,10 +47,23 @@ export default function App() {
     setIsViewAllProjectsOpen(false);
   };
 
+  const handleOpenSubpage = (
+    subpage: "experience" | "workflows" | "services",
+  ) => {
+    setActiveSubpage(subpage);
+  };
+
+  const handleCloseSubpage = () => {
+    setActiveSubpage(null);
+  };
+
   // Called after loader has fully finished
   const handleCompleteIntro = () => {
     setShowIntro(false);
   };
+
+  const isAnyOverlayActive =
+    isContactModalOpen || isViewAllProjectsOpen || Boolean(activeSubpage);
 
   return (
     <>
@@ -55,8 +74,8 @@ export default function App() {
 
       <div
         className="portfolioRoot"
-        inert={isContactModalOpen || isViewAllProjectsOpen ? true : undefined}
-        aria-hidden={isContactModalOpen || isViewAllProjectsOpen}
+        inert={isAnyOverlayActive ? true : undefined}
+        aria-hidden={isAnyOverlayActive}
       >
         <a href="#main-content" className="skipToContent">
           Skip to content
@@ -67,6 +86,7 @@ export default function App() {
           theme={theme}
           onToggleTheme={toggleTheme}
           onOpenContact={handleOpenContact}
+          onOpenSubpage={handleOpenSubpage}
         />
 
         <main id="main-content" tabIndex={-1}>
@@ -85,8 +105,8 @@ export default function App() {
           {/* Capabilities Section */}
           <Capabilities />
 
-          {/* Process Section */}
-          <Process />
+          {/* PROFESIONAL OVERVIEW (Replaces Process) */}
+          <ProfessionalOverview onOpenSubpage={handleOpenSubpage} />
 
           {/* Philosophy / Scroll-Switching Statement Section */}
           <Philosophy />
@@ -101,6 +121,32 @@ export default function App() {
           onBack={handleCloseViewAllProjects}
           theme={theme}
           onToggleTheme={toggleTheme}
+        />
+      )}
+
+      {/* Standalone Subpage Overlays for PROFESIONAL OVERVIEW */}
+      {activeSubpage === "experience" && (
+        <Experience
+          onBack={handleCloseSubpage}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
+      )}
+
+      {activeSubpage === "workflows" && (
+        <Workflows
+          onBack={handleCloseSubpage}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
+      )}
+
+      {activeSubpage === "services" && (
+        <Services
+          onBack={handleCloseSubpage}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          onOpenContact={handleOpenContact}
         />
       )}
 

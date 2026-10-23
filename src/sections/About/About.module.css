@@ -144,6 +144,53 @@
   margin-right: var(--space-2);
 }
 
+/* =========================================================================
+   SCROLL REVEAL (About) — masked rise, slow + smooth + minimalist
+   Words / paragraphs rise out of an invisible clipping line, like the reference video.
+   Triggered by .narrativeRevealed / .widgetRevealed / .principlesRevealed (see About.tsx)
+   ========================================================================= */
+
+/* lead sentence: every word rises from below its own line */
+.maskWord {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  /* room for descenders + the underline, without changing the line height */
+  padding-bottom: 0.28em;
+  margin-bottom: -0.28em;
+}
+
+.maskWordInner {
+  display: inline-block;
+  transform: translate3d(0, 118%, 0);
+  transition: transform 1.35s var(--ease-slowmo);
+  transition-delay: calc(var(--i, 0) * 75ms + 120ms);
+}
+
+.narrativeRevealed .maskWordInner {
+  transform: translate3d(0, 0, 0);
+}
+
+/* body paragraphs: each block rises from below a clipping line */
+.maskBlock {
+  overflow: hidden;
+}
+
+.maskBlockInner {
+  margin: 0;
+  opacity: 0;
+  transform: translate3d(0, 105%, 0);
+  transition:
+    transform 1.5s var(--ease-slowmo),
+    opacity 1.1s ease-out;
+  transition-delay: calc(var(--i, 0) * 150ms + 650ms);
+}
+
+.narrativeRevealed .maskBlockInner {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
 /* GitHub Repository Contribution Widget (Plain black background, no blue borders, aligned to bottom) */
 .contributionWidget {
   display: flex;
@@ -160,6 +207,16 @@
   padding-bottom: var(--space-2);
   border-bottom: 1px solid var(--border-hairline);
   width: 100%;
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  transition:
+    opacity 1.1s var(--ease-slowmo),
+    transform 1.1s var(--ease-slowmo);
+}
+
+.widgetRevealed .contributionHeader {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
 }
 
 .contributionTitle {
@@ -239,12 +296,11 @@
   transform: translate3d(0, 105%, 0);
   opacity: 0;
   transition:
-    transform 1.25s cubic-bezier(0.16, 1, 0.3, 1) 0.2s,
-    opacity 0.4s ease-out 0.2s;
-  will-change: transform, opacity;
+    transform 1.5s var(--ease-slowmo) 0.25s,
+    opacity 0.8s ease-out 0.25s;
 }
 
-.isCardsRevealed .buildingMask .contributionBuildingRise {
+.widgetRevealed .buildingMask .contributionBuildingRise {
   transform: translate3d(0, 0, 0);
   opacity: 1;
 }
@@ -269,6 +325,16 @@
   letter-spacing: var(--tracking-widest);
   text-transform: uppercase;
   color: var(--text-muted);
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  transition:
+    opacity 1.1s var(--ease-slowmo),
+    transform 1.1s var(--ease-slowmo);
+}
+
+.principlesRevealed .principlesHeader {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
 }
 
 .principlesCounter {
@@ -278,36 +344,49 @@
 
 /* =========================================================================
    CORE FOCUS — 3D CARD STACK (auto-switching)
-   Cards sit on an imaginary vertical drum: the one in focus is flat and in
-   front; the ones above / below tilt back, shrink, fade and zig-zag left/right.
-   Every card gets --pos (… -1, 0, 1 …), --abs and --x from the TSX.
-   Tune the look with the 3 variables on .stage below.
+   Every card is a solid BLACK 3D BLOCK (front face + top face + right side face,
+   like the sketch). Cards sit on an imaginary vertical drum: the one in focus is
+   in front; the ones above / below tilt back, shrink, fade, zig-zag left/right and
+   each one turns at its OWN angle (--ry / --rz come from the TSX).
+   Tune the look with the variables on .stage / .card below.
    ========================================================================= */
 
 .stage {
-  --card-h: 11rem; /* height of one card */
-  --step: 7rem; /* vertical distance between stacked cards */
-  --tilt: 14deg; /* how much cards tilt back per step */
+  --card-h: 10.75rem; /* height of one card */
+  --step: 6.8rem; /* vertical distance between stacked cards */
+  --tilt: 12deg; /* how much cards tilt back per step */
   --depth: 80px; /* how far cards sink back per step */
 
   position: relative;
   width: 100%;
-  height: 30rem;
+  height: 29rem;
   perspective: 1100px;
   perspective-origin: 50% 50%;
   overflow: hidden;
   opacity: 0;
-  transition: opacity 1s var(--ease-slowmo) 0.1s;
+  transform: translate3d(0, 36px, 0);
+  transition:
+    opacity 1.4s var(--ease-slowmo) 0.2s,
+    transform 1.4s var(--ease-slowmo) 0.2s;
 }
 
-.isCardsRevealed .stage {
+.principlesRevealed .stage {
   opacity: 1;
+  transform: translate3d(0, 0, 0);
 }
 
 .card {
+  /* thickness of the 3D block (top + side faces) */
+  --d: 14px;
+  /* dark theme = solid black block */
+  --card-front: #0d0d0f;
+  --card-top: #2b2c31;
+  --card-side: #060607;
+  --card-rim: rgba(255, 255, 255, 0.12);
+
   position: absolute;
-  left: 6%;
-  right: 6%;
+  left: 5%;
+  right: calc(5% + var(--d));
   top: calc(50% - var(--card-h) / 2);
   height: var(--card-h);
   box-sizing: border-box;
@@ -315,18 +394,18 @@
   flex-direction: column;
   justify-content: center;
   gap: var(--space-2);
-  padding: clamp(var(--space-3), 2.5vw, var(--space-5));
-  overflow: hidden;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-hairline);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.12);
+  padding: clamp(1rem, 2.4vw, 1.5rem) clamp(1.1rem, 2.6vw, 1.6rem);
+  overflow: visible; /* the top / side faces sit outside the front face */
+  background-color: var(--card-front);
+  border: 1px solid var(--card-rim);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
   transform: translate3d(
       var(--x, 0%),
       calc(var(--pos, 0) * var(--step)),
       calc(var(--abs, 0) * var(--depth) * -1)
     )
-    rotateX(calc(var(--pos, 0) * var(--tilt)))
-    scale(calc(1 - var(--abs, 0) * 0.05));
+    rotateX(calc(var(--pos, 0) * var(--tilt))) rotateY(var(--ry, 0deg))
+    rotateZ(var(--rz, 0deg)) scale(calc(1 - var(--abs, 0) * 0.05));
   transform-origin: 50% 50%;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
@@ -334,41 +413,70 @@
   opacity: 0;
   cursor: pointer;
   transition:
-    transform 1s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 1.1s cubic-bezier(0.16, 1, 0.3, 1),
     opacity 0.6s ease,
     border-color 0.4s var(--ease-editorial),
     box-shadow 0.6s var(--ease-editorial);
 }
 
-[data-theme="dark"] .card {
-  border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
+/* TOP face of the block (thin parallelogram, goes up-right) */
+.card::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  bottom: calc(100% + 1px);
+  width: calc(100% + 2px + var(--d));
+  height: var(--d);
+  background-color: var(--card-top);
+  clip-path: polygon(0 100%, var(--d) 0, 100% 0, calc(100% - var(--d)) 100%);
+  pointer-events: none;
 }
 
-/* In focus: flat, fully visible */
+/* RIGHT SIDE face of the block */
+.card::after {
+  content: "";
+  position: absolute;
+  left: calc(100% + 1px);
+  top: calc(-1px - var(--d));
+  width: var(--d);
+  height: calc(100% + 2px + var(--d));
+  background-color: var(--card-side);
+  clip-path: polygon(0 var(--d), 100% 0, 100% calc(100% - var(--d)), 0 100%);
+  pointer-events: none;
+}
+
+/* Light theme: light block, still 3D */
+[data-theme="light"] .card {
+  --card-front: #f3f4f6;
+  --card-top: #ffffff;
+  --card-side: #c4c8ce;
+  --card-rim: rgba(0, 0, 0, 0.1);
+
+  box-shadow: 0 14px 30px rgba(20, 24, 32, 0.14);
+}
+
+/* In focus: fully visible */
 .cardActive {
   opacity: 1;
   cursor: default;
-  border-color: var(--border-medium);
 }
 
 [data-theme="dark"] .cardActive {
-  border-color: rgba(255, 255, 255, 0.18);
+  --card-rim: rgba(255, 255, 255, 0.2);
 }
 
 /* One step away */
 .cardNear {
-  opacity: 0.5;
+  opacity: 0.55;
 }
 
 .cardNear:hover {
-  opacity: 0.75;
-  border-color: var(--border-medium);
+  opacity: 0.8;
 }
 
 /* Two steps away */
 .cardFar {
-  opacity: 0.2;
+  opacity: 0.22;
 }
 
 /* Parked out of view (also where a card snaps while it wraps around) */
@@ -377,10 +485,9 @@
   pointer-events: none;
 }
 
+/* Card numbers 01–06: hidden (remove this rule to show them again) */
 .principleMeta {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  display: none;
 }
 
 .principleNumber {
@@ -391,20 +498,35 @@
   line-height: 1;
 }
 
+/* Card text: serif title + a short hairline, quiet sans description */
 .principleTerm {
-  font-family: var(--font-sans);
-  font-size: clamp(1rem, 2.8vw, var(--text-lg));
-  font-weight: 500;
+  font-family: var(--font-serif);
+  font-size: clamp(1.15rem, 2.5vw, 1.45rem);
+  font-weight: 400;
+  letter-spacing: 0.005em;
+  line-height: 1.18;
   color: var(--text-primary);
-  margin-top: var(--space-1);
-  line-height: 1.25;
+  margin: 0;
+}
+
+.principleTerm::after {
+  content: "";
+  display: block;
+  width: 24px;
+  height: 1px;
+  margin-top: 0.7rem;
+  background-color: var(--border-strong);
 }
 
 .principleDesc {
   font-family: var(--font-sans);
-  font-size: clamp(0.8125rem, 2.2vw, var(--text-sm));
-  line-height: var(--leading-normal);
+  font-size: clamp(0.76rem, 1.8vw, 0.84rem);
+  font-weight: 400;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
   color: var(--text-secondary);
+  max-width: 46ch;
+  margin: 0;
 }
 
 /* Minimal progress lines (also clickable) */
@@ -490,18 +612,38 @@
     gap: var(--space-3);
   }
 
+  /* Phone: smaller blocks so nothing feels squeezed */
   .stage {
-    --card-h: 11.5rem;
-    --step: 6.2rem;
-    --depth: 60px;
+    --card-h: 8.75rem;
+    --step: 4.6rem;
+    --tilt: 11deg;
+    --depth: 46px;
 
-    height: 27rem;
+    height: 20.5rem;
   }
 
   .card {
-    left: 3%;
-    right: 3%;
-    gap: var(--space-1);
+    --d: 10px;
+
+    left: 4%;
+    right: calc(4% + var(--d));
+    gap: 0.35rem;
+    padding: 0.8rem 1rem;
+  }
+
+  .principleTerm {
+    font-size: 1.02rem;
+    line-height: 1.15;
+  }
+
+  .principleTerm::after {
+    margin-top: 0.5rem;
+    width: 20px;
+  }
+
+  .principleDesc {
+    font-size: 0.7rem;
+    line-height: 1.5;
   }
 
   .controls {
@@ -509,10 +651,22 @@
 
     gap: 0.3rem;
   }
+}
+
+@media (max-width: 380px) {
+  .stage {
+    --card-h: 8.4rem;
+    --step: 4.3rem;
+
+    height: 19.5rem;
+  }
+
+  .principleTerm {
+    font-size: 0.96rem;
+  }
 
   .principleDesc {
-    font-size: 0.72rem;
-    line-height: 1.42;
+    font-size: 0.68rem;
   }
 }
 
@@ -527,8 +681,18 @@
     transform: none !important;
     transition: none !important;
   }
+  .maskWordInner,
+  .maskBlockInner,
+  .contributionHeader,
+  .principlesHeader,
+  .buildingMask .contributionBuildingRise {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
   .stage {
     opacity: 1 !important;
+    transform: none !important;
     transition: none !important;
   }
   .card {

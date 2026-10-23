@@ -5,20 +5,31 @@
  * In development, add ?debug=content to the URL to highlight blocks still marked "placeholder".
  */
 
+export interface NavDropdownItem {
+  id: string;
+  label: string;
+  subpage?: "experience" | "workflows" | "services";
+  href?: string;
+  description?: string;
+}
+
 export interface NavItem {
   id: string;
   label: string;
   href: string;
+  dropdown?: NavDropdownItem[];
 }
 
 export interface CapabilityItem {
+  icon: string;
   name: string;
-  icon: string; // key sa brandIconData.ts
+  description: string;
+  level: "Using" | "Learning";
 }
 
 export interface CapabilityGroup {
+  column: number;
   category: string;
-  column: 1 | 2 | 3; // saang column ng layout lalabas
   items: CapabilityItem[];
 }
 
@@ -57,6 +68,45 @@ export interface ProcessStep {
   title: string;
   summary: string;
   details: string;
+}
+
+export interface ExperienceItem {
+  id: string;
+  period: string;
+  role: string;
+  company: string;
+  institution?: string;
+  location?: string;
+  type: string;
+  badge: string;
+  summary: string;
+  narrative: string;
+  responsibilities: string[];
+  keyHighlights: string[];
+  skills: string[];
+}
+
+export interface WorkflowPhase {
+  step: string;
+  title: string;
+  subtitle: string;
+  shortSummary: string;
+  objective: string;
+  architectureDetails: string[];
+  deliverables: string[];
+  techUsed: string[];
+  metrics: string;
+}
+
+export interface ServiceItem {
+  number: string;
+  title: string;
+  category: string;
+  summary: string;
+  description: string;
+  scope: string[];
+  deliverables: string[];
+  tools: string[];
 }
 
 export interface LookGridConfig {
@@ -109,7 +159,31 @@ export const siteContent = {
     { id: "about", label: "About", href: "#about" },
     { id: "works", label: "Works", href: "#works" },
     { id: "capabilities", label: "Capabilities", href: "#capabilities" },
-    { id: "process", label: "Process", href: "#process" },
+    {
+      id: "professional-overview",
+      label: "Professional Overview",
+      href: "#professional-overview",
+      dropdown: [
+        {
+          id: "experience",
+          label: "Experience",
+          subpage: "experience",
+          description: "Career history, internships & academic background",
+        },
+        {
+          id: "workflows",
+          label: "Workflows",
+          subpage: "workflows",
+          description: "End-to-end SDLC & systematic QA pipeline",
+        },
+        {
+          id: "services",
+          label: "Services",
+          subpage: "services",
+          description: "Technical offerings, deliverables & expertise",
+        },
+      ],
+    },
   ] as NavItem[],
 
   hero: {
@@ -470,8 +544,10 @@ export const siteContent = {
           { name: "Manus", icon: "manus" },
           { name: "Google AI Studio", icon: "aistudio" },
           { name: "OpenAI", icon: "openai" },
+          { name: "Perplexity", icon: "perplexity" },
         ],
       },
+
       {
         category: "Mobile",
         column: 3,
@@ -480,15 +556,399 @@ export const siteContent = {
           { name: "React Native", icon: "reactnative" },
         ],
       },
+      {
+        category: "Cloud & Hosting",
+        column: 3,
+        items: [
+          { name: "Vercel", icon: "vercel" },
+          { name: "Hostinger", icon: "hostinger" },
+          { name: "Cloudflare", icon: "cloudflare" },
+        ],
+      },
     ] as CapabilityGroup[],
     status: "final" as const,
   },
 
+  professionalOverview: {
+    sectionNumber: "",
+    sectionTitle: "PROFESSIONAL OVERVIEW",
+    faintWatermark: "OVERVIEW",
+    lead: "Practical Background, Focused Workflows, & Technical Milestones",
+    intro:
+      "An organized summary of my foundations in software development, quality assurance, and verfied project outcomes.",
+    pillars: [
+      {
+        id: "experience",
+        number: "01",
+        title: "Experience",
+        tagline: "Career History & Education",
+        summary:
+          "Documented trajectory across hands-on freelance client work, industry IT support internship, and accredited academic systems engineering.",
+        count: "03 Milestones",
+        cta: "Explore Experience",
+      },
+      {
+        id: "workflows",
+        number: "02",
+        title: "Workflows",
+        tagline: "Engineering Architecture & QA",
+        summary:
+          "A 4-phase systematic lifecycle: requirement analysis, component-driven prototyping, defect detection, and production hardening.",
+        count: "04 Phases",
+        cta: "Inspect Workflows",
+      },
+      {
+        id: "services",
+        number: "03",
+        title: "Services",
+        tagline: "Technical Offerings & Delivery",
+        summary:
+          "Targeted technical offerings spanning frontend engineering, quality assurance test design, DOM inspection, and IT support.",
+        count: "04 Services",
+        cta: "View Services",
+      },
+    ],
+
+    experiences: [
+      {
+        id: "exp-01",
+        period: "JULY 2026 – PRESENT",
+        role: "Freelance Software Developer",
+        company: "Self-Employed",
+        type: "Independent Contracting",
+        badge: "Active",
+        summary:
+          "Architecting and delivering production-ready web applications, responsive user interfaces, and custom frontend systems for independent clients and local business ventures.",
+        narrative:
+          "Operating as an independent software engineer handling end-to-end client projects. I engage directly with clients from initial discovery to deployment, ensuring every interface is responsive, accessible, and grounded in clean component architecture without extraneous technical debt.",
+        responsibilities: [
+          "Translating client user stories and design specifications into modular React and TypeScript applications.",
+          "Implementing modern layout architectures with responsive CSS, semantic HTML5, and strict WCAG AA contrast compliance.",
+          "Conducting manual test passes across mobile, tablet, and desktop viewports to catch layout shifts and form submission errors.",
+          "Integrating third-party APIs, managing client data flow, and configuring clean production deployments.",
+        ],
+        keyHighlights: [
+          "Delivered custom responsive web applications with 100% on-time milestone completion.",
+          "Refined cross-browser compatibility across Chrome, Safari, Firefox, and Edge engines.",
+          "Authored maintainable, component-driven codebases with zero external library bloat.",
+        ],
+        skills: [
+          "React",
+          "TypeScript",
+          "Tailwind CSS",
+          "REST APIs",
+          "Git & GitHub",
+          "Responsive Layout",
+          "Manual QA",
+        ],
+      },
+      {
+        id: "exp-02",
+        period: "FEB 2026 – MAY 2026",
+        role: "IT Support Intern",
+        company: "RGS Recovery Management and Collection Services Inc.",
+        type: "Enterprise Internship",
+        badge: "Completed",
+        summary:
+          "Delivered technical support, hardware/software diagnostics, network maintenance, and system documentation in a high-volume enterprise recovery management environment.",
+        narrative:
+          "Served as an IT Support Intern providing frontline hardware, network, and application troubleshooting for internal staff. Assisted the IT department in maintaining high operational uptime, logging service tickets, managing workstation rollouts, and verifying routine database operations.",
+        responsibilities: [
+          "Diagnosed and resolved hardware issues, local network outages, printer setups, and desktop software errors for staff across departments.",
+          "Documented troubleshooting procedures, step-by-step resolution guides, and hardware inventory logs to standardize internal ticketing.",
+          "Assisted database administrators in running routine verification scripts, managing access permissions, and auditing backup schedules.",
+          "Configured new employee workstations with company-approved operating systems, security patches, and localized network permissions.",
+        ],
+        keyHighlights: [
+          "Maintained an average ticket resolution turnaround time under 30 minutes for urgent workstation issues.",
+          "Streamlined the peripheral and workstation onboarding checklist for incoming operational teams.",
+          "Praised by senior supervisors for methodical diagnostic reasoning and prompt user communication.",
+        ],
+        skills: [
+          "Hardware Diagnostics",
+          "Network Troubleshooting",
+          "System Administration",
+          "Database Support",
+          "IT Asset Tracking",
+          "Technical Documentation",
+        ],
+      },
+      {
+        id: "exp-03",
+        period: "JUNE 2022 – JUNE 2026",
+        role: "Bachelor of Science in Information Systems",
+        company:
+          "Camarines Norte State College (University of Camarines Norte)",
+        institution:
+          "Camarines Norte State College (University of Camarines Norte)",
+        type: "Undergraduate Degree",
+        badge: "Graduated",
+        summary:
+          "Comprehensive 4-year degree covering Systems Analysis and Design, Enterprise Architecture, Capstone Projects, Software Quality Assurance, and Computer Programming.",
+        narrative:
+          "Completed a four-year Bachelor of Science in Information Systems curriculum combining technical software development with strategic enterprise workflows. Served as project lead and QA tester on multiple academic web portals, database management projects, and capstone software initiatives.",
+        responsibilities: [
+          "Completed in-depth coursework in Systems Analysis & Design (SAD), Capstone Project 1 & 2, and Software Quality Assurance (SQA).",
+          "Led capstone project development, serving as the frontend developer and lead tester for institutional information systems.",
+          "Authored test matrices, entity-relationship diagrams (ERDs), data-flow diagrams (DFDs), and architectural documentation.",
+          "Collaborated with student developer teams in building full-stack web and desktop prototypes using PHP, JavaScript, SQL, and C#.",
+        ],
+        keyHighlights: [
+          "Successfully defended Capstone Thesis project on institutional management systems.",
+          "Consistent academic standing in core technical programming and systems engineering courses.",
+          "Active participant in collegiate programming seminars and information technology workshops.",
+        ],
+        skills: [
+          "Systems Analysis",
+          "Software QA",
+          "Database Design",
+          "SQL",
+          "Enterprise Architecture",
+          "UML & ERD",
+          "Agile SDLC",
+        ],
+      },
+    ] as ExperienceItem[],
+
+    workflows: [
+      {
+        step: "01",
+        title: "Requirement Analysis & Edge-Case Discovery",
+        subtitle: "Scoping, Spec Audit & Invariant Matrix",
+        shortSummary:
+          "Deconstructing user stories into concrete acceptance criteria, boundary constraints, and visual invariants.",
+        objective:
+          "Eliminate ambiguity early before writing code by defining what success and failure look like across all user interaction paths.",
+        architectureDetails: [
+          "Audit user stories and break them down into discrete functional test cases.",
+          "Identify boundary limits: empty states, character limits, invalid inputs, and network latency states.",
+          "Establish accessibility baseline: keyboard focus navigation, screen reader labels, and WCAG AA contrast.",
+          "Draft initial technical contract and determine dependencies with zero extraneous bloat.",
+        ],
+        deliverables: [
+          "Requirements traceability checklist",
+          "Boundary condition & edge-case matrix",
+          "Accessibility & viewport verification roadmap",
+        ],
+        techUsed: [
+          "Figma",
+          "User Stories",
+          "Markdown Specs",
+          "Edge-Case Matrix",
+        ],
+        metrics: "100% Pre-development Acceptance Criteria Coverage",
+      },
+      {
+        step: "02",
+        title: "Architecture & Component-Driven Prototyping",
+        subtitle: "Modular State, Token System & Zero-Pill Hierarchy",
+        shortSummary:
+          "Structuring reusable, component-driven interfaces with strict token discipline, responsive math, and clean state separation.",
+        objective:
+          "Build scalable frontend code with high cohesion, minimal coupling, and predictable data flow from parent to child components.",
+        architectureDetails: [
+          "Establish design tokens: CSS custom properties for spacing, typography, and grayscale surfaces.",
+          "Enforce single-responsibility components with isolated CSS module boundaries.",
+          "Implement defensive component states: loading skeleton, error fallback, and zero-data states.",
+          "Ensure fluid responsiveness from 360px mobile viewports up to 1440px desktop baselines.",
+        ],
+        deliverables: [
+          "Component library with isolated CSS modules",
+          "Design token system (light & dark theme calibrated)",
+          "Interactive prototype with working state handlers",
+        ],
+        techUsed: [
+          "React",
+          "TypeScript",
+          "CSS Modules",
+          "Vite",
+          "Design Tokens",
+        ],
+        metrics: "0 External Component Libraries Needed",
+      },
+      {
+        step: "03",
+        title: "Systematic Verification & Manual QA",
+        subtitle: "Exploratory Testing, Defect Triage & Edge Validation",
+        shortSummary:
+          "Executing rigorous manual test passes, validating user flows, inspecting DOM behavior, and logging structured bug reports.",
+        objective:
+          "Detect layout defects, broken handlers, and state regressions before deployment through methodical human testing.",
+        architectureDetails: [
+          "Execute positive and negative test cases against every interactive control and input field.",
+          "Perform viewport stress testing across mobile, tablet, and desktop breakpoints.",
+          "Inspect browser console and network panel to verify error handling and payload validity.",
+          "Log structured defects with exact reproduction steps, expected vs. actual behavior, and severity ranking.",
+        ],
+        deliverables: [
+          "Severity-ranked defect log with reproduction steps",
+          "Cross-browser and cross-device verification matrix",
+          "Pass/Fail acceptance test run report",
+        ],
+        techUsed: [
+          "Chrome DevTools",
+          "Playwright",
+          "Test Matrices",
+          "Defect Logs",
+        ],
+        metrics: "Zero Uncaught Functional Regressions",
+      },
+      {
+        step: "04",
+        title: "Production Hardening, CI/CD & Delivery",
+        subtitle:
+          "Performance Auditing, Bundle Optimization & Polished Release",
+        shortSummary:
+          "Optimizing bundle sizes, eliminating unused assets, verifying smooth transitions, and delivering clean code to the client.",
+        objective:
+          "Guarantee seamless production execution, fast load times, and effortless long-term maintainability for the project.",
+        architectureDetails: [
+          "Run production build compilation and strict TypeScript type-checking (`tsc --noEmit`).",
+          "Audit Lighthouse scores for Performance, Accessibility, and Best Practices.",
+          "Verify smooth compositor-only animations (`transform`, `opacity`) under 200ms.",
+          "Deliver organized git repository with clean commit history, README setup guide, and documentation.",
+        ],
+        deliverables: [
+          "Production-ready minified build bundle",
+          "Lighthouse audit verification report",
+          "Comprehensive client handover documentation",
+        ],
+        techUsed: [
+          "Git & GitHub",
+          "Vite Build",
+          "Lighthouse",
+          "TypeScript Linter",
+        ],
+        metrics: "Sub-Second Initial Load & Zero Build Errors",
+      },
+    ] as WorkflowPhase[],
+
+    services: [
+      {
+        number: "01",
+        title: "Front-End Web Development",
+        category: "ENGINEERING",
+        summary:
+          "Custom, responsive web applications engineered with modern React, TypeScript, fluid CSS modules, and meticulous visual craft.",
+        description:
+          "I construct bespoke, component-driven user interfaces tailored to your project goals. Every screen is designed for speed, fluidity, and cross-browser durability with zero reliance on bloated templates.",
+        scope: [
+          "Single-Page Application (SPA) development with React & TypeScript",
+          "Component architecture & design token integration",
+          "Responsive layouts tailored from 360px mobile to 1440px desktop",
+          "Theme switching (light & dark mode with WCAG AA compliance)",
+          "REST API consumption & client-side state management",
+        ],
+        deliverables: [
+          "Production-ready source code repository",
+          "Responsive, accessible web application",
+          "Component documentation & deployment guide",
+        ],
+        tools: [
+          "React",
+          "TypeScript",
+          "Tailwind CSS",
+          "CSS Modules",
+          "Vite",
+          "Git",
+        ],
+      },
+      {
+        number: "02",
+        title: "Quality Assurance & Manual Testing",
+        category: "TESTING",
+        summary:
+          "Systematic functional testing, test case design, exploratory defect detection, and actionable severity-ranked bug reporting.",
+        description:
+          "I stress-test web applications from a user and technical standpoint to uncover edge-case defects, UI misalignments, and state failure modes before real users encounter them.",
+        scope: [
+          "Comprehensive test case creation with acceptance criteria",
+          "Manual regression passes & exploratory user flow verification",
+          "Form validation, edge-case input, and boundary condition checks",
+          "Cross-browser compatibility testing (Chrome, Safari, Firefox, Edge)",
+          "Detailed defect logs with exact steps to reproduce and screenshots",
+        ],
+        deliverables: [
+          "Structured test plan & execution matrices",
+          "Defect reports ranked by severity and priority",
+          "Pre-release quality sign-off summary",
+        ],
+        tools: [
+          "Manual Testing",
+          "Test Case Design",
+          "Bug Triage",
+          "Chrome DevTools",
+          "Playwright",
+        ],
+      },
+      {
+        number: "03",
+        title: "Web & DOM Inspection",
+        category: "ANALYSIS",
+        summary:
+          "In-depth inspection of DOM elements, CSS layout debugging, console error resolution, and network payload verification.",
+        description:
+          "I dig into the underlying browser runtime to diagnose and resolve layout shifts, unhandled exceptions, slow network calls, and accessibility oversights.",
+        scope: [
+          "DOM tree inspection and CSS specificity conflict resolution",
+          "Console warning & unhandled promise rejection triage",
+          "Network waterfall inspection for slow or failing endpoints",
+          "Accessibility audit (ARIA roles, keyboard traps, focus rings)",
+          "Layout shift & responsiveness debugging across viewports",
+        ],
+        deliverables: [
+          "Technical inspection report with root-cause analysis",
+          "Targeted code patches & CSS fixes",
+          "Accessibility & performance optimization recommendations",
+        ],
+        tools: [
+          "Chrome DevTools",
+          "DOM Inspector",
+          "Network Profiler",
+          "Console Debugging",
+          "Lighthouse",
+        ],
+      },
+      {
+        number: "04",
+        title: "Technical Support & IT Maintenance",
+        category: "SUPPORT",
+        summary:
+          "Workstation setup, hardware diagnostics, local network troubleshooting, system documentation, and operational IT assistance.",
+        description:
+          "Drawing from hands-on enterprise IT support experience, I troubleshoot hardware setups, network configurations, operating systems, and routine database tasks for smooth daily operations.",
+        scope: [
+          "Desktop & peripheral hardware diagnostics and troubleshooting",
+          "Local network setup, Wi-Fi configuration, and connectivity checks",
+          "Operating system setup, software deployment, and patch updates",
+          "Step-by-step IT troubleshooting guides and system manuals",
+          "Database backup verification & routine administrative support",
+        ],
+        deliverables: [
+          "Hardware/software diagnostic resolution logs",
+          "Standard operating procedure (SOP) documentation",
+          "Asset inventory & workstation configuration checklists",
+        ],
+        tools: [
+          "Hardware Diagnostics",
+          "Network Utilities",
+          "Windows/Linux",
+          "Database Tools",
+          "Technical Documentation",
+        ],
+      },
+    ] as ServiceItem[],
+
+    status: "final" as const,
+  },
+
+  // Backward compatibility alias for legacy imports
   process: {
     sectionNumber: "",
-    sectionTitle: "PROCESS",
-    faintWatermark: "STEPS",
-    intro: "How I approach testing and building web features.",
+    sectionTitle: "PROFESSIONAL OVERVIEW",
+    faintWatermark: "OVERVIEW",
+    intro:
+      "Engineering Discipline, Practical Experience & Specialized Services",
     steps: [
       {
         number: "01",
@@ -525,7 +985,7 @@ export const siteContent = {
   contact: {
     title: "Message me",
     subtitle:
-      "Inquiries regarding junior QA roles, front-end opportunities, or projects.",
+      "Inquiries regarding Web development and QA opportunities, or projects.",
     endpointConfigNote:
       "When no API endpoint is configured, this form prepares an email draft directly to elnarkennu16@gmail.com.",
     ctaSubmit: "Send message",

@@ -1,0 +1,588 @@
+/* Workflows Subpage Styles
+ * Advanced architectural pipeline design, interactive stage visualizer,
+ * monochrome technical blueprints, and matching site theme tokens.
+ */
+
+.pageContainer {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  z-index: 99999;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+}
+
+.backgroundAtmosphere {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(255, 255, 255, 0.035) 0%,
+    transparent 70%
+  );
+  z-index: 0;
+}
+
+[data-theme="light"] .backgroundAtmosphere {
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgba(0, 0, 0, 0.02) 0%,
+    transparent 70%
+  );
+}
+
+/* =========================================================================
+   TOP NAVIGATION BAR
+   ========================================================================= */
+.topNav {
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-hairline);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 0.85rem clamp(1rem, 3.5vw, 2.5rem);
+  transition:
+    background-color var(--duration-normal) var(--ease-editorial),
+    border-color var(--duration-normal) var(--ease-editorial);
+}
+
+.topNavInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.brandMark {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.brandMark:hover {
+  opacity: 0.8;
+  transform: scale(1.04);
+}
+
+.brandLogoSmall {
+  height: 28px;
+  width: auto;
+  aspect-ratio: 212 / 235;
+  object-fit: contain;
+  display: block;
+}
+
+[data-theme="light"] .brandLogoSmall {
+  filter: invert(1);
+}
+
+.topNavActions {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.navCloseBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) ease,
+    background-color var(--duration-fast) ease,
+    transform 0.15s ease;
+}
+
+.navCloseBtn:hover {
+  border-color: var(--border-strong);
+  background-color: var(--bg-surface-elevated);
+  transform: scale(1.05);
+}
+
+/* =========================================================================
+   MAIN CONTENT AREA
+   ========================================================================= */
+.mainContent {
+  position: relative;
+  z-index: 1;
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 3.5rem) clamp(1rem, 3.5vw, 2.5rem);
+}
+
+.subHeaderRow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: clamp(2rem, 4.5vw, 3rem);
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.titleAccentBar {
+  display: inline-block;
+  width: 4px;
+  height: 1.75rem;
+  background-color: var(--border-strong);
+  border-radius: 2px;
+}
+
+.pageTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(2rem, 4.5vw, 3.25rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.pageDescription {
+  font-family: var(--font-sans);
+  font-size: clamp(0.9rem, 1.4vw, 1.05rem);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  max-width: 72ch;
+  margin: 0;
+}
+
+/* =========================================================================
+   INTERACTIVE PIPELINE SELECTOR / ROADMAP TRACK
+   ========================================================================= */
+.pipelineNav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: clamp(2.5rem, 5vw, 3.5rem);
+}
+
+.pipelineTab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: 0.45rem;
+  padding: 1rem 1.15rem;
+  border-radius: 6px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.22s var(--ease-editorial),
+    border-color 0.22s var(--ease-editorial),
+    transform 0.18s ease;
+}
+
+.pipelineTab:hover {
+  border-color: var(--border-medium);
+  background-color: var(--bg-surface-elevated);
+  transform: translateY(-2px);
+}
+
+.pipelineTabActive {
+  background-color: var(--bg-surface-elevated);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4);
+}
+
+.tabTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.tabStepMono {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.tabActiveIndicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--text-primary);
+}
+
+.tabTitle {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+/* =========================================================================
+   ACTIVE PHASE ARCHITECTURAL BLUEPRINT SHOWCASE
+   ========================================================================= */
+.blueprintSection {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2rem, 4vw, 3rem);
+}
+
+.phaseCard {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-hairline);
+  border-radius: 8px;
+  padding: clamp(1.5rem, 3.5vw, 2.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
+  animation: fadeInPhase 0.28s var(--ease-editorial) forwards;
+}
+
+@keyframes fadeInPhase {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.phaseHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border-hairline);
+  padding-bottom: 1.5rem;
+}
+
+.phaseKicker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.phaseNumberBadge {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+  color: var(--text-muted);
+}
+
+.phaseSubtitle {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.phaseTitle {
+  font-family: var(--font-serif);
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.phaseSummary {
+  font-family: var(--font-sans);
+  font-size: clamp(0.92rem, 1.3vw, 1.02rem);
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* 2-Column Split: Deep Dive Rationale vs Architecture Blueprint */
+.phaseGrid {
+  display: grid;
+  grid-template-columns: 1fr 1.05fr;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.phaseDetailsCol {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.detailBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.blockTitle {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.objectiveText {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.detailsList {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.detailItem {
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+/* Architecture Blueprint Diagram Canvas */
+.blueprintCol {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.diagramFrame {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: 6px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.diagramHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-hairline);
+  padding-bottom: 0.65rem;
+}
+
+.diagramHeaderLabel {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.diagramStatusBadge {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+/* Flowchart Visual Nodes */
+.flowNodesWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.flowNodeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 0.95rem;
+  border-radius: 5px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-hairline);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.flowNodeIndex {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  width: 20px;
+}
+
+.flowConnectorLine {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 14px;
+  color: var(--border-medium);
+}
+
+/* Deliverables checklist box */
+.deliverablesBox {
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.deliverableRow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  color: var(--text-secondary);
+}
+
+.checkIcon {
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+/* Tech strip and metric footer */
+.phaseFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  border-top: 1px solid var(--border-hairline);
+  padding-top: 1.25rem;
+}
+
+.techPills {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.techPill {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background-color: var(--bg-surface-elevated);
+  border: 1px solid var(--border-hairline);
+}
+
+.metricBadge {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--text-primary);
+}
+
+/* =========================================================================
+   PAGE FOOTER
+   ========================================================================= */
+.pageFooter {
+  width: 100%;
+  border-top: 1px solid var(--border-hairline);
+  padding: 1.75rem clamp(1rem, 3.5vw, 2.5rem);
+  background-color: var(--bg-primary);
+  margin-top: clamp(2rem, 5vw, 4rem);
+}
+
+.footerInner {
+  max-width: 1140px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.footerText {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  letter-spacing: var(--tracking-wide);
+}
+
+.footerBackTop {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color var(--duration-fast) ease;
+}
+
+.footerBackTop:hover {
+  color: var(--text-primary);
+}
+
+@media (max-width: 860px) {
+  .pipelineNav {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .phaseGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 540px) {
+  .pipelineNav {
+    grid-template-columns: 1fr;
+  }
+
+  .footerInner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}

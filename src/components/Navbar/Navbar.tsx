@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Mail } from "lucide-react";
 import { siteContent } from "../../content/siteContent";
 import { ThemeToggle } from "../ThemeToggle/ThemeToggle";
@@ -11,19 +11,65 @@ interface NavbarProps {
   theme: Theme;
   onToggleTheme: (e?: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenContact?: () => void;
+  onOpenSubpage?: (subpage: "experience" | "workflows" | "services") => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   theme,
   onToggleTheme,
   onOpenContact,
+  onOpenSubpage,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [desktopDropdownOpen, setDesktopDropdownOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("hero");
+  const dropdownCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
+  const handleDropdownMouseEnter = () => {
+    if (dropdownCloseTimerRef.current) {
+      clearTimeout(dropdownCloseTimerRef.current);
+      dropdownCloseTimerRef.current = null;
+    }
+    setDesktopDropdownOpen(true);
+  };
+
+  const handleDropdownMouseLeave = () => {
+    if (dropdownCloseTimerRef.current) {
+      clearTimeout(dropdownCloseTimerRef.current);
+    }
+    dropdownCloseTimerRef.current = setTimeout(() => {
+      setDesktopDropdownOpen(false);
+    }, 200);
+  };
+
+  const handleCloseDropdownImmediately = () => {
+    if (dropdownCloseTimerRef.current) {
+      clearTimeout(dropdownCloseTimerRef.current);
+      dropdownCloseTimerRef.current = null;
+    }
+    setDesktopDropdownOpen(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (dropdownCloseTimerRef.current) {
+        clearTimeout(dropdownCloseTimerRef.current);
+      }
+    };
+  }, []);
 
   // Track active section via IntersectionObserver
   useEffect(() => {
-    const sectionIds = ["hero", "about", "works", "capabilities", "process"];
+    const sectionIds = [
+      "hero",
+      "about",
+      "works",
+      "capabilities",
+      "professional-overview",
+      "process",
+    ];
     const elements = sectionIds
       .map((id) => document.getElementById(id))
       .filter((el): el is HTMLElement => el !== null);
@@ -54,8 +100,13 @@ export const Navbar: React.FC<NavbarProps> = ({
   // Close mobile drawer on resize to desktop or on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && mobileMenuOpen) {
-        setMobileMenuOpen(false);
+      if (e.key === "Escape") {
+        if (desktopDropdownOpen) {
+          handleCloseDropdownImmediately();
+        }
+        if (mobileMenuOpen) {
+          setMobileMenuOpen(false);
+        }
       }
     };
 
@@ -71,7 +122,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("resize", handleResize);
     };
-  }, [mobileMenuOpen]);
+  }, [mobileMenuOpen, desktopDropdownOpen]);
 
   const handleNavClick = () => {
     if (mobileMenuOpen) {
@@ -104,6 +155,142 @@ export const Navbar: React.FC<NavbarProps> = ({
             <ul className={styles.navLinks}>
               {siteContent.navigation.map((item) => {
                 const isActive = activeSection === item.id;
+                const hasDropdown = Boolean(
+                  item.dropdown && item.dropdown.length > 0,
+                );
+
+                if (hasDropdown && item.dropdown) {
+                  return (
+                    <li key={item.id}>
+                      <div
+                        className={styles.dropdownTriggerWrap}
+                        onMouseEnter={handleDropdownMouseEnter}
+                        onMouseLeave={handleDropdownMouseLeave}
+                        onFocus={handleDropdownMouseEnter}
+                        onBlur={(e) => {
+                          if (
+                            !e.currentTarget.contains(e.relatedTarget as Node)
+                          ) {
+                            handleDropdownMouseLeave();
+                          }
+                        }}
+                      >
+                        <a
+                          href={item.href}
+                          className={`${styles.navLink} ${styles.navLinkWithDropdown} ${
+                            isActive ? styles.navLinkActive : ""
+                          }`}
+                          aria-current={isActive ? "page" : undefined}
+                          aria-haspopup="menu"
+                          aria-expanded={desktopDropdownOpen}
+                          onClick={handleCloseDropdownImmediately}
+                        >
+                          <span>{item.label}</span>
+                          <svg
+                            width="11"
+                            height="11"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.4"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className={`${styles.chevronIcon} ${
+                              desktopDropdownOpen ? styles.chevronIconOpen : ""
+                            }`}
+                            aria-hidden="true"
+                          >
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </a>
+
+                        {/* Minimalist Dark Gray Dropdown Menu */}
+                        <div
+                          className={`${styles.dropdownMenu} ${
+                            desktopDropdownOpen ? styles.dropdownMenuOpen : ""
+                          }`}
+                          role="menu"
+                          aria-label={`${item.label} subpages`}
+                        >
+                          <div className={styles.dropdownHeader}>
+                            <span className={styles.dropdownHeaderMono}>
+                              PROFESSIONAL OVERVIEW
+                            </span>
+                          </div>
+
+                          <div className={styles.dropdownItemsList}>
+                            {item.dropdown.map((subItem) => {
+                              if (subItem.subpage) {
+                                return (
+                                  <button
+                                    key={subItem.id}
+                                    type="button"
+                                    className={styles.dropdownItemBtn}
+                                    onClick={() => {
+                                      handleCloseDropdownImmediately();
+                                      if (onOpenSubpage && subItem.subpage) {
+                                        onOpenSubpage(subItem.subpage);
+                                      }
+                                    }}
+                                    role="menuitem"
+                                  >
+                                    <div className={styles.dropdownItemContent}>
+                                      <span
+                                        className={styles.dropdownItemLabel}
+                                      >
+                                        {subItem.label}
+                                      </span>
+                                      {subItem.description && (
+                                        <span
+                                          className={styles.dropdownItemDesc}
+                                        >
+                                          {subItem.description}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span
+                                      className={styles.dropdownItemArrow}
+                                      aria-hidden="true"
+                                    >
+                                      ↗
+                                    </span>
+                                  </button>
+                                );
+                              }
+                              return (
+                                <a
+                                  key={subItem.id}
+                                  href={subItem.href || item.href}
+                                  className={styles.dropdownItemLink}
+                                  onClick={() => setDesktopDropdownOpen(false)}
+                                  role="menuitem"
+                                >
+                                  <div className={styles.dropdownItemContent}>
+                                    <span className={styles.dropdownItemLabel}>
+                                      {subItem.label}
+                                    </span>
+                                    {subItem.description && (
+                                      <span className={styles.dropdownItemDesc}>
+                                        {subItem.description}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span
+                                    className={styles.dropdownItemArrow}
+                                    aria-hidden="true"
+                                  >
+                                    ↓
+                                  </span>
+                                </a>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                }
+
                 return (
                   <li key={item.id}>
                     <a
@@ -177,56 +364,106 @@ export const Navbar: React.FC<NavbarProps> = ({
         aria-hidden={!mobileMenuOpen}
       >
         <ul className={styles.mobileNavLinks}>
-          {siteContent.navigation.map((item, index) => (
-            <li key={item.id} className={styles.mobileNavItem}>
-              <a
-                href={item.href}
-                className={styles.mobileNavLink}
-                onClick={handleNavClick}
-              >
-                <div className={styles.mobileNavRow}>
-                  <span className={styles.mobileNavText}>{item.label}</span>
+          {siteContent.navigation.map((item, index) => {
+            const hasDropdown = Boolean(
+              item.dropdown && item.dropdown.length > 0,
+            );
 
-                  {/* Mini Moving & 3D Spinning Tech Language Icons Ribbon */}
-                  <div
-                    className={styles.navTechTrackContainer}
-                    aria-hidden="true"
-                  >
-                    <div className={styles.navTechTrack}>
-                      {/* Set 1 */}
-                      <div className={styles.navTechGroup}>
-                        {REAL_TECH_ITEMS.map((tech, idx) => (
-                          <span
-                            key={`m1-${tech.id}-${idx}`}
-                            className={styles.navTechIcon}
-                            style={{
-                              animationDelay: `${(idx + index * 3) * 0.22}s`,
-                            }}
-                          >
-                            {tech.icon}
-                          </span>
-                        ))}
-                      </div>
-                      {/* Set 2 for seamless infinite loop */}
-                      <div className={styles.navTechGroup} aria-hidden="true">
-                        {REAL_TECH_ITEMS.map((tech, idx) => (
-                          <span
-                            key={`m2-${tech.id}-${idx}`}
-                            className={styles.navTechIcon}
-                            style={{
-                              animationDelay: `${(idx + index * 3) * 0.22}s`,
-                            }}
-                          >
-                            {tech.icon}
-                          </span>
-                        ))}
+            return (
+              <li key={item.id} className={styles.mobileNavItem}>
+                <a
+                  href={item.href}
+                  className={styles.mobileNavLink}
+                  onClick={handleNavClick}
+                >
+                  <div className={styles.mobileNavRow}>
+                    <span className={styles.mobileNavText}>{item.label}</span>
+
+                    {/* Mini Moving & 3D Spinning Tech Language Icons Ribbon */}
+                    <div
+                      className={styles.navTechTrackContainer}
+                      aria-hidden="true"
+                    >
+                      <div className={styles.navTechTrack}>
+                        {/* Set 1 */}
+                        <div className={styles.navTechGroup}>
+                          {REAL_TECH_ITEMS.map((tech, idx) => (
+                            <span
+                              key={`m1-${tech.id}-${idx}`}
+                              className={styles.navTechIcon}
+                              style={{
+                                animationDelay: `${(idx + index * 3) * 0.22}s`,
+                              }}
+                            >
+                              {tech.icon}
+                            </span>
+                          ))}
+                        </div>
+                        {/* Set 2 for seamless infinite loop */}
+                        <div className={styles.navTechGroup} aria-hidden="true">
+                          {REAL_TECH_ITEMS.map((tech, idx) => (
+                            <span
+                              key={`m2-${tech.id}-${idx}`}
+                              className={styles.navTechIcon}
+                              style={{
+                                animationDelay: `${(idx + index * 3) * 0.22}s`,
+                              }}
+                            >
+                              {tech.icon}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </a>
-            </li>
-          ))}
+                </a>
+
+                {/* Subpage Links for Dropdown Items in Mobile Menu */}
+                {hasDropdown && item.dropdown && (
+                  <ul className={styles.mobileSubList}>
+                    {item.dropdown.map((subItem) => (
+                      <li key={subItem.id} className={styles.mobileSubItem}>
+                        {subItem.subpage ? (
+                          <button
+                            type="button"
+                            className={styles.mobileSubBtn}
+                            onClick={() => {
+                              setMobileMenuOpen(false);
+                              if (onOpenSubpage && subItem.subpage) {
+                                onOpenSubpage(subItem.subpage);
+                              }
+                            }}
+                          >
+                            <span>{subItem.label}</span>
+                            <span
+                              className={styles.mobileSubArrow}
+                              aria-hidden="true"
+                            >
+                              ↗
+                            </span>
+                          </button>
+                        ) : (
+                          <a
+                            href={subItem.href || item.href}
+                            className={styles.mobileSubLink}
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <span>{subItem.label}</span>
+                            <span
+                              className={styles.mobileSubArrow}
+                              aria-hidden="true"
+                            >
+                              ↓
+                            </span>
+                          </a>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ul>
 
         {/* Minimalist Contact Section in Mobile Menu */}
