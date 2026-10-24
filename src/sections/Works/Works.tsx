@@ -178,17 +178,20 @@ const ProjectCardItem: React.FC<{
           index % 2 === 1 ? styles.cardStagger : ""
         }`}
       >
-        {/* Base Panel (Permanent, interactive after merge) */}
-        <div className={styles.labelPanel}>{renderPanelContent()}</div>
+        {/* Clips only the slice animation (the 3D faces live outside it) */}
+        <div className={styles.sliceClip}>
+          {/* Base Panel (Permanent, interactive after merge) */}
+          <div className={styles.labelPanel}>{renderPanelContent()}</div>
 
-        {/* Split Phase 1: Right half (slides horizontally from right) */}
-        <div className={styles.rightHalfSegment} aria-hidden="true">
-          <div className={styles.halfPanelBody}>{renderPanelContent()}</div>
-        </div>
+          {/* Split Phase 1: Right half (slides horizontally from right) */}
+          <div className={styles.rightHalfSegment} aria-hidden="true">
+            <div className={styles.halfPanelBody}>{renderPanelContent()}</div>
+          </div>
 
-        {/* Split Phase 2: Left half (rises vertically from bottom) */}
-        <div className={styles.leftHalfSegment} aria-hidden="true">
-          <div className={styles.halfPanelBody}>{renderPanelContent()}</div>
+          {/* Split Phase 2: Left half (rises vertically from bottom) */}
+          <div className={styles.leftHalfSegment} aria-hidden="true">
+            <div className={styles.halfPanelBody}>{renderPanelContent()}</div>
+          </div>
         </div>
       </div>
     </article>

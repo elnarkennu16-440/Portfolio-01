@@ -162,12 +162,68 @@
 .ctaGroup {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  /* clear distance between the two links (desktop) */
+  gap: clamp(1.75rem, 3vw, 2.75rem);
   flex-wrap: wrap;
   opacity: 0;
   transform: translateY(12px);
   animation: fadeIn 0.6s var(--ease-editorial) 0.6s forwards;
   width: 100%;
+}
+
+/* =========================================================================
+   HERO LINKS — same construction as "VIEW ALL PROJECTS" in Works:
+   the underline belongs to the LABEL only, and the arrow's own horizontal stroke
+   continues that line and bends up into the arrow head (one connected line).
+   No pill, no border box, no movement on hover (colour change only).
+   ========================================================================= */
+.ctaLink {
+  display: inline-flex;
+  align-items: flex-end;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.3s var(--ease-editorial);
+}
+
+.ctaLink:hover {
+  color: var(--text-secondary);
+}
+
+.ctaLink:focus-visible {
+  outline: 1px solid var(--border-strong);
+  outline-offset: 4px;
+}
+
+.ctaLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 0.2rem 0.5rem;
+  border-bottom: 1px solid currentColor;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.ctaGithub {
+  flex-shrink: 0;
+}
+
+.ctaArrow {
+  display: block;
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  overflow: visible;
 }
 
 /* Portrait Column Stage */
@@ -179,12 +235,24 @@
   width: 100%;
 }
 
+/* wrapper around <LookAtPortrait />: on desktop it is invisible to the layout.
+   Only phones / tablets scale it (see media queries below). */
+.portraitScale {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
 @media (max-width: 991px) {
   .heroSection {
-    min-height: auto;
+    /* Hero fills the first screen on phones, so the About section starts BELOW
+       the fold and its scroll reveal can play. (svh = screen with browser bars shown) */
+    min-height: calc(100vh - 56px);
+    min-height: calc(100svh - 56px);
     padding-top: var(--space-4);
     padding-bottom: clamp(1.5rem, 3vh, 2.5rem);
-    align-items: flex-start;
+    align-items: center;
   }
 
   .heroGrid {
@@ -235,68 +303,61 @@
     transform: none;
   }
 
+  /* Bigger portrait: size only. The portrait component and its animation are untouched.
+     --ps-extra (px) is measured in Hero.tsx so the layout keeps the extra height. */
+  .portraitScale {
+    --ps: 1.1;
+
+    transform: scale(var(--ps));
+    transform-origin: 50% 0;
+    margin-bottom: var(--ps-extra, 0px);
+  }
+
   .ctaGroup {
     order: 6;
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 0.45rem;
+    /* the two links never touch each other on phones */
+    gap: 1.6rem;
+    row-gap: 0.75rem;
     width: 100%;
     margin-top: clamp(0.35rem, 1.2vh, 0.75rem);
     padding-top: 0;
   }
 
-  /* Compact, Subtly Vignetted Mobile Buttons (Not Touching Image, Not Bright) */
-  .ctaGroup a,
-  .ctaGroup button {
-    flex: 0 0 auto;
-    width: auto;
-    padding: 0.26rem 0.65rem !important;
-    font-size: 0.62rem !important;
-    letter-spacing: 0.04em !important;
-    gap: 0.25rem !important;
-    border-radius: var(--radius-pill) !important;
-    text-align: center;
-    height: auto !important;
-    min-height: 28px !important;
-    background: radial-gradient(
-      circle at 50% 50%,
-      rgba(24, 24, 24, 0.8) 0%,
-      rgba(8, 8, 8, 0.95) 100%
-    ) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-    border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    box-shadow:
-      0 4px 14px rgba(0, 0, 0, 0.5),
-      inset 0 0 10px rgba(0, 0, 0, 0.6) !important;
-    color: rgba(235, 235, 235, 0.85) !important;
+  /* Smaller links on phones (still clearly separated) */
+  .ctaLink {
+    font-size: 0.64rem;
   }
 
-  .ctaGroup a svg,
-  .ctaGroup button svg {
-    width: 11px !important;
-    height: 11px !important;
+  .ctaLabel {
+    gap: 0.4rem;
+    padding: 0 0.15rem 0.4rem;
   }
 
-  .ctaGroup a span,
-  .ctaGroup button span {
-    font-size: 0.62rem !important;
+  .ctaGithub {
+    width: 13px;
+    height: 13px;
   }
 
-  [data-theme="light"] .ctaGroup a,
-  [data-theme="light"] .ctaGroup button {
-    background: radial-gradient(
-      circle at 50% 50%,
-      rgba(242, 242, 242, 0.88) 0%,
-      rgba(222, 222, 222, 0.95) 100%
-    ) !important;
-    border: 1px solid rgba(0, 0, 0, 0.16) !important;
-    box-shadow:
-      0 2px 8px rgba(0, 0, 0, 0.06),
-      inset 0 0 8px rgba(0, 0, 0, 0.04) !important;
-    color: var(--text-primary) !important;
+  .ctaArrow {
+    width: 0.95rem;
+    height: 0.95rem;
+  }
+}
+
+/* phones: portrait noticeably bigger */
+@media (max-width: 600px) {
+  .portraitScale {
+    --ps: 1.2;
+  }
+}
+
+@media (max-width: 480px) {
+  .portraitScale {
+    --ps: 1.28;
   }
 }
 
@@ -311,5 +372,8 @@
     transform: none !important;
     opacity: 1 !important;
     animation: none !important;
+  }
+  .ctaLink {
+    transition: none !important;
   }
 }

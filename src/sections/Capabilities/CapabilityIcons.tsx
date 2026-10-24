@@ -20,7 +20,7 @@ export type CapabilityIconKey = keyof typeof BRAND_ICONS;
 const EXTRUDE_LAYERS = 2; // side layers of the raised logo (fewer = faster scrolling)
 const EXTRUDE_STEP = 2; // vertical distance between layers (total thickness = 4)
 const GLYPH_SIDE = 33; // logo size (before projection) on the slab's top face
-const FLOAT_SIDE = 34; // size of the flat logo that floats up on hover
+const FLOAT_SIDE = 55; // size of the flat logo that floats up on hover
 
 // isometric projection of the logo onto the slab's top face
 const projection = (vb: number) =>
@@ -169,7 +169,7 @@ const CapabilityIconBase: React.FC<{ iconKey: CapabilityIconKey }> = ({
       />
 
       {/* hover: ONLY the logo (no slab) lifts off and floats in its brand colour */}
-      <g transform="translate(48 31)" aria-hidden="true">
+      <g transform="translate(48 27)" aria-hidden="true">
         <g className={styles.floatLogo}>
           <g className={styles.floatBob}>
             <g

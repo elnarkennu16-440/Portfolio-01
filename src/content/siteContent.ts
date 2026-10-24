@@ -537,7 +537,7 @@ export const siteContent = {
         ],
       },
       {
-        category: "AI Technologies",
+        category: "AI & Machine Learning",
         column: 2,
         items: [
           { name: "Gemini", icon: "gemini" },
@@ -564,7 +564,7 @@ export const siteContent = {
         ],
       },
       {
-        category: "Security & Authentication",
+        category: "Authentication & Security",
         column: 2,
         items: [
           { name: "JWT", icon: "jwt" },

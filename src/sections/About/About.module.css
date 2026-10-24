@@ -197,6 +197,16 @@
 
 .paragraph {
   margin: 0;
+  /* justified text: even edges on both sides.
+     inter-word = only the spaces between words stretch (never the letters),
+     the last line of each paragraph stays left-aligned. */
+  text-align: justify;
+  text-align-last: left;
+  text-justify: inter-word;
+  hyphens: none;
+  -webkit-hyphens: none;
+  overflow-wrap: normal;
+  word-break: normal;
 }
 
 .wMask {
@@ -664,8 +674,8 @@
   }
 
   .bodyCopy {
-    font-size: 0.8rem;
-    line-height: 1.55;
+    font-size: 0.75rem;
+    line-height: 1.6;
     gap: var(--space-3);
   }
 
