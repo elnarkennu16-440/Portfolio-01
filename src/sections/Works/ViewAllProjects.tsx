@@ -241,7 +241,7 @@ export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
               type="button"
               onClick={onBack}
               className={styles.navCloseBtn}
-              aria-label="Close All Projects view"
+              aria-label="Close All Works view"
               title="Close (Esc)"
             >
               <svg
@@ -269,7 +269,7 @@ export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
         <div className={styles.subHeaderRow}>
           <div className={styles.titleRow}>
             <span className={styles.titleAccentBar} aria-hidden="true" />
-            <h1 className={styles.pageTitle}>All Projects</h1>
+            <h1 className={styles.pageTitle}>Selected Works</h1>
           </div>
           <p className={styles.pageDescription}>
             A complete archive of what I’ve built and tested — web systems,
@@ -282,7 +282,7 @@ export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
             Desktop: 3 columns, Tablet: 2 columns, Mobile: 2 smaller columns. */}
         <section
           className={styles.projectsGrid}
-          aria-label="All projects compact catalog"
+          aria-label="All works compact catalog"
         >
           {allProjects.map((project: ProjectItem) => {
             const hasValidLive = Boolean(
@@ -445,16 +445,16 @@ export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
         {otherProjects && otherProjects.length > 0 && (
           <section
             className={styles.otherProjectsSection}
-            aria-label="Other projects and applications"
+            aria-label="Other works and applications"
           >
             <div className={styles.otherSectionHeader}>
               <div className={styles.titleRow}>
                 <span className={styles.titleAccentBar} aria-hidden="true" />
-                <h2 className={styles.otherSectionTitle}>Other Projects</h2>
+                <h2 className={styles.otherSectionTitle}>Other Works</h2>
               </div>
               <p className={styles.otherSectionDesc}>
                 Academic Applications, APIs built for testing, and additional
-                freelance projects.
+                freelance works.
               </p>
             </div>
 
@@ -520,7 +520,7 @@ export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
       <footer className={styles.pageFooter}>
         <div className={styles.footerInner}>
           <span className={styles.footerText}>
-            © 2026 {meta.name} • All projects catalog
+            © 2026 {meta.name} • All works catalog
           </span>
           <button
             type="button"

@@ -120,8 +120,8 @@ export interface LookGridConfig {
 export const siteContent = {
   meta: {
     name: "Kennu Elnar",
-    title: "Kennu Elnar — Junior QA Tester & Web Developer",
-    role: "Junior QA Tester & Web Developer",
+    title: "Kennu Elnar — Software Developer",
+    role: "Software Developer",
     // TODO: Add your city if you want it displayed, otherwise leave empty
     location: "",
     // TODO: Add your public email if you want it displayed, otherwise leave empty
@@ -1000,7 +1000,7 @@ export const siteContent = {
 
   footer: {
     copyright: "© 2026 Kennu Elnar",
-    tagline: "Junior QA Tester & Web Developer",
+    tagline: "Software Developer",
     backToTop: "Back to top ↑",
     status: "final" as const,
   },
