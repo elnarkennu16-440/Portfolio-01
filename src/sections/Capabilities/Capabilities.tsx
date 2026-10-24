@@ -144,11 +144,11 @@ export const Capabilities: React.FC = () => {
               <div
                 className={styles.downloadMenu}
                 role="menu"
-                aria-label="Download CV options"
+                aria-label="Download Resume options"
               >
                 <a
-                  href={meta.resumeDocxUrl || "/resume/Elnar_Kennu_Resume.docx"}
-                  download="Elnar_Kennu_Resume.docx"
+                  href={meta.resumeDocxUrl || "/resume/Elnar-Kennu-Resume.docx"}
+                  download="Elnar-Kennu-Resume.docx"
                   role="menuitem"
                   className={styles.menuItem}
                   onClick={handleItemClick}
@@ -161,8 +161,8 @@ export const Capabilities: React.FC = () => {
                 </a>
 
                 <a
-                  href={meta.resumePdfUrl || "/resume/Kennu-Elnar-Resume.pdf"}
-                  download="Kennu-Elnar-Resume.pdf"
+                  href={meta.resumePdfUrl || "/resume/Elnar-Kennu-Resume.pdf"}
+                  download="Elnar-Kennu-Resume.pdf"
                   role="menuitem"
                   className={styles.menuItem}
                   onClick={handleItemClick}
