@@ -52,8 +52,8 @@ export const QA_DATABASE: QAEntry[] = [
     ],
     keywords: ["name", "pangalan", "sino ka", "who are you", "identity"],
     category: "about",
-    en: "My name is Kennu Elnar. I'm an Junior QA Tester and Web Developer.",
-    tl: "Ako si Kennu Elnar, isang Junior QA Tester at Web Developer.",
+    en: "My name is Kennu Elnar. I'm a Software Developer & QA Tester.",
+    tl: "Ako si Kennu Elnar, Isang Software Developer & QA Tester.",
   },
 
   // 2. GREETINGS
@@ -117,15 +117,13 @@ export const QA_DATABASE: QAEntry[] = [
     patterns: [
       /\b(what (is your|course|degree|major) did you take|what did you study|what degree do you have)\b/i,
       /\b(anong? (kurso|course|degree|tinapos) mo|anong natapos mo|anong tinapos mong kurso)\b/i,
-      /\b(bsis|information systems)\b/i,
     ],
     keywords: [
-      "course",
-      "degree",
-      "kurso",
+      "anong course na tinapos mo?",
+      "anong degree na tinapos mo?",
+      "Anong kurso mo?",
       "tinapos",
-      "bsis",
-      "information systems",
+      "Nagtapos ka ng?",
     ],
     category: "about",
     en: "I graduated with a Bachelor of Science in Information Systems (BSIS).",
@@ -321,26 +319,45 @@ export const QA_DATABASE: QAEntry[] = [
     patterns: [
       /\b(what is your (role|job|title|profession|position)|what do you do)\b/i,
       /\b(ano(ng)? (role|trabaho|posisyon|propesyon) mo|anong ginagawa mo)\b/i,
+      /\b(freelance|fiverr|utest|work background)\b/i,
     ],
-    keywords: ["role", "job", "trabaho", "posisyon"],
+    keywords: [
+      "role",
+      "job",
+      "trabaho",
+      "posisyon",
+      "freelance",
+      "fiverr",
+      "utest",
+    ],
     category: "about",
-    en: "I am a Junior QA Tester and Frontend/Web Developer. I currently working on company projects and contributing to open-source repositories.",
-    tl: "Ako ay isang Junior QA Tester at Web Developer. Kasulukuyan akong nagtatrabaho sa mga proyekto ng kumpanya at nag-aambag sa mga open-source repositories.",
+    en: "I work as a Software Developer & QA Tester. Alongside building my own web applications, I actively freelance on Fiverr doing web development and run software QA test cycles on uTest to ensure applications are reliable, secure, and user-friendly.",
+    tl: "Ako ay isang Software Developer at QA Tester. Bukod sa pagbuo ng sarili kong mga web application, active din ako bilang freelancer sa Fiverr para sa web development at sa uTest para sa software QA testing upang masigurong maayos, matibay, at madaling gamitin ang mga software.",
   },
 
   // 20. TELL ME ABOUT YOURSELF / INTRODUCE YOURSELF
+  // 46. ABOUT ME / INTRO
+  // 1. ABOUT ME INTRO
   {
     id: "about_me_intro",
     patterns: [
       /\b(tell me about yourself|introduce yourself|who is kennu|about kennu|background ni kennu)\b/i,
       /\b(pakilala ka|magpakilala ka|tungkol sa iyo|sabihin mo ang tungkol sa iyo|ikwento mo ang sarili mo)\b/i,
+      /\b(sino si kennu|sino ka|sino si kennu elnar)\b/i,
     ],
-    keywords: ["pakilala", "about yourself", "introduce", "background"],
+    keywords: [
+      "pakilala",
+      "about yourself",
+      "introduce",
+      "background",
+      "kennu",
+    ],
     category: "about",
-    en: "I'm Kennu Elnar, a Junior QA Tester and Web Developer and I'm from Camarines Norte, Philippines. I maintain this platform as an open repository to document my background, practical work, and technical development. Instead of leaving projects confined to private directories, this space serves as an accessible record of my hands-on exploration and steady learning curve. Feel free to look around and ask questions—or share your ideas if you have any..",
-    tl: "Ako si Kennu Elnar, isang Junior QA Tester at Web Developer mula sa Camarines Norte, Pilipinas. Pinapanatili ko ang platform na ito bilang isang bukas na repositoryo upang idokumento ang aking background, praktikal na trabaho, at teknikal na pag-unlad. Sa halip na iwanan ang mga proyekto sa mga pribadong direktoryo, nagsisilbing accessible record ang espasyong ito ng aking hands-on exploration at patuloy na learning curve. Huwag mag-atubiling magtanong o magbahagi ng iyong mga ideya kung mayroon ka.",
+    en: "I'm Kennu Elnar, a 𝑺𝒐𝒇𝒕𝒘𝒂𝒓𝒆 𝑫𝒆𝒗𝒆𝒍𝒐𝒑𝒆𝒓 & 𝑸𝑨 𝑻𝒆𝒔𝒕𝒆𝒓 from Camarines Norte, Philippines.\n\nI built this portfolio to showcase my actual web applications, UI experiments, and software quality workflows. Rather than keeping my code stuck in local folders, I use this site as a 𝒍𝒊𝒗𝒆 𝒉𝒖𝒃 for my projects and 𝒄𝒐𝒏𝒕𝒊𝒏𝒖𝒐𝒖𝒔 𝒈𝒓𝒐𝒘𝒕𝒉 in web development and software testing. Feel free to explore my work or ask any questions!",
+    tl: "I'm Kennu Elnar, a 𝑺𝒐𝒇𝒕𝒘𝒂𝒓𝒆 𝑫𝒆𝒗𝒆𝒍𝒐𝒑𝒆𝒓 & 𝑸𝑨 𝑻𝒆𝒔𝒕𝒆𝒓 from Camarines Norte, Philippines.\n\nGinawa ko ang portfolio na ito para maipakita ang mga aktwal kong web applications, UI components, at software testing workflows. Sa halip na nakatambak lang ang mga proyekto ko sa laptop, ginamit ko ang site na ito bilang 𝒍𝒊𝒗𝒆 𝒉𝒖𝒃 ng aking mga gawa at 𝒑𝒂𝒕𝒖𝒍𝒐𝒚 𝒏𝒂 𝒑𝒂𝒈-𝒖𝒏𝒍𝒂𝒅 sa web development at QA. Huwag kang mag-atubiling subukan ang mga features dito o magtanong sa akin!",
   },
-
+  // 21. ALL PROJECTS SUMMARY
+  // 21. ALL PROJECTS SUMMARY
   // 21. ALL PROJECTS SUMMARY
   {
     id: "all_projects",
@@ -350,8 +367,8 @@ export const QA_DATABASE: QAEntry[] = [
     ],
     keywords: ["projects", "proyekto", "mirams", "ncamis", "nobleclassics"],
     category: "projects",
-    en: "I have 6 featured projects:\n1. MIRAMS (2026) – Manufacturing Request & Asset Management System with IT helpdesk ticketing\n2. NCAMIS (2025) – Senior High School MIS centralizing student records & admissions\n3. NobleClassics (2024) – Curated E-Commerce Bookstore with cart & admin panel\n4. ReadCap.AI – AI-powered distraction-free reading room & workspace\n5. AbisoMed – Clinic appointment system with real-time queue & SMS alerts\n6. AsensoPOS – Offline POS & inventory tool with customer credit ledger\n\nOther Projects:\n• DroidCaffeine – College cafe ordering & POS application (C# / .NET)\n• HatidIsked – Campus distribution & pickup queue coordinator\n• Plummatry – API testing & file manipulation web utility",
-    tl: "May 6 pangunahing proyekto ako:\n1. MIRAMS (2026) – Manufacturing Request & Asset Management System na may IT helpdesk ticketing\n2. NCAMIS (2025) – Senior High School MIS para sa student records at admissions\n3. NobleClassics (2024) – Curated E-Commerce Bookstore na may cart at admin panel\n4. ReadCap.AI – AI-powered distraction-free reading room at workspace\n5. AbisoMed – Clinic appointment system na may real-time queue at SMS alerts\n6. AsensoPOS – Offline POS at inventory tool na may utang ledger\n\nIba Pang Proyekto:\n• DroidCaffeine – College cafe ordering at POS application (C# / .NET)\n• HatidIsked – Campus distribution at pickup queue coordinator\n• Plummatry – API testing at file manipulation web utility",
+    en: "Here is a breakdown of my featured and side projects:\n\n𝙁𝙚𝙖𝙩𝙪𝙧𝙚𝙙 𝙋𝙧𝙤𝙟𝙚𝙘𝙩𝙨:\n1. 𝑴𝑰𝑹𝑨𝑴𝑺 (2026) – Manufacturing Request & Asset Management System with IT helpdesk ticketing\n2. 𝑵𝑪𝑨𝑴𝑰𝑺 (2025) – Senior High School MIS centralizing student records & admissions\n3. 𝑵𝒐𝒃𝒍𝒆𝑪𝒍𝒂𝒔𝒔𝒊𝒄𝒔 (2024) – Curated E-Commerce Bookstore with cart & admin panel\n4. 𝑹𝒆𝒂𝒅𝑪𝒂𝒑.𝑨𝑰 – AI-powered distraction-free reading room & workspace\n5. 𝑨𝒃𝒊𝒔𝒐𝑴𝒆𝒅 – Clinic appointment system with real-time queue & SMS alerts\n6. 𝑨𝒔𝒆𝒏𝒔𝒐𝑷𝑶𝑺 – Offline POS & inventory tool with customer credit ledger\n\n𝙊𝙩𝙝𝙚𝙧 𝙋𝙧𝙤𝙟𝙚𝙘𝙩𝙨:\n- 𝑷𝒍𝒖𝒎𝒎𝒂𝒕𝒓𝒚 – API testing & file manipulation web utility\n- 𝑯𝒂𝒕𝒊𝒅𝑰𝒔𝒌𝒆𝒅 – Campus distribution & pickup queue coordinator\n- 𝑹𝒐𝒂𝒎𝑾𝒆𝒃 – An automated end-to-end (E2E) web testing and data extraction platform\n- 𝑫𝒓𝒐𝒊𝒅𝑪𝒂𝒇𝒇𝒆𝒊𝒏𝒆 – College cafe ordering at POS application (C# / .NET)",
+    tl: "Narito ang listahan ng aking mga pangunahing proyekto at iba pang ginawa:\n\n𝙁𝙚𝙖𝙩𝙪𝙧𝙚𝙙 𝙋𝙧𝙤𝙟𝙚𝙘𝙩𝙨:\n1. 𝑴𝑰𝑹𝑨𝑴𝑺 (2026) – Manufacturing Request & Asset Management System na may IT helpdesk ticketing\n2. 𝑵𝑪𝑨𝑴𝑰𝑺 (2025) – Senior High School MIS para sa student records at admissions\n3. 𝑵𝒐𝒃𝒍𝒆𝑪𝒍𝒂𝒔𝒔𝒊𝒄𝒔 (2024) – Curated E-Commerce Bookstore na may cart at admin panel\n4. 𝑹𝒆𝒂𝒅𝑪𝒂𝒑.𝑨𝑰 – AI-powered distraction-free reading room at workspace\n5. 𝑨𝒃𝒊𝒔𝒐𝑴𝒆𝒅 – Clinic appointment system na may real-time queue at SMS alerts\n6. 𝑨𝒔𝒆𝒏𝒔𝒐𝑷𝑶𝑺 – Offline POS at inventory tool na may utang ledger\n\n𝙊𝙩𝙝𝙚𝙧 𝙋𝙧𝙤𝙟𝙚𝙘𝙩𝙨:\n- 𝑷𝒍𝒖𝒎𝒎𝒂𝒕𝒓𝒚 – API testing & file manipulation web utility\n- 𝑯𝒂𝒕𝒊𝒅𝑰𝒔𝒌𝒆𝒅 – Campus distribution at pickup queue coordinator\n- 𝑹𝒐𝒂𝒎𝑾𝒆𝒃 – An automated end-to-end (E2E) web testing and data extraction platform\n- 𝑫𝒓𝒐𝒊𝒅𝑪𝒂𝒇𝒇𝒆𝒊𝒏𝒆 – College cafe ordering at POS application (C# / .NET)",
   },
 
   // 22. MIRAMS PROJECT
@@ -715,13 +732,18 @@ export const QA_DATABASE: QAEntry[] = [
   {
     id: "dev_tools_used",
     patterns: [
-      /\b(what developer tools do you use|what editor do you use|ide|tools)\b/i,
+      /\b(What are your technical tools and skills\?|what developer tools do you use|what editor do you use|ide)\b/i,
       /\b(anong gamit mong editor|tools mo sa paggawa ng code|anong ide gamit mo)\b/i,
     ],
-    keywords: ["vs code", "cursor", "devtools", "tools"],
+    keywords: [
+      "vs code",
+      "capabilities",
+      "devtools",
+      "What are your technical tools and skills?",
+    ],
     category: "skills",
-    en: "Here is a complete breakdown of my technical capabilities and the technologies I work with:\n\nFrontend:\n• React\n• Vue.js\n• Tailwind CSS\n• Next.js\n• TypeScript\n• JavaScript\n\nBackend:\n• Node.js\n• Express.js\n• Laravel\n\nDatabases:\n• MySQL\n• Supabase\n• Firebase\n• MongoDB\n\nTesting Tools:\n• Asana\n• Jira\n• Chrome DevTools\n• Postman\n\nAI Technologies:\n• Gemini\n• Claude\n• Manus\n• Google AI Studio\n• OpenAI\n\nPlatforms & Dev Tools:\n• Git / GitHub\n• Vercel\n• Notion\n• VS Code\n• Vite\n• npm\n• Cline\n• Antigravity\n\nMobile:\n• Flutter\n• React Native",
-    tl: "Narito ang kumpletong listahan ng aking mga technical capabilities at mga teknolohiyang ginagamit ko:\n\nFrontend:\n• React\n• Vue.js\n• Tailwind CSS\n• Next.js\n• TypeScript\n• JavaScript\n\nBackend:\n• Node.js\n• Express.js\n• Laravel\n\nDatabases:\n• MySQL\n• Supabase\n• Firebase\n• MongoDB\n\nTesting Tools:\n• Asana\n• Jira\n• Chrome DevTools\n• Postman\n\nAI Technologies:\n• Gemini\n• Claude\n• Manus\n• Google AI Studio\n• OpenAI\n\nPlatforms & Dev Tools:\n• Git / GitHub\n• Vercel\n• Notion\n• VS Code\n• Vite\n• npm\n• Cline\n• Antigravity\n\nMobile:\n• Flutter\n• React Native",
+    en: "Here is a complete breakdown of my technical capabilities and the technologies I work with:\n\n𝑭𝒓𝒐𝒏𝒕𝒆𝒏𝒅:\n- 𝑹𝒆𝒂𝒄𝒕\n- 𝑽𝒖𝒆.𝒋𝒔\n- 𝑻𝒂𝒊𝒍𝒘𝒊𝒏𝒅 𝑪𝑺𝑺\n- 𝑵𝒆𝒙𝒕.𝒋𝒔\n- 𝑻𝒚𝒑𝒆𝑺𝒄𝒓𝒊𝒑𝒕\n- 𝑱𝒂𝒗𝒂𝑺𝒄𝒓𝒊𝒑𝒕\n\n𝑩𝒂𝒄𝒌𝒆𝒏𝒅:\n- 𝑵𝒐𝒅𝒆.𝒋𝒔\n- 𝑬𝒙𝒑𝒓𝒆𝒔𝒔.𝒋𝒔\n- 𝑷𝑯𝑷\n- 𝑳𝒂𝒓𝒂𝒗𝒆𝒍\n\n𝑫𝒂𝒕𝒂𝒃𝒂𝒔𝒆𝒔:\n- 𝑴𝒚𝑺𝑸𝑳\n- 𝑺𝒖𝒑𝒂𝒃𝒂𝒔𝒆\n- 𝑭𝒊𝒓𝒆𝒃𝒂𝒔𝒆\n- 𝑴𝒐𝒏𝒈𝒐𝑫𝑩\n\n𝑻𝒆𝒔𝒕𝒊𝒏𝒈 𝑻𝒐𝒐𝒍𝒔:\n- 𝑨𝒔𝒂𝒏𝒂\n- 𝑱𝒊𝒓𝒂\n- 𝑪𝒉𝒓𝒐𝒎𝒆 𝑫𝒆𝒗𝑻𝒐𝒐𝒍𝒔\n- 𝑷𝒐𝒔𝒕𝒎𝒂𝒏\n\n𝑨𝑰 & 𝑴𝒂𝒄𝒉𝒊𝒏𝒆 𝑳𝒆𝒂𝒓𝒏𝒊𝒏𝒈:\n- 𝑮𝒆𝒎𝒊𝒏𝒊\n- 𝑪𝒍𝒂𝒖𝒅𝒆\n- 𝑴𝒂𝒏𝒖𝒔\n- 𝑷𝒆𝒓𝒑𝒍𝒆𝒙𝒊𝒕𝒚\n\n𝑨𝒖𝒕𝒉𝒆𝒏𝒕𝒊𝒄𝒂𝒕𝒊𝒐𝒏 & 𝑺𝒆𝒄𝒖𝒓𝒊𝒕𝒚:\n- 𝑱𝑾𝑻\n- 𝑮𝒊𝒕𝑮𝒖𝒂𝒓𝒅𝒊𝒂𝒏\n- 𝑫𝒆𝒑𝒆𝒏𝒅𝒂𝒃𝒐𝒕\n- 𝑶𝑾𝑨𝑺𝑷 𝒁𝑨𝑷\n\n𝑷𝒍𝒂𝒕𝒇𝒐𝒓𝒎𝒔 & 𝑫𝒆𝒗 𝑻𝒐𝒐𝒍𝒔:\n- 𝑮𝒊𝒕 / 𝑮𝒊𝒕𝑯𝒖𝒃\n- 𝑽𝒆𝒓𝒄𝒆𝒍\n- 𝑵𝒐𝒕𝒊𝒐𝒏\n- 𝑽𝑺 𝑪𝒐𝒅𝒆\n- 𝑽𝒊𝒕𝒆\n- 𝒏𝒑𝒎\n- 𝑪𝒍𝒊𝒏𝒆\n- 𝑨𝒏𝒕𝒊𝒈𝒓𝒂𝒗𝒊𝒕𝒚\n\n𝑪𝒍𝒐𝒖𝒅 & 𝑯𝒐𝒔𝒕𝒊𝒏𝒈:\n- 𝑽𝒆𝒓𝒄𝒆𝒍\n- 𝑯𝒐𝒔𝒕𝒊𝒏𝒈𝒆𝒓\n- 𝑪𝒍𝒐𝒖𝒅𝒇𝒍𝒂𝒓𝒆\n\n𝑴𝒐𝒃𝒊𝒍𝒆:\n- 𝑭𝒍𝒖𝒕𝒕𝒆𝒓\n- 𝑹𝒆𝒂𝒄𝒕 𝑵𝒂𝒕𝒊𝒗𝒆",
+    tl: "Narito ang kumpletong listahan ng aking mga technical capabilities at mga teknolohiyang ginagamit ko:\n\n𝑭𝒓𝒐𝒏𝒕𝒆𝒏𝒅:\n- 𝑑𝒆𝒂𝒄𝒕\n- 𝑽𝒖𝒆.𝒋𝒔\n- 𝑻𝒂𝒊𝒍𝒘𝒊𝒏𝒅 𝑪𝑺𝑺\n- 𝑵𝒆𝒙𝒕.𝒋𝒔\n- 𝑻𝒚𝒑𝒆𝑺𝒄𝒓𝒊𝒑𝒕\n- 𝑱𝒂𝒗𝒂𝑺𝒄𝒓𝒊𝒑𝒕\n\n𝑩𝒂𝒄𝒌𝒆𝒏𝒅:\n- 𝑵𝒐𝒅𝒆.𝒋𝒔\n- 𝑬𝒙𝒑𝒓𝒆𝒔𝒔.𝒋𝒔\n- 𝑷𝑯𝑷\n- 𝑳𝒂𝒓𝒂𝒗𝒆𝒍\n\n𝑫𝒂𝒕𝒂𝒃𝒂𝒔𝒆𝒔:\n- 𝑴𝒚𝑺𝑸𝑳\n- 𝑺𝒖𝒑𝒂𝒃𝒂𝒔𝒆\n- 𝑭𝒊𝒓𝒆𝒃𝒂𝒔𝒆\n- 𝑴𝒐𝒏𝒈𝒐𝑫𝑩\n\n𝑻𝒆𝒔𝒕𝒊𝒏𝒈 𝑻𝒐𝒐𝒍𝒔:\n- 𝑨𝒔𝒂𝒏𝒂\n- 𝑱𝒊𝒓𝒂\n- 𝑪𝒉𝒓𝒐𝒎𝒆 𝑫𝒆𝒗𝑻𝒐𝒐𝒍𝒔\n- 𝑷𝒐𝒔𝒕𝒎𝒂𝒏\n\n𝑨𝑰 & 𝑴𝒂𝒄𝒉𝒊𝒏𝒆 𝑳𝒆𝒂𝒓𝒏𝒊𝒏𝒈:\n- 𝑮𝒆𝒎𝒊𝒏𝒊\n- 𝑪𝒍𝒂𝒖𝒅𝒆\n- 𝑴𝒂𝒏𝒖𝒔\n- 𝑷𝒆𝒓𝒑𝒍𝒆𝒙𝒊𝒕𝒚\n\n𝑨𝒖𝒕𝒉𝒆𝒏𝒕𝒊𝒄𝒂𝒕𝒊𝒐𝒏 & 𝑺𝒆𝒄𝒖𝒓𝒊𝒕𝒚:\n- 𝑱𝑾𝑻\n- 𝑮𝒊𝒕𝑮𝒖𝒂𝒓𝒅𝒊𝒂𝒏\n- 𝑫𝒆𝒑𝒆𝒏𝒅𝒂𝒃𝒐𝒕\n- 𝑶𝑾𝑨𝑺𝑷 𝒁𝑨𝑷\n\n𝑷𝒍𝒂𝒕𝒇𝒐𝒓𝒎𝒔 & 𝑫𝒆𝒗 𝑻𝒐𝒐𝒍𝒔:\n- 𝑮𝒊𝒕 / 𝑮𝒊𝒕𝑯𝒖𝒃\n- 𝑽𝒆𝒓𝒄𝒆𝒍\n- 𝑵𝒐𝒕𝒊𝒐𝒏\n- 𝑽𝑺 𝑪𝒐𝒅𝒆\n- 𝑽𝒊𝒕𝒆\n- 𝒏𝒑𝒎\n- 𝑪𝒍𝒊𝒏𝒆\n- 𝑨𝒏𝒕𝒊𝒈𝒓𝒂𝒗𝒊𝒕𝒚\n\n𝑪𝒍𝒐𝒖𝒅 & 𝑯𝒐𝒔𝒕𝒊𝒏𝒈:\n- 𝑽𝒆𝒓𝒄𝒆𝒍\n- 𝑯𝒐𝒔𝒕𝒊𝒏𝒈𝒆𝒓\n- 𝑪𝒍𝒐𝒖𝒅𝒇𝒍𝒂𝒓𝒆\n\n𝑴𝒐𝒃𝒊𝒍𝒆:\n- 𝑭𝒍𝒖𝒕𝒕𝒆𝒓\n- 𝑹𝒆𝒂𝒄𝒕 𝑵𝒂𝒕𝒊𝒗𝒆",
   },
 
   // 50. TEAMWORK AND COLLABORATION
@@ -2053,19 +2075,19 @@ Dahil marunong akong mag-code sa TypeScript at PHP, kaya kong mag-black-box test
     patterns: [
       /\b(how do you learn new (technologies|frameworks|tools)|fast learner|learning curve)\b/i,
       /\b(paano ka nag-?aaral ng bagong technology|mabilis ka ba matuto|paano ka mag-aral ng bagong framework)\b/i,
+      /\b(learning process|paano ka matuto ng bagong tech|tech stack adaptation)\b/i,
     ],
-    keywords: ["learn new tech", "fast learner", "matuto", "framework"],
+    keywords: [
+      "learn new tech",
+      "fast learner",
+      "matuto",
+      "framework",
+      "adaptation",
+      "documentation",
+    ],
     category: "about",
-    en: `How I learn rapidly through hands-on building:
-1. I read the official documentation to understand core architectural concepts.
-2. I build a small working proof-of-concept (CRUD app) to test state, routing, and error boundaries.
-3. I inspect production open-source implementations to learn community best practices.
-This enables me to be productive in a new stack within 1 to 2 weeks.`,
-    tl: `Mabilis akong matuto sa pamamagitan ng aktwal na pagbuo:
-1. Binabasa ko ang opisyal na documentation para makuha ang core architecture.
-2. Gumagawa ako ng maliit na proof-of-concept project (CRUD app) para maranasan ang data flow at errors.
-3. Nagsusuri ako ng open-source projects para matutunan ang industry standards.
-Dahil dito, nagiging produktibo ako sa bagong framework sa loob ng 1 hanggang 2 linggo.`,
+    en: "Adapting to new technologies quickly is essential in modern software development. Here is my structured 4-step approach to mastering a new stack or framework:\n\n1. 𝑫𝒆𝒆𝒑 𝑫𝒊𝒗𝒆 𝒊𝒏𝒕𝒐 𝑶𝒇𝒇𝒊𝒄𝒊𝒂𝒍 𝑫𝒐𝒄𝒖𝒎𝒆𝒏𝒕𝒂𝒕𝒊𝒐𝒏 – I start by understanding core principles, component architecture, and data flows directly from official guides and community best practices rather than relying on quick tutorials.\n2. 𝑳𝒆𝒗𝒆𝒓𝒂𝒈𝒆 𝑨𝑰-𝑨𝒔𝒔𝒊𝒔𝒕𝒆𝒅 𝑾𝒐𝒓𝒌𝒇𝒍𝒐𝒘𝒔 – I utilize modern developer tools (like VS Code with AI coding assistants and GitHub) to accelerate syntax discovery, generate boilerplate structures, and clarify complex concepts on the fly.\n3. 𝑩𝒖𝒊𝒍𝒅 𝒂 𝑭𝒖𝒏𝒄𝒕𝒊𝒐𝒏𝒂𝒍 𝑷𝒓𝒐𝒐𝒇-𝒐𝒇-𝑪𝒐𝒏𝒄𝒆𝒑𝒕 – Instead of passive reading, I immediately build a real-world prototype or feature module. This allows me to test state management, API integrations, and edge cases in a practical environment.\n4. 𝑪𝒐𝒏𝒅𝒖𝒄𝒕 𝑸𝒖𝒂𝒍𝒊𝒕𝒚 & 𝑷𝒆𝒓𝒇𝒐𝒓𝒎𝒂𝒏𝒄𝒆 𝑨𝒖𝒅𝒊𝒕𝒔 – Learning doesn't end when code runs. I verify build performance, responsiveness, and code reliability to ensure the new tech is implemented according to production standards.",
+    tl: "Ang mabilis na pag-adjust sa mga bagong teknolohiya ay mahalaga sa software development. Eto ang aking maayos na 4-step process sa pagkatuto ng bagong framework o tools:\n\n1. 𝑴𝒂𝒈𝒃𝒂𝒔𝒂 𝒔𝒂 𝑶𝒑𝒊𝒔𝒚𝒂𝒍 𝒏𝒂 𝑫𝒐𝒄𝒖𝒎𝒆𝒏𝒕𝒂𝒕𝒊𝒐𝒏 – Nagsisimula ako sa pag-unawa sa core architecture, data flow, at best practices direkta sa opisyal na dokumentasyon kaysa umasa sa mabilisang tutorial lang.\n2. 𝑷𝒂𝒈𝒈𝒂𝒎𝒊𝒕 𝒏𝒈 𝑴𝒐𝒅𝒆𝒓𝒏 𝑨𝑰-𝑨𝒔𝒔𝒊𝒔𝒕𝒆𝒅 𝑻𝒐𝒐𝒍𝒔 – Gumagamit ako ng mga modernong developer tools (tulad ng VS Code na may AI coding assistants at GitHub) para mas mabilis makuha ang syntax, gawaan ng maayos na structure, at maunawaan ang mga bagong konsepto.\n3. 𝑷𝒂𝒈𝒃𝒖𝒐 𝒏𝒈 𝑨𝒌𝒕𝒘𝒂𝒍 𝒏𝒂 𝑷𝒓𝒐𝒋𝒆𝒄𝒕 𝑬𝒏𝒈𝒊𝒏𝒆 – Sa halip na magbasa lang, gumagawa agad ako ng totoong prototype o interactive feature. Dito ko nasusubukan ang state management, API integration, at totoong gawaing pang-production.\n4. 𝑷𝒂𝒈𝒔𝒖𝒓𝒊 𝒔𝒂  any 𝑲𝒂𝒍𝒊𝒅𝒂𝒅 𝒂𝒕 𝑷𝒆𝒓𝒇𝒐𝒓𝒎𝒂𝒏𝒄𝒆 – Hindi natatapos ang pagkatuto sa pagpapagana lang ng code. Sinusuri ko ang responsiveness, bilis, at reliability nito para masigurong nakakasunod ito sa tamang pamantayan ng pagbuo ng software.",
   },
 
   // =========================================================================
@@ -2081,27 +2103,6 @@ Dahil dito, nagiging produktibo ako sa bagong framework sa loob ng 1 hanggang 2 
     category: "about",
     en: `In 5 years, I see myself as a Senior QA Automation Engineer or Lead Full-Stack Software Engineer, designing enterprise test architecture, mentoring junior engineers, and driving resilient CI/CD pipelines.`,
     tl: `Sa loob ng 5 taon, nakikita ko ang aking sarili bilang isang Senior QA Automation Engineer o Lead Full-Stack Engineer na nagdidisenyo ng enterprise test frameworks at tumutulong sa mas batang mga developers.`,
-  },
-
-  // =========================================================================
-  // 84. ADVICE FOR FRESH GRADUATES & JUNIOR DEVS
-  // =========================================================================
-  {
-    id: "advice_for_fresh_grads_qa",
-    patterns: [
-      /\b(what advice do you have for (fresh grads|juniors|beginners)|tips for junior qa|advice for aspiring devs)\b/i,
-      /\b(anong payo mo sa mga fresh graduate|tips sa nagsisimula pa lang sa qa|payo sa beginner)\b/i,
-    ],
-    keywords: ["advice", "tips", "fresh grads", "beginners", "payo"],
-    category: "general",
-    en: `My top tips:
-1. Focus on core fundamentals first (DOM, HTTP protocols, JavaScript, SQL) before chasing shiny frameworks.
-2. Build real, deployable projects rather than following passive video tutorials.
-3. Write clean, readable code and practice descriptive bug reporting early.`,
-    tl: `Ang aking mga payo:
-1. Tutukan muna ang fundamentals (DOM, HTTP protocols, JavaScript, SQL) bago tumalon sa napakaraming frameworks.
-2. Gumawa ng tunay at gumaganang mga proyekto sa halip na manood lang ng tutorials.
-3. Ugaliing sumulat ng malinis na code at malinaw na bug reports mula pa sa simula.`,
   },
 
   // =========================================================================
@@ -2348,19 +2349,22 @@ Dahil dito, nagiging produktibo ako sa bagong framework sa loob ng 1 hanggang 2 
     tl: `Oo, bukas ako sa paglipat sa Metro Manila o iba pang tech hubs para sa magandang full-time o hybrid na trabaho.`,
   },
 
-  // =========================================================================
-  // 96. THOUGHTS ON AI TOOLS (CURSOR, CHATGPT, CLAUDE)
-  // =========================================================================
+  // 48. THOUGHTS ON AI TOOLS & CODING ASSISTANTS
   {
-    id: "thoughts_on_ai_tools",
+    id: "thoughts-on-ai-tools",
     patterns: [
-      /\b(how do you use ai tools|do you use chatgpt or cursor|thoughts on ai in coding)\b/i,
+      /\b(What are your thoughts on AI tools and coding assistants\?|Thought on AI tools|how do you use ai tools|do you use chatgpt or cursor|thoughts on ai in coding)\b/i,
       /\b(gumagamit ka ba ng ai|paano mo ginagamit ang cursor o chatgpt|pananaw mo sa ai)\b/i,
+      /\b(AI tools in web dev|use of ai in qa|copilot cursor chatgpt)\b/i,
     ],
-    keywords: ["ai tools", "cursor", "chatgpt", "claude", "copilot"],
-    category: "skills",
-    en: `I utilize AI tools (Cursor, ChatGPT, Claude) as force multipliers—accelerating boilerplate writing, exploring test edge cases, and drafting regexes. However, I always inspect, understand, and rigorously test every single line of generated code before committing.`,
-    tl: `Ginagamit ko ang AI tools (Cursor, ChatGPT, Claude) bilang katuwang—nagpapabilis sa pagsulat ng boilerplate, pag-explore ng edge cases, at pag-draft ng regex. Gayunpaman, masusi kong sinusuri at tine-test ang bawat linya ng code bago ito i-commit.`,
+    keywords: [
+      "Thoughts on AI Tools",
+      "Thoughts",
+      "What are your thoughts on AI tools and coding assistants?",
+    ],
+    category: "general",
+    en: "Honestly, I don't treat AI tools like 𝘾𝙪𝙧𝙨𝙤𝙧, 𝘾𝙝𝙖𝙩𝙂𝙋𝙏, 𝙤𝙧 𝘾𝙡𝙖𝙪𝙙𝙚 as a shortcut or a replacement for real coding skills. I view them as smart assistants that help speed up repetitive tasks—like drafting initial regex, writing boilerplate structure, or thinking of unusual edge cases when I test software.\n\nAt the end of the day, AI can generate code, but it doesn't understand context or user experience the way a developer does. I make sure to review, debug, and manually test every piece of code before it ever touches production. Sometimes AI can be confidently wrong—and that's why 𝒄𝒓𝒊𝒕𝒊𝒄𝒂𝒍 𝒕𝒉𝒊𝒏𝒌𝒊𝒏𝒈, 𝒑𝒓𝒐𝒃𝒍𝒆𝒎-𝒔𝒐𝒍𝒗𝒊𝒏𝒈, 𝒂𝒏𝒅 𝒂𝒕𝒕𝒆𝒏𝒕𝒊𝒐𝒏 𝒕𝒐 𝒅𝒆𝒕𝒂𝒊𝒍 will always be a developer's real understanding.",
+    tl: "Tapatan lang, hindi ko tinitingnan ang mga AI tools tulad ng 𝘾𝙪𝙧𝙨𝙤𝙧, 𝘾𝙝𝙖𝙩𝙂𝙋𝙏, 𝙤 𝘾𝙡𝙖𝙪𝙙𝙚 bilang mabilisang paraan para makaiwas sa totoong pag-code. Para sa akin, mga assistant lang sila na nagpapabilis ng mga paulit-ulit na gawain—tulad ng pagbuo ng pangunahing structure, pag-draft ng regex, o pag-isip ng mga kakaibang scenarios kapag nagte-test ako ng software.\n\nSa huli, pwedeng maglabas ng code ang AI, pero hindi nito kayang intindihin ang buong sistema at karanasan ng user na tulad ng isang totoong developer. Kaya sinisigurado kong sinusuri, dini-debug, at manu-mano kong tinitest ang bawat linyang ginagamit ko bago ito mapunta sa aktwal na proyekto. Minsan, pwedeng magkamali ang AI nang may kumpiyansa—kaya ang 𝒌𝒓𝒊𝒕𝒊𝒌𝒂𝒍 𝒏𝒂 𝒑𝒂𝒈-𝒊𝒊𝒔𝒊𝒑, 𝒑𝒂𝒈-𝒔𝒐𝒍𝒖𝒔𝒚𝒐𝒏 𝒔𝒂 𝒑𝒓𝒐𝒃𝒍𝒆𝒎𝒂, 𝒂𝒕 𝒂𝒏𝒈 𝒑𝒂𝒈𝒊𝒈𝒊𝒏𝒈 𝒅𝒆𝒕𝒂𝒍𝒚𝒂𝒅𝒐 ang mananatiling totoong pag-unawa ng isang developer.",
   },
 
   // =========================================================================
@@ -2422,16 +2426,26 @@ Dahil dito, nagiging produktibo ako sa bagong framework sa loob ng 1 hanggang 2 
   // =========================================================================
   // 100. WHAT MOTIVATES KENNU DAILY
   // =========================================================================
+  // 44. DAILY MOTIVATION & PERSONAL PHILOSOPHY
+  // 44. DAILY MOTIVATION & PERSONAL PHILOSOPHY
   {
     id: "daily_motivation",
     patterns: [
       /\b(what motivates you|what keeps you going|inspiration in tech|daily motivation)\b/i,
       /\b(ano nagmo-?motivate sa iyo|anong inspirasyon mo|bakit ka masipag mag-?code)\b/i,
+      /\b(word of wisdom|motto in life|life advice|daily quote)\b/i,
     ],
-    keywords: ["motivation", "inspiration", "goals", "passion"],
+    keywords: [
+      "motivation",
+      "inspiration",
+      "goals",
+      "passion",
+      "mindset",
+      "wisdom",
+    ],
     category: "general",
-    en: `The feeling of taking a complex idea, building it into a clean, intuitive application, and verifying that it works flawlessly for real people is what excites and drives me every day.`,
-    tl: `Ang pakiramdam na makabuo ng malinis at maaasahang software mula sa isang ideya, at masigurong walang bugs para sa mga tunay na tao ang nagbibigay sa akin ng sigla araw-araw.`,
+    en: "Real motivation isn't about instant excitement; it's about building strong habits and staying consistent. Here are 4 personal principles that keep me going:\n\n1. 𝑷𝒓𝒐𝒈𝒓𝒆𝒔𝒔 𝑶𝒗𝒆𝒓 𝑷𝒆𝒓𝒇𝒆𝒄𝒕𝒊𝒐𝒏 – You don't have to figure out everything today. Small, daily efforts compound into real skill and long-term results.\n2. 𝑻𝒓𝒆𝒂𝒕 𝑭𝒂𝒊𝒍𝒖𝒓𝒆 𝒂𝒔 𝑫𝒆𝒃𝒖𝒈𝒈𝒊𝒏𝒈 – Errors and unexpected bugs aren't roadblocks. They are just hints telling you what to fix so you can build a stronger system.\n3. 𝑻𝒂𝒌𝒆 𝑷𝒓𝒊𝒅𝒆 𝒊𝒏 𝑺𝒎𝒂𝒍𝒍 𝑫𝒆𝒕𝒂𝒊𝒍𝒔 – Whether you're writing clean code, testing edge cases, or fixing daily routines, doing things with care always shows in the outcome.\n4. 𝑩𝒖𝒊𝒍𝒅 𝑻𝒉𝒊𝒏𝒈𝒔 𝑻𝒉𝒂𝒕 𝑴𝒂𝒕𝒕𝒆𝒓 – Completing a task is good, but knowing your work solves a real problem or makes someone's day easier is what makes it truly satisfying.",
+    tl: "Ang tunay na motivation ay wala sa emosyon kundi nasa magandang habit at konsistensya. Eto ang 4 na personal kong gabay para magpatuloy araw-araw:\n\n1. 𝑼𝒏𝒂𝒉𝒊𝒏 𝒂𝒏𝒈 𝑷𝒂𝒈-𝒖𝒏𝒍𝒂𝒌 𝑲𝒆𝒔𝒂 𝑷𝒆𝒓𝒑𝒆𝒌𝒔𝒚𝒐𝒏 – Hindi mo kailangang matutunan ang lahat agad-agad. Ang unti-unting tiyaga araw-araw ang totoong nagbubunga ng tunay na galing.\n2. 𝑰𝒕𝒖𝒓𝒊𝒏𝒈 𝒏𝒂 𝑫𝒆𝒃𝒖𝒈𝒈𝒊𝒏𝒈 𝒂𝒏𝒈 𝑷𝒂𝒈𝒌𝒂𝒌𝒂𝒎𝒂𝒍𝒊 – Ang mga problema at failed tests ay hindi katapusan. Mga pahiwatig lang sila kung ano ang kailangang ayusin para mas maging matibay ka.\n3. 𝑴𝒂𝒈𝒊𝒏𝒈 𝑴𝒂𝒊𝒏𝒈𝒂𝒕 𝒔𝒂 𝑩𝒂𝒘𝒂𝒕 𝑫𝒆𝒕𝒂𝒍𝒚𝒆 – Developer ka man o hindi, ang pagbuo ng bagay nang may malasakit at linis ay laging lumalabas sa ganda ng resulta.\n4. 𝑮𝒖𝒎𝒂𝒘𝒂 𝒏𝒈 𝑴𝒈𝒂 𝑩𝒂𝒈𝒂𝒚 𝒏𝒂 𝑵𝒂𝒌𝒂𝒕𝒖𝒕𝒖𝒍𝒐𝒏𝒈 – Masarap matapos ang trabaho, pero mas masarap sa pakiramdam kapag alam mong ang ginawa mo ay totoong nakapagpadali sa buhay ng iba.",
   },
 
   // =========================================================================
@@ -3212,5 +3226,25 @@ Malaki ang nababawas nito sa oras ng pag-debug at manual testing.`,
     category: "projects",
     en: `You can explore my projects right here in the Projects section of this portfolio, or inspect the source repositories and commit histories directly on GitHub at https://github.com/elnarkennu16-440.`,
     tl: `Maaari mong makita ang aking mga gawa sa mismong Projects section ng portfolio na ito, o suriin ang source code at commits sa aking GitHub sa https://github.com/elnarkennu16-440.`,
+  },
+  // 43. ADVICE FOR ASPIRING BSIS, BSIT, BSCS STUDENTS
+  // 45. ADVICE FOR ASPIRING IT/IS/CS STUDENTS
+  // 45. ADVICE FOR ASPIRING IT/IS/CS STUDENTS
+  {
+    id: "aspiring_it_students",
+    patterns: [
+      /\b(What advice do you have for aspiring BSIS, BSIT, or BSCS students?|planning to take|incoming)\s+(bsis|bsit|bscs)\b/i,
+      /\b(Anong payo mo para sa mga aspiring BSIS, BSIT, o BSCS students?|gusto ko mag|magti-take ako ng|kukuha ako ng)\s+(bsis|bsit|bscs)\b/i,
+      /\b(advice|tips)\s+(for|sa)\s+(bsis|bsit|bscs|it students)\b/i,
+      /\b(bsis vs bsit vs bscs|ano mas maganda bsis bsit bscs)\b/i,
+      /\b(ano ang|what is)\s+(bsis|bsit|bscs)\b/i,
+    ],
+    keywords: [
+      "What advice do you have for aspiring BSIS, BSIT, or BSCS students?",
+      "Anong payo mo para sa mga aspiring BSIS, BSIT, o BSCS students?",
+    ],
+    category: "general",
+    en: "Choosing a path in technology is a solid decision, but success in college comes down to mindset and practice. Here is my practical advice for incoming students:\n\n1. 𝑼𝒏𝒅𝒆𝒓𝒔𝒕𝒂𝒏𝒅 𝒕𝒉𝒆 𝑭𝒐𝒄𝒖𝒔 – BSCS zeroes in on algorithms and computation, BSIT focuses on systems and infrastructure, while BSIS bridges technology with business strategy and user workflows.\n2. 𝑩𝒖𝒊𝒍𝒅 𝑩𝒆𝒚𝒐𝒏𝒅 𝒕𝒉𝒆 𝑪𝒍𝒂𝒔𝒔𝒓𝒐𝒐𝒎 – College teaches the fundamentals, but actual skill comes from working on your own projects and practicing real-world application early on.\n3. 𝑴𝒂𝒔𝒕𝒆𝒓 𝑭𝒖𝒏𝒅𝒂𝒎𝒆𝒏𝒕𝒂𝒍𝒔 𝑶𝒗𝒆𝒓 𝑯𝒚𝒑𝒆 – Don't chase every trending tool. Focus on core logic, clean code structure, and understanding how applications function from end to end.\n4. 𝑳𝒆𝒂𝒓𝒏 𝒕𝒐 𝑻𝒓𝒐𝒖𝒃𝒍𝒆𝒔𝒉𝒐𝒐𝒕 𝑰𝒏𝒅𝒆𝒑𝒆𝒏𝒅𝒆𝒏𝒕𝒍𝒚 – The most valuable tech skill is knowing how to debug problems, read documentation, and adapt when things don't work as expected.",
+    tl: "Magandang desisyon ang pagpasok sa tech field, pero ang tunay na tagumpay sa kolehiyo ay nakadepende sa disiplina at praktis. Eto ang honest at direktang payo ko para sa mga bagong estudyante:\n\n1. 𝑨𝒍𝒂𝒎𝒊𝒏 𝒂𝒏𝒈 𝑵𝒂𝒈𝒌𝒂𝒌𝒂𝒊𝒃𝒂 – Ang BSCS ay nakatutok sa algorithms at theory, ang BSIT ay sa systems at infrastructure, habang ang BSIS naman ay ang pag-uugnay ng teknolohiya sa business strategy at user workflows.\n2. 𝑯𝒖𝒘𝒂𝒈 𝑴𝒂𝒂𝒔𝒂 𝑳𝒂𝒏𝒈 𝒔𝒂 𝑳𝒆𝒌𝒔𝒚𝒐𝒏 – Basehan lang ang itinuturo sa eskwelahan. Ang tunay na galing ay makukuha mo sa sariling praktis at paggawa ng sarili mong mga proyekto nang maaga.\n3. 𝑴𝒂𝒈-𝒇𝒐𝒄𝒖𝒔 𝒔𝒂 𝑭𝒖𝒏𝒅𝒂𝒎𝒆𝒏𝒕𝒂𝒍𝒔 – Huwag magpadala sa padami-daming bagong tools. Maging magaling sa core logic, malinis na pagsulat ng code, at sa tamang pag-unawa sa takbo ng software.\n4. 𝑴𝒂𝒕𝒖𝒕𝒐𝒏𝒈 𝑴𝒂𝒈-𝒔𝒐𝒍𝒗𝒆 𝑵𝒂𝒏𝒈 𝑴𝒂𝒈-𝒊𝒔𝒂 – Ang pinakamahalagang skill sa tech ay ang kakayahang mag-debug ng problema, magbasa ng documentation, at mag-adjust kapag may nagkakamali sa ginagawa mo.",
   },
 ];

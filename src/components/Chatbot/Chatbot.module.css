@@ -120,22 +120,22 @@
   }
 }
 
-/* Chat Window Modal */
+/* Chat Window Modal — Expanded size for spacious readability */
 .chatWindow {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 336px;
-  max-width: calc(100vw - 28px);
-  height: 465px;
-  max-height: calc(100vh - 84px);
+  width: 418px;
+  max-width: calc(100vw - 32px);
+  height: 615px;
+  max-height: calc(100vh - 90px);
   background-color: var(--bg-surface);
   color: var(--text-primary);
   border: 1px solid var(--border-hairline);
-  border-radius: 12px;
+  border-radius: 14px;
   box-shadow:
-    0 16px 40px -8px rgba(0, 0, 0, 0.24),
-    0 4px 14px rgba(0, 0, 0, 0.1);
+    0 20px 48px -8px rgba(0, 0, 0, 0.28),
+    0 6px 18px rgba(0, 0, 0, 0.12);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -438,6 +438,86 @@
   border-top-right-radius: 2px;
 }
 
+/* Floating Starter Questions below Intro Greeting (Strictly borderless plain-text display) */
+.floatingQuestionsList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px 2px 8px 4px;
+  margin-top: 2px;
+  animation: messageEntrance 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.floatingQuestionButton {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: none !important;
+  outline: none;
+  padding: 5px 6px;
+  border-radius: 6px;
+  text-align: left;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    color 0.18s ease,
+    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.18s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: none !important;
+}
+
+.floatingQuestionButton:hover:not(:disabled) {
+  color: var(--text-primary);
+  transform: translateX(3px);
+  background-color: var(--bg-surface-elevated);
+}
+
+[data-theme="dark"] .floatingQuestionButton {
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .floatingQuestionButton:hover:not(:disabled) {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.floatingQuestionNumber {
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  transition: color 0.18s ease;
+}
+
+.floatingQuestionButton:hover:not(:disabled) .floatingQuestionNumber {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"]
+  .floatingQuestionButton:hover:not(:disabled)
+  .floatingQuestionNumber {
+  color: #ffffff;
+}
+
+.floatingQuestionText {
+  flex: 1;
+  word-break: break-word;
+}
+
+.floatingQuestionButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Typing Indicator Animation */
 .typingIndicator {
   display: inline-flex;
@@ -647,18 +727,19 @@
   cursor: not-allowed;
 }
 
-/* Mobile Responsiveness */
-@media (max-width: 480px) {
+/* Mobile Responsiveness — Spacious height reaching towards top bar as in design */
+@media (max-width: 640px) {
   .chatbotContainer {
-    bottom: 14px;
-    right: 14px;
+    bottom: 12px;
+    right: 12px;
   }
 
   .chatWindow {
-    width: calc(100vw - 28px);
-    max-width: 336px;
-    height: min(465px, calc(100vh - 80px));
-    bottom: 14px;
-    right: 14px;
+    width: calc(100vw - 24px);
+    max-width: 420px;
+    height: min(670px, calc(100dvh - 75px));
+    bottom: 12px;
+    right: 12px;
+    border-radius: 14px;
   }
 }

@@ -72,6 +72,52 @@ const INITIAL_GREETING_EN =
 const INITIAL_GREETING_TL =
   "Kamusta! Ako ang autonomous AI assistant para sa portfolio ni Kennu Elnar. Ang aking mga sagot ay limitado at nakabatay lamang sa impormasyong ibinigay niya. Huwag mag-atubiling magtanong tungkol sa kanyang background, mga proyekto, kasanayan, o tech stacks. Kung may mga katanungan, puna, o ideya kang nais ibahagi, huwag mag-atubiling makipag-ugnayan. Maaari kang magtanong sa Ingles o Tagalog!";
 
+interface FloatingQuestion {
+  id: string;
+  number: string;
+  labelEn: string;
+  labelTl: string;
+  queryEn: string;
+  queryTl: string;
+}
+
+const FLOATING_QUESTIONS: FloatingQuestion[] = [
+  {
+    id: "thoughts-on-ai-tools",
+    number: "1.",
+    labelEn: "Thoughts on AI Tools",
+    labelTl: "Pananaw sa AI Tools",
+    queryEn: "What are your thoughts on AI tools and coding assistants?",
+    queryTl: "Ano ang pananaw mo sa mga AI tools at coding assistants?",
+  },
+  {
+    id: "advice-bsis-it-cs",
+    number: "2.",
+    labelEn: "Piece of advice for BSIS, BSIT, BSCS etc.",
+    labelTl: "Payo para sa BSIS, BSIT, BSCS atbp.",
+    queryEn:
+      "What advice do you have for aspiring BSIS, BSIT, or BSCS students?",
+    queryTl: "Anong payo mo para sa mga aspiring BSIS, BSIT, o BSCS students?",
+  },
+  {
+    id: "learn-technologies",
+    number: "3.",
+    labelEn: "How do you learn new technologies and tools?",
+    labelTl: "Paano ka matuto ng bagong technologies at tools?",
+    queryEn: "How do you learn new technologies, frameworks, and tools?",
+    queryTl: "Paano ka nag-aaral at natututo ng bagong technologies at tools?",
+  },
+  {
+    id: "daily-motivation",
+    number: "4.",
+    labelEn: "Daily Motivation?",
+    labelTl: "Pang-araw-araw na Inspirasyon?",
+    queryEn: "What is your daily motivation and mindset?",
+    queryTl:
+      "Ano ang nagmo-motivate sa iyo araw-araw at ang iyong inspirasyon?",
+  },
+];
+
 export const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [language, setLanguage] = useState<"en" | "tl">("en");
@@ -295,7 +341,7 @@ export const Chatbot: React.FC = () => {
                 </button>
               </div>
 
-              {/* Refresh / Reset Chat Button (Pointed by Red Arrow) */}
+              {/* Refresh / Reset Chat Button */}
               <button
                 type="button"
                 className={styles.refreshButton}
@@ -326,7 +372,7 @@ export const Chatbot: React.FC = () => {
             </div>
           </div>
 
-          {/* Messages Feed: Clean bubbles without avatar or timestamp clutter */}
+          {/* Messages Feed */}
           <div
             className={`${styles.messagesContainer} ${
               isClearing ? styles.messagesClearing : ""
@@ -343,6 +389,38 @@ export const Chatbot: React.FC = () => {
               </div>
             ))}
 
+            {/* Floating Starter Questions directly below initial greeting */}
+            {messages.length === 1 && !isTyping && (
+              <div
+                className={styles.floatingQuestionsList}
+                aria-label="Popular questions"
+              >
+                {FLOATING_QUESTIONS.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={styles.floatingQuestionButton}
+                    onClick={() =>
+                      handleSend(
+                        language === "tl" ? item.queryTl : item.queryEn,
+                      )
+                    }
+                    disabled={isTyping}
+                  >
+                    <span
+                      className={styles.floatingQuestionNumber}
+                      aria-hidden="true"
+                    >
+                      {item.number}
+                    </span>
+                    <span className={styles.floatingQuestionText}>
+                      {language === "tl" ? item.labelTl : item.labelEn}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
             {isTyping && (
               <div className={`${styles.messageRow} ${styles.bot}`}>
                 <div className={styles.typingIndicator}>
@@ -355,7 +433,7 @@ export const Chatbot: React.FC = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Suggestions / Question Pills (Pointed by Red Arrow) */}
+          {/* Quick Suggestions / Question Pills */}
           <div
             className={styles.quickPillsRow}
             aria-label="Suggested questions"
@@ -406,7 +484,7 @@ export const Chatbot: React.FC = () => {
         </div>
       )}
 
-      {/* Floating Chat Launcher Button (Visible only when chat is closed) */}
+      {/* Floating Chat Launcher Button */}
       {!isOpen && (
         <button
           type="button"
@@ -415,7 +493,6 @@ export const Chatbot: React.FC = () => {
           aria-expanded={isOpen}
           aria-label="Open chat with Kennu Elnar"
         >
-          {/* Floating 3D-styled speech bubble badge with subtle floating animation */}
           <div className={styles.floatingBadge} aria-hidden="true">
             <svg
               className={styles.floatingBadgeIcon}

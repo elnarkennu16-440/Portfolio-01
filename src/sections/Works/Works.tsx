@@ -151,7 +151,7 @@ const ProjectCardItem: React.FC<{
       }`}
       data-debug-content={getPlaceholderDebugAttr(project.status)}
     >
-      {/* Media Container: Image untouched */}
+      {/* Media Container: Image untouched (rises in from below when this card scrolls into view) */}
       <div className={styles.mediaContainer}>
         {project.imageUrl ? (
           <img
@@ -178,19 +178,25 @@ const ProjectCardItem: React.FC<{
           index % 2 === 1 ? styles.cardStagger : ""
         }`}
       >
-        {/* Clips only the slice animation (the 3D faces live outside it) */}
+        {/* Clips only the slice animation (the 3D faces ride along with the halves) */}
         <div className={styles.sliceClip}>
           {/* Base Panel (Permanent, interactive after merge) */}
           <div className={styles.labelPanel}>{renderPanelContent()}</div>
 
-          {/* Split Phase 1: Right half (slides horizontally from right) */}
+          {/* Split Phase 1: Right half (slides horizontally from right).
+              It carries the RIGHT SIDE face + the right part of the TOP face, so the block
+              is already 3D while it slides in. */}
           <div className={styles.rightHalfSegment} aria-hidden="true">
             <div className={styles.halfPanelBody}>{renderPanelContent()}</div>
+            <span className={`${styles.face} ${styles.faceSide}`} />
+            <span className={`${styles.face} ${styles.faceTopRight}`} />
           </div>
 
-          {/* Split Phase 2: Left half (rises vertically from bottom) */}
+          {/* Split Phase 2: Left half (rises vertically from bottom).
+              It carries the left part of the TOP face. */}
           <div className={styles.leftHalfSegment} aria-hidden="true">
             <div className={styles.halfPanelBody}>{renderPanelContent()}</div>
+            <span className={`${styles.face} ${styles.faceTopLeft}`} />
           </div>
         </div>
       </div>
@@ -428,14 +434,21 @@ export const Works: React.FC<WorksProps> = ({ onOpenAllProjects }) => {
                 {works.sectionNumber}
               </span>
             ) : null}
-            <h2 className={styles.sectionTitle}>{works.sectionTitle}</h2>
+            {/* Title rises out of an invisible clipping line (same reveal as the About text) */}
+            <h2 className={styles.sectionTitle}>
+              <span className={styles.riseMask}>
+                <span className={styles.riseInner}>{works.sectionTitle}</span>
+              </span>
+            </h2>
           </div>
           <div className={styles.headerUnderline} aria-hidden="true" />
         </div>
 
         {/* Intro text + small "View all projects" line-arrow link */}
         <div className={styles.introRow}>
-          <p className={styles.introText}>{works.intro}</p>
+          <div className={styles.introMask}>
+            <p className={styles.introText}>{works.intro}</p>
+          </div>
 
           {extraProjects.length > 0 && (
             <button
