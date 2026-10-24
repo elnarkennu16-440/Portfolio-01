@@ -4,15 +4,35 @@ import { useScrollReveal } from "../../hooks/useScrollReveal";
 import officialLogo from "../../assets/logo/KE-LOGO-.png";
 import styles from "./Footer.module.css";
 
+type SubpageId = "experience" | "workflows" | "services";
+
 interface FooterProps {
   onOpenContact: () => void;
+  onOpenSubpage?: (subpage: SubpageId) => void;
+  onOpenAllProjects?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onOpenContact }) => {
+export const Footer: React.FC<FooterProps> = ({
+  onOpenContact,
+  onOpenSubpage,
+  onOpenAllProjects,
+}) => {
   const { meta, footer } = siteContent;
   const { elementRef, isRevealed } = useScrollReveal<HTMLElement>({
     threshold: 0.08,
   });
+
+  // Opens the subpage. If App.tsx did not pass `onOpenSubpage`, the button still
+  // does something useful: it scrolls to the Professional Overview section.
+  const openSubpage = (subpage: SubpageId) => {
+    if (onOpenSubpage) {
+      onOpenSubpage(subpage);
+      return;
+    }
+    document
+      .getElementById("professional-overview")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <footer
@@ -21,87 +41,153 @@ export const Footer: React.FC<FooterProps> = ({ onOpenContact }) => {
       role="contentinfo"
     >
       <div className={`container ${styles.inner}`}>
-        <div className={styles.topRow}>
-          <div className={styles.identityBlock}>
+        {/* Top Grid: Bold Statement on the Left, 2 Columns on the Right */}
+        <div className={styles.topGrid}>
+          <div className={styles.headlineColumn}>
+            <h2 className={styles.bigHeadline}>
+              Building with purpose.
+              <br />
+              Testing with precision.
+            </h2>
+          </div>
+
+          <div className={styles.linkColumnsGrid}>
+            {/* Column 1: Professional Overview */}
+            <div className={styles.linkColumn}>
+              <span className={styles.columnHeading}>
+                Professional Overview
+              </span>
+              <ul className={styles.linkList}>
+                <li>
+                  <button
+                    type="button"
+                    className={styles.footerNavLink}
+                    onClick={() => openSubpage("experience")}
+                  >
+                    Experience
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    className={styles.footerNavLink}
+                    onClick={() => openSubpage("workflows")}
+                  >
+                    Workflows
+                  </button>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    className={styles.footerNavLink}
+                    onClick={() => openSubpage("services")}
+                  >
+                    Services
+                  </button>
+                </li>
+                {onOpenAllProjects && (
+                  <li>
+                    <button
+                      type="button"
+                      className={styles.footerNavLink}
+                      onClick={onOpenAllProjects}
+                    >
+                      All Projects
+                    </button>
+                  </li>
+                )}
+              </ul>
+            </div>
+
+            {/* Column 2: Connect */}
+            <div className={styles.linkColumn}>
+              <span className={styles.columnHeading}>Connect</span>
+              <ul className={styles.linkList}>
+                <li>
+                  <a
+                    href={
+                      meta.githubUrl || "https://github.com/elnarkennu16-440"
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.footerNavLink}
+                  >
+                    GitHub{" "}
+                    <span className={styles.externalIcon} aria-hidden="true">
+                      ↗
+                    </span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={`mailto:${meta.email}`}
+                    className={styles.footerNavLink}
+                  >
+                    Email{" "}
+                    <span className={styles.externalIcon} aria-hidden="true">
+                      ↗
+                    </span>
+                  </a>
+                </li>
+                <li>
+                  <button
+                    type="button"
+                    className={styles.footerNavLink}
+                    onClick={onOpenContact}
+                  >
+                    Message Me
+                  </button>
+                </li>
+                <li>
+                  <a
+                    href={meta.resumeDocxUrl || meta.resumeUrl}
+                    download
+                    className={styles.footerNavLink}
+                  >
+                    Resume (DOCX){" "}
+                    <span className={styles.externalIcon} aria-hidden="true">
+                      ↓
+                    </span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle Row: Brand Identity & Action Controls */}
+        <div className={styles.middleBrandRow}>
+          <div className={styles.brandGroup}>
             <div className={styles.footerLogoContainer}>
               <img
                 src={officialLogo}
                 alt="Kennu Elnar Logo"
                 className={styles.footerLogo}
-                width={212}
-                height={235}
+                width={96}
+                height={106}
                 loading="lazy"
               />
             </div>
-            <span className={styles.role}>{meta.role}</span>
-            <div className={styles.contactDetails}>
-              <a href={`mailto:${meta.email}`} className={styles.contactLink}>
-                {meta.email}
-              </a>
-              <span className={styles.contactDot} aria-hidden="true">
-                •
-              </span>
-              <a
-                href={`tel:${meta.phone.replace(/\s+/g, "")}`}
-                className={styles.contactLink}
-              >
-                {meta.phone}
-              </a>
+            <div className={styles.brandInfo}>
+              <span className={styles.brandName}>{meta.name}</span>
+              <span className={styles.brandRole}>{meta.role}</span>
             </div>
-          </div>
-
-          <div className={styles.footerActions}>
-            <a
-              href={meta.githubUrl || "https://github.com/elnarkennu16-440"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="pillButton"
-              aria-label="Kennu Elnar GitHub Profile"
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden="true"
-                style={{ flexShrink: 0 }}
-              >
-                <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
-                  d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
-                />
-              </svg>
-              <span>GitHub</span>
-              <span className="arrow" aria-hidden="true">
-                ↗
-              </span>
-            </a>
-
-            <button
-              type="button"
-              className="pillButton"
-              onClick={onOpenContact}
-              aria-haspopup="dialog"
-            >
-              <span>Message me</span>
-              <span className="arrow" aria-hidden="true">
-                →
-              </span>
-            </button>
           </div>
         </div>
 
-        <div className={styles.bottomRow}>
-          <span className={styles.copyright}>{footer.copyright}</span>
+        {/* Bottom Row: Region, Copyright, and Back-to-Top */}
+        <div className={styles.bottomLegalRow}>
+          <div className={styles.legalLeft}>
+            <span className={styles.regionTag}>
+              Camarines Norte, Philippines
+            </span>
+            <span className={styles.dotDivider} aria-hidden="true">
+              •
+            </span>
+            <span className={styles.regionTag}>English (US)</span>
+          </div>
 
-          <a
-            href="#hero"
-            className={styles.backToTop}
-            aria-label="Return to top of page"
-          >
-            {footer.backToTop}
-          </a>
+          <span className={styles.copyright}>{footer.copyright}</span>
         </div>
       </div>
     </footer>

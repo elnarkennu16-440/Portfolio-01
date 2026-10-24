@@ -17,7 +17,7 @@ import { ProfessionalOverview } from "./sections/ProfessionalOverview/Profession
 import { Experience } from "./sections/ProfessionalOverview/Experience/Experience";
 import { Workflows } from "./sections/ProfessionalOverview/Workflows/Workflows";
 import { Services } from "./sections/ProfessionalOverview/Services/Services";
-import { Philosophy } from "./sections/Philosophy/Philosophy";
+import { PreFooterBanner } from "./sections/PreFooterBanner/PreFooterBanner";
 import { Footer } from "./sections/Footer/Footer";
 import { ContactModal } from "./components/ContactModal/ContactModal";
 import { Chatbot } from "./components/Chatbot/Chatbot";
@@ -109,11 +109,18 @@ export default function App() {
           <ProfessionalOverview onOpenSubpage={handleOpenSubpage} />
 
           {/* Philosophy / Scroll-Switching Statement Section */}
-          <Philosophy />
+          <PreFooterBanner
+            onOpenContact={handleOpenContact}
+            onOpenSubpage={handleOpenSubpage}
+          />
         </main>
 
         {/* Footer */}
-        <Footer onOpenContact={handleOpenContact} />
+        <Footer
+          onOpenContact={handleOpenContact}
+          onOpenSubpage={handleOpenSubpage}
+          onOpenAllProjects={handleOpenViewAllProjects}
+        />
       </div>
 
       {isViewAllProjectsOpen && (

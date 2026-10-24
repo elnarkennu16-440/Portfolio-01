@@ -1,0 +1,383 @@
+.bannerSection {
+  position: relative;
+  width: 100%;
+  /* taller than before so the photo is actually visible */
+  min-height: clamp(520px, 88vh, 860px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border-hairline);
+  background-color: #0b0b0d;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* Background Photo Container with Cinematic Grayscale & Vignette */
+.imageContainer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.bannerImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* keeps the head + shoulders in frame (subject sits right of the text) */
+  object-position: 58% 38%;
+  filter: grayscale(100%) contrast(1.08) brightness(1);
+  transform: scale(1.06);
+  transition:
+    transform 2.2s var(--ease-slowmo, var(--ease-editorial)),
+    filter 0.6s ease;
+  will-change: transform;
+}
+
+.isRevealed .bannerImage {
+  transform: scale(1.02);
+}
+
+.bannerSection:hover .bannerImage {
+  transform: scale(1.04);
+}
+
+[data-theme="light"] .bannerImage {
+  filter: grayscale(100%) contrast(1.06) brightness(1);
+}
+
+/* Lighter filmic vignette: the left side is darkened for the text only,
+   the subject on the right stays clear (strictly grayscale, no neon). */
+.vignetteOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    /* soft edge shading around the subject */
+    radial-gradient(
+      ellipse 70% 85% at 60% 42%,
+      rgba(0, 0, 0, 0) 38%,
+      rgba(0, 0, 0, 0.5) 100%
+    ),
+    /* text side */
+    linear-gradient(
+        to right,
+        rgba(11, 11, 13, 0.92) 0%,
+        rgba(11, 11, 13, 0.7) 24%,
+        rgba(11, 11, 13, 0.15) 50%,
+        rgba(11, 11, 13, 0) 66%
+      ),
+    /* top seamless fade from canvas */
+    linear-gradient(
+        to bottom,
+        var(--bg-primary) 0%,
+        rgba(14, 14, 16, 0.45) 9%,
+        rgba(0, 0, 0, 0) 20%
+      ),
+    /* bottom seamless transition into footer */
+    linear-gradient(
+        to top,
+        #09090b 0%,
+        rgba(9, 9, 11, 0.6) 12%,
+        rgba(0, 0, 0, 0) 32%
+      );
+}
+
+[data-theme="light"] .vignetteOverlay {
+  background:
+    radial-gradient(
+      ellipse 70% 85% at 60% 42%,
+      rgba(0, 0, 0, 0) 40%,
+      rgba(0, 0, 0, 0.42) 100%
+    ),
+    linear-gradient(
+      to right,
+      rgba(11, 11, 13, 0.92) 0%,
+      rgba(11, 11, 13, 0.7) 24%,
+      rgba(11, 11, 13, 0.15) 50%,
+      rgba(11, 11, 13, 0) 66%
+    ),
+    linear-gradient(
+      to bottom,
+      var(--bg-primary) 0%,
+      rgba(249, 249, 247, 0.55) 7%,
+      rgba(0, 0, 0, 0) 18%
+    ),
+    linear-gradient(
+      to top,
+      #141416 0%,
+      rgba(20, 20, 22, 0.6) 12%,
+      rgba(0, 0, 0, 0) 32%
+    );
+}
+
+/* Subtle Film Grain Texture Overlay */
+.grainOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0.1;
+  pointer-events: none;
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.18) 1px,
+    transparent 0
+  );
+  background-size: 4px 4px;
+}
+
+/* Content Frame placed over image (matching bottom-left controls of reference) */
+.contentFrame {
+  position: relative;
+  z-index: 4;
+  width: 100%;
+  padding-top: clamp(var(--space-12), 10vh, var(--space-20));
+  padding-bottom: clamp(var(--space-8), 6vh, var(--space-12));
+  opacity: 0;
+  transform: translate3d(0, 24px, 0);
+  transition:
+    opacity 1.1s var(--ease-editorial),
+    transform 1.1s var(--ease-editorial);
+}
+
+.isRevealed .contentFrame {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+@media (min-width: 768px) {
+  .inner {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+}
+
+.leftGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 640px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-widest);
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+}
+
+.badgeDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+
+.statement {
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: 400;
+  line-height: 1.15;
+  color: #ffffff;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6);
+  margin: 0;
+}
+
+.statementSub {
+  font-family: var(--font-sans);
+  font-size: clamp(var(--text-sm), 1.6vw, var(--text-base));
+  font-weight: 300;
+  line-height: var(--leading-normal);
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  max-width: 52ch;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Buttons: text + underline connected to an arrow (same style as Professional Overview) */
+.buttonRow {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(var(--space-6), 3vw, var(--space-10));
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+
+.ctaLine {
+  position: relative;
+  z-index: 5;
+  display: inline-flex;
+  align-items: flex-end;
+  width: min(100%, 14rem);
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 500;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+  transition: color 0.25s var(--ease-editorial);
+}
+
+.ctaLineMuted {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.ctaLine:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.ctaLine:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 5px;
+}
+
+.ctaLineLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0 0.15rem 0.5rem;
+  border-bottom: 1px solid currentColor;
+  line-height: 1.2;
+}
+
+.ctaLineArrow {
+  display: block;
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  overflow: visible;
+  transition: transform 0.3s var(--ease-editorial);
+}
+
+.ctaLine:hover .ctaLineArrow {
+  transform: translate(2px, -2px);
+}
+
+.rightMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: var(--tracking-wide);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+
+@media (min-width: 768px) {
+  .rightMeta {
+    align-items: flex-end;
+    text-align: right;
+    /* keeps the text clear of the floating chatbot button */
+    padding-right: 5.5rem;
+  }
+}
+
+.rightMetaTitle {
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-widest);
+  font-weight: 500;
+}
+
+/* =========================================================================
+   MOBILE: portrait photo on top, text sits on the dark fade at the bottom
+   ========================================================================= */
+@media (max-width: 767px) {
+  .bannerSection {
+    min-height: clamp(36rem, 92svh, 46rem);
+  }
+
+  .bannerImage {
+    object-position: 60% 30%;
+  }
+
+  .vignetteOverlay {
+    background:
+      radial-gradient(
+        ellipse 90% 60% at 60% 28%,
+        rgba(0, 0, 0, 0) 40%,
+        rgba(0, 0, 0, 0.45) 100%
+      ),
+      linear-gradient(
+        to top,
+        #0b0b0d 0%,
+        rgba(11, 11, 13, 0.94) 38%,
+        rgba(11, 11, 13, 0.55) 55%,
+        rgba(11, 11, 13, 0) 76%
+      ),
+      linear-gradient(
+        to bottom,
+        var(--bg-primary) 0%,
+        rgba(14, 14, 16, 0.45) 8%,
+        rgba(0, 0, 0, 0) 18%
+      );
+  }
+
+  [data-theme="light"] .vignetteOverlay {
+    background:
+      radial-gradient(
+        ellipse 90% 60% at 60% 28%,
+        rgba(0, 0, 0, 0) 40%,
+        rgba(0, 0, 0, 0.4) 100%
+      ),
+      linear-gradient(
+        to top,
+        #141416 0%,
+        rgba(20, 20, 22, 0.94) 38%,
+        rgba(20, 20, 22, 0.55) 55%,
+        rgba(0, 0, 0, 0) 76%
+      ),
+      linear-gradient(
+        to bottom,
+        var(--bg-primary) 0%,
+        rgba(249, 249, 247, 0.55) 6%,
+        rgba(0, 0, 0, 0) 16%
+      );
+  }
+
+  .contentFrame {
+    padding-top: 18rem;
+  }
+
+  .buttonRow .ctaLine {
+    flex: 1 1 140px;
+    width: auto;
+  }
+
+  .rightMeta {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bannerImage,
+  .isRevealed .bannerImage {
+    transform: none;
+    transition: none;
+  }
+}
