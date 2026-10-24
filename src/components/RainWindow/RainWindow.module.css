@@ -1,0 +1,193 @@
+/* =========================================================================
+   RAIN WINDOW — minimalist rain + live Philippine time
+   (no glass border / frame: the rain simply fades softly at its edges)
+
+   SIZE: a wide, SHORT strip (was a tall 16:10 box that made the footer very long).
+   Change the shape with `aspect-ratio` on .window (bigger first number = flatter).
+   ========================================================================= */
+.window {
+  /* dark theme (default) */
+  --rw-bg-a: #0f1014;
+  --rw-bg-b: #08090b;
+  --rw-border: rgba(255, 255, 255, 0.16);
+  --rw-frame: rgba(255, 255, 255, 0.07);
+  --rw-fg: rgba(255, 255, 255, 0.86);
+  --rw-fg-2: rgba(255, 255, 255, 0.5);
+  --rw-fg-3: rgba(255, 255, 255, 0.36);
+  --rw-sheen: rgba(255, 255, 255, 0.045);
+  --rw-scrim: rgba(6, 7, 9, 0.62);
+
+  position: relative;
+  /* same width as before, but much shorter */
+  width: min(100%, 600px);
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  aspect-ratio: 2.8 / 1; /* desktop: wide strip (was 16 / 10) */
+  min-height: 150px;
+  overflow: hidden;
+  /* glass border + box background hidden: minimalist, the rain floats on the page */
+  border: none;
+  border-radius: 6px;
+  background: none;
+  isolation: isolate;
+  contain: layout paint;
+}
+
+[data-theme="light"] .window {
+  --rw-bg-a: #eceef1;
+  --rw-bg-b: #dde0e5;
+  --rw-border: rgba(0, 0, 0, 0.16);
+  --rw-frame: rgba(0, 0, 0, 0.08);
+  --rw-fg: rgba(16, 18, 22, 0.88);
+  --rw-fg-2: rgba(16, 18, 22, 0.56);
+  --rw-fg-3: rgba(16, 18, 22, 0.42);
+  --rw-sheen: rgba(255, 255, 255, 0.5);
+  --rw-scrim: rgba(226, 229, 234, 0.7);
+}
+
+/* canvas fills the window (absolute, so it never influences the window size).
+   The soft mask dissolves the rain at the edges instead of a hard box edge. */
+.canvasWrap {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  -webkit-mask-image: radial-gradient(
+    ellipse at 50% 50%,
+    #000 58%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(ellipse at 50% 50%, #000 58%, transparent 100%);
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* glass sheen / vignette and the thin inner frame are hidden (kept in the markup,
+   so they can be switched back on by removing these two rules) */
+.glass,
+.frame {
+  display: none;
+}
+
+/* ---- HUD: Manila label + time ---- */
+.hudTop,
+.hudBottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  padding: 0 clamp(1.1rem, 3vw, 1.75rem);
+  pointer-events: none;
+}
+
+.hudTop {
+  top: clamp(0.9rem, 2.2vw, 1.25rem);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rw-fg-2);
+}
+
+/* the small glowing / pulsing dot next to "MANILA · PH" is removed (hidden) */
+.liveDot {
+  display: none;
+}
+
+.place {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--rw-fg-3);
+}
+
+.hudBottom {
+  bottom: clamp(0.9rem, 2.2vw, 1.25rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.time {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  color: var(--rw-fg);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.timeMain {
+  font-family: var(--font-serif, Georgia, serif);
+  font-weight: 300;
+  font-size: clamp(2rem, 4.6vw, 3rem);
+  letter-spacing: 0.02em;
+}
+
+.timeSec {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: clamp(0.8rem, 1.6vw, 1rem);
+  color: var(--rw-fg-2);
+}
+
+.timePeriod {
+  margin-left: 0.55rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  color: var(--rw-fg-2);
+}
+
+.date {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rw-fg-3);
+}
+
+/* phones: smaller, perfectly centered, even padding (also a shorter strip than before) */
+@media (max-width: 767px) {
+  .window {
+    width: 100%;
+    max-width: 400px;
+    margin-inline: auto;
+    aspect-ratio: 2.1 / 1; /* was 16 / 11 */
+  }
+
+  .hudTop,
+  .hudBottom {
+    padding: 0 1.1rem;
+  }
+
+  .hudTop {
+    top: 0.85rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.14em;
+  }
+
+  .hudBottom {
+    bottom: 0.85rem;
+  }
+
+  .timeMain {
+    font-size: 1.7rem;
+  }
+
+  .timePeriod {
+    font-size: 0.62rem;
+  }
+
+  .date {
+    font-size: 0.54rem;
+    letter-spacing: 0.1em;
+  }
+}

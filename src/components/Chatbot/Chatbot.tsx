@@ -66,57 +66,27 @@ const QUICK_PROMPTS_TL = [
   },
 ];
 
+// Floating plain-text questions shown right under the introduction (no border / no box).
+// Tapping one sends that exact question.
+const FLOATING_QUESTIONS_EN = [
+  "ᴛʜᴏᴜɢʜᴛꜱ ᴏɴ ᴀɪ?",
+  "ᴘɪᴇᴄᴇ ᴏꜰ ᴀᴅᴠɪᴄᴇ ꜰᴏʀ ᴀꜱᴘɪʀɪɴɢ ʙꜱɪꜱ, ʙꜱɪᴛ, ʙꜱᴄꜱ?",
+  "ʜᴏᴡ ᴅᴏ ʏᴏᴜ ʟᴇᴀʀɴ ɴᴇᴡ ᴛᴇᴄʜɴᴏʟᴏɢɪᴇꜱ ᴀɴᴅ ᴛᴏᴏʟꜱ?",
+  "ᴅᴀɪʟʏ ᴍᴏᴛɪᴠᴀᴛɪᴏɴ?",
+];
+
+const FLOATING_QUESTIONS_TL = [
+  "ᴘᴀɴᴀɴᴀᴡ ꜱᴀ ᴀɪ?",
+  "ᴘᴀʏᴏ ᴘᴀʀᴀ ꜱᴀ ᴍɢᴀ ᴀꜱᴘɪʀɪɴɢ ɴᴀ ʙꜱɪꜱ, ʙꜱɪᴛ, ʙꜱᴄꜱ?",
+  "ᴘᴀᴀɴᴏ ᴋᴀ ᴍᴀᴛᴜᴛᴏ ɴɢ ʙᴀɢᴏɴɢ ᴛᴇᴄʜɴᴏʟᴏɢɪᴇꜱ ᴀᴛ ᴛᴏᴏʟꜱ?",
+  "ᴘᴀɴɢ-ᴀʀᴀᴡ-ᴀʀᴀᴡ ɴᴀ ɪɴꜱᴘɪʀᴀꜱʏᴏɴ?",
+];
+
 const INITIAL_GREETING_EN =
   "Hello! I am an autonomous AI assistant for Kennu Elnar's portfolio. My responses are limited and based strictly on his provided information. Feel free to look around and ask me about his background, projects, skills, or tech stack. Whether you have questions, feedback, or ideas to share, don't hesitate to reach out. You're welcome to ask in either English or Tagalog!";
 
 const INITIAL_GREETING_TL =
   "Kamusta! Ako ang autonomous AI assistant para sa portfolio ni Kennu Elnar. Ang aking mga sagot ay limitado at nakabatay lamang sa impormasyong ibinigay niya. Huwag mag-atubiling magtanong tungkol sa kanyang background, mga proyekto, kasanayan, o tech stacks. Kung may mga katanungan, puna, o ideya kang nais ibahagi, huwag mag-atubiling makipag-ugnayan. Maaari kang magtanong sa Ingles o Tagalog!";
-
-interface FloatingQuestion {
-  id: string;
-  number: string;
-  labelEn: string;
-  labelTl: string;
-  queryEn: string;
-  queryTl: string;
-}
-
-const FLOATING_QUESTIONS: FloatingQuestion[] = [
-  {
-    id: "thoughts-on-ai-tools",
-    number: "①",
-    labelEn: "ᴛʜᴏᴜɢʜᴛꜱ ᴏɴ ᴀɪ?",
-    labelTl: "ᴘᴀɴᴀɴᴀᴡ ꜱᴀ ᴀɪ?",
-    queryEn: "What are your thoughts on AI tools and coding assistants?",
-    queryTl: "Ano ang pananaw mo sa mga AI tools at coding assistants?",
-  },
-  {
-    id: "advice-bsis-it-cs",
-    number: "②",
-    labelEn: "ᴘɪᴇᴄᴇ ᴏꜰ ᴀᴅᴠɪᴄᴇ ꜰᴏʀ ᴀꜱᴘɪʀɪɴɢ ʙꜱɪꜱ, ʙꜱɪᴛ, ʙꜱᴄꜱ?",
-    labelTl: "ᴘᴀʏᴏ ᴘᴀʀᴀ ꜱᴀ ᴍɢᴀ ᴀꜱᴘɪʀɪɴɢ ɴᴀ ʙꜱɪꜱ, ʙꜱɪᴛ, ʙꜱᴄꜱ?",
-    queryEn:
-      "What advice do you have for aspiring BSIS, BSIT, or BSCS students?",
-    queryTl: "Anong payo mo para sa mga aspiring BSIS, BSIT, o BSCS students?",
-  },
-  {
-    id: "learn-technologies",
-    number: "③",
-    labelEn: "ʜᴏᴡ ᴅᴏ ʏᴏᴜ ʟᴇᴀʀɴ ɴᴇᴡ ᴛᴇᴄʜɴᴏʟᴏɢɪᴇꜱ ᴀɴᴅ ᴛᴏᴏʟꜱ?",
-    labelTl: "ᴘᴀᴀɴᴏ ᴋᴀ ᴍᴀᴛᴜᴛᴏ ɴɢ ʙᴀɢᴏɴɢ ᴛᴇᴄʜɴᴏʟᴏɢɪᴇꜱ ᴀᴛ ᴛᴏᴏʟꜱ?",
-    queryEn: "How do you learn new technologies, frameworks, and tools?",
-    queryTl: "Paano ka nag-aaral at natututo ng bagong technologies at tools?",
-  },
-  {
-    id: "daily-motivation",
-    number: "④",
-    labelEn: "ᴅᴀɪʟʏ ᴍᴏᴛɪᴠᴀᴛɪᴏɴ?",
-    labelTl: "ᴘᴀɴɢ-ᴀʀᴀᴡ-ᴀʀᴀᴡ ɴᴀ ɪɴꜱᴘɪʀᴀꜱʏᴏɴ?",
-    queryEn: "What is your daily motivation and mindset?",
-    queryTl:
-      "Ano ang nagmo-motivate sa iyo araw-araw at ang iyong inspirasyon?",
-  },
-];
 
 export const Chatbot: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -271,6 +241,11 @@ export const Chatbot: React.FC = () => {
   };
 
   const quickPrompts = language === "tl" ? QUICK_PROMPTS_TL : QUICK_PROMPTS_EN;
+  const floatingQuestions =
+    language === "tl" ? FLOATING_QUESTIONS_TL : FLOATING_QUESTIONS_EN;
+
+  // the floating questions live right under the introduction, until the visitor asks something
+  const showFloatingQuestions = !messages.some((m) => m.sender === "user");
 
   return (
     <div className={styles.chatbotContainer} aria-label="Portfolio Chatbot">
@@ -341,7 +316,7 @@ export const Chatbot: React.FC = () => {
                 </button>
               </div>
 
-              {/* Refresh / Reset Chat Button */}
+              {/* Refresh / Reset Chat Button (Pointed by Red Arrow) */}
               <button
                 type="button"
                 className={styles.refreshButton}
@@ -372,7 +347,7 @@ export const Chatbot: React.FC = () => {
             </div>
           </div>
 
-          {/* Messages Feed */}
+          {/* Messages Feed: Clean bubbles without avatar or timestamp clutter */}
           <div
             className={`${styles.messagesContainer} ${
               isClearing ? styles.messagesClearing : ""
@@ -389,32 +364,23 @@ export const Chatbot: React.FC = () => {
               </div>
             ))}
 
-            {/* Floating Starter Questions directly below initial greeting */}
-            {messages.length === 1 && !isTyping && (
+            {/* Floating plain-text questions (no border) right under the introduction */}
+            {showFloatingQuestions && (
               <div
-                className={styles.floatingQuestionsList}
-                aria-label="Popular questions"
+                className={styles.floatingQuestions}
+                aria-label="Suggested questions"
               >
-                {FLOATING_QUESTIONS.map((item) => (
+                {floatingQuestions.map((question, idx) => (
                   <button
-                    key={item.id}
+                    key={question}
                     type="button"
-                    className={styles.floatingQuestionButton}
-                    onClick={() =>
-                      handleSend(
-                        language === "tl" ? item.queryTl : item.queryEn,
-                      )
-                    }
+                    className={styles.floatingQuestion}
+                    style={{ "--q": idx } as React.CSSProperties}
+                    onClick={() => handleSend(question)}
                     disabled={isTyping}
                   >
-                    <span
-                      className={styles.floatingQuestionNumber}
-                      aria-hidden="true"
-                    >
-                      {item.number}
-                    </span>
                     <span className={styles.floatingQuestionText}>
-                      {language === "tl" ? item.labelTl : item.labelEn}
+                      {question}
                     </span>
                   </button>
                 ))}
@@ -433,7 +399,7 @@ export const Chatbot: React.FC = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Suggestions / Question Pills */}
+          {/* Quick Suggestions / Question Pills (Pointed by Red Arrow) */}
           <div
             className={styles.quickPillsRow}
             aria-label="Suggested questions"
@@ -484,7 +450,7 @@ export const Chatbot: React.FC = () => {
         </div>
       )}
 
-      {/* Floating Chat Launcher Button */}
+      {/* Floating Chat Launcher Button (Visible only when chat is closed) */}
       {!isOpen && (
         <button
           type="button"
@@ -493,6 +459,7 @@ export const Chatbot: React.FC = () => {
           aria-expanded={isOpen}
           aria-label="Open chat with Kennu Elnar"
         >
+          {/* Floating 3D-styled speech bubble badge with subtle floating animation */}
           <div className={styles.floatingBadge} aria-hidden="true">
             <svg
               className={styles.floatingBadgeIcon}

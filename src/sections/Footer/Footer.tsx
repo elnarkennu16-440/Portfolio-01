@@ -1,6 +1,7 @@
 import React from "react";
 import { siteContent } from "../../content/siteContent";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
+import { RainWindow } from "../../components/RainWindow/RainWindow";
 import officialLogo from "../../assets/logo/KE-LOGO-.png";
 import styles from "./Footer.module.css";
 
@@ -41,14 +42,14 @@ export const Footer: React.FC<FooterProps> = ({
       role="contentinfo"
     >
       <div className={`container ${styles.inner}`}>
-        {/* Top Grid: Bold Statement on the Left, 2 Columns on the Right */}
+        {/* Top Grid: Rain Window on the Left, 2 Columns on the Right */}
         <div className={styles.topGrid}>
-          <div className={styles.headlineColumn}>
-            <h2 className={styles.bigHeadline}>
-              Building with purpose.
-              <br />
-              Testing with precision.
-            </h2>
+          {/* minWidth: 0 lets this column shrink to the screen, so the rain window
+              stays centered / evenly padded on phones */}
+          <div className={styles.headlineColumn} style={{ minWidth: 0 }}>
+            {/* Replaces the big "Building with purpose" headline:
+                minimalist window with endless rain + live Philippine time */}
+            <RainWindow />
           </div>
 
           <div className={styles.linkColumnsGrid}>
@@ -92,7 +93,7 @@ export const Footer: React.FC<FooterProps> = ({
                       className={styles.footerNavLink}
                       onClick={onOpenAllProjects}
                     >
-                      All Projects
+                      All Works
                     </button>
                   </li>
                 )}

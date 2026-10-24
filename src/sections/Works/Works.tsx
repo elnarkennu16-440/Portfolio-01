@@ -455,9 +455,9 @@ export const Works: React.FC<WorksProps> = ({ onOpenAllProjects }) => {
               type="button"
               className={styles.viewAllLink}
               onClick={handleViewAll}
-              aria-label="View all projects in archive"
+              aria-label="View all works in archive"
             >
-              <span className={styles.viewAllLinkLabel}>View all projects</span>
+              <span className={styles.viewAllLinkLabel}>View all works</span>
               <ConnectorArrow className={styles.connectorArrow} />
             </button>
           )}
@@ -524,7 +524,7 @@ export const Works: React.FC<WorksProps> = ({ onOpenAllProjects }) => {
                   type="button"
                   className={styles.showMoreBtn}
                   onClick={handleViewAll}
-                  aria-label="View all projects in archive"
+                  aria-label="View all works in archive"
                 >
                   <span className={styles.showMoreLine}>
                     <span
@@ -532,7 +532,7 @@ export const Works: React.FC<WorksProps> = ({ onOpenAllProjects }) => {
                       aria-hidden="true"
                     >
                       <span className={styles.showMoreLabelMore}>
-                        View All Projects
+                        View All Works
                       </span>
                     </span>
                     <span

@@ -120,22 +120,24 @@
   }
 }
 
-/* Chat Window Modal — Expanded size for spacious readability */
+/* Chat Window Modal — larger (desktop): wider and taller, still fits any screen */
 .chatWindow {
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 418px;
-  max-width: calc(100vw - 32px);
-  height: 615px;
-  max-height: calc(100vh - 90px);
+  width: 560px;
+  max-width: calc(100vw - 40px);
+  height: min(760px, calc(100vh - 140px));
+  height: min(760px, calc(100dvh - 140px));
+  max-height: calc(100vh - 100px);
+  max-height: calc(100dvh - 100px);
   background-color: var(--bg-surface);
   color: var(--text-primary);
   border: 1px solid var(--border-hairline);
-  border-radius: 14px;
+  border-radius: 12px;
   box-shadow:
-    0 20px 48px -8px rgba(0, 0, 0, 0.28),
-    0 6px 18px rgba(0, 0, 0, 0.12);
+    0 16px 40px -8px rgba(0, 0, 0, 0.24),
+    0 4px 14px rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -438,84 +440,96 @@
   border-top-right-radius: 2px;
 }
 
-/* Floating Starter Questions below Intro Greeting (Strictly borderless plain-text display) */
-.floatingQuestionsList {
+/* Floating plain-text questions under the introduction:
+   no border, no box, no background — just gently floating text that sends the question when tapped */
+.floatingQuestions {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 4px 2px 8px 4px;
-  margin-top: 2px;
-  animation: messageEntrance 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 2px 2px 4px;
+  max-width: 94%;
 }
 
-.floatingQuestionButton {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  width: 100%;
+.floatingQuestion {
+  display: block;
+  max-width: 100%;
+  margin: 0;
+  padding: 5px 0;
+  border: none;
+  border-radius: 0;
   background: transparent;
-  border: none !important;
-  outline: none;
-  padding: 5px 6px;
-  border-radius: 6px;
-  text-align: left;
+  box-shadow: none;
   font-family: inherit;
-  font-size: 0.8125rem;
-  font-weight: 500;
+  font-size: 0.78125rem;
   line-height: 1.4;
+  text-align: left;
   color: var(--text-secondary);
   cursor: pointer;
-  transition:
-    color 0.18s ease,
-    transform 0.18s cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 0.18s ease;
-  user-select: none;
   -webkit-tap-highlight-color: transparent;
-  box-shadow: none !important;
-}
-
-.floatingQuestionButton:hover:not(:disabled) {
-  color: var(--text-primary);
-  transform: translateX(3px);
-  background-color: var(--bg-surface-elevated);
-}
-
-[data-theme="dark"] .floatingQuestionButton {
-  color: #a1a1aa;
-}
-
-[data-theme="dark"] .floatingQuestionButton:hover:not(:disabled) {
-  color: #ffffff;
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.floatingQuestionNumber {
-  font-weight: 600;
-  color: var(--text-muted);
-  flex-shrink: 0;
-  font-size: 0.8125rem;
-  line-height: 1.4;
-  transition: color 0.18s ease;
-}
-
-.floatingQuestionButton:hover:not(:disabled) .floatingQuestionNumber {
-  color: var(--text-primary);
-}
-
-[data-theme="dark"]
-  .floatingQuestionButton:hover:not(:disabled)
-  .floatingQuestionNumber {
-  color: #ffffff;
+  /* appears one after another, then keeps floating */
+  opacity: 0;
+  animation: questionEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation-delay: calc(var(--q, 0) * 120ms + 220ms);
+  transition: color 0.2s ease;
 }
 
 .floatingQuestionText {
-  flex: 1;
-  word-break: break-word;
+  display: inline-block;
+  overflow-wrap: anywhere;
+  animation: questionFloat 4.2s ease-in-out infinite alternate;
+  animation-delay: calc(var(--q, 0) * -1.1s);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.floatingQuestionButton:disabled {
+.floatingQuestion:hover:not(:disabled),
+.floatingQuestion:focus-visible {
+  color: var(--text-primary);
+  outline: none;
+}
+
+.floatingQuestion:hover:not(:disabled) .floatingQuestionText,
+.floatingQuestion:focus-visible .floatingQuestionText {
+  transform: translateX(4px);
+}
+
+.floatingQuestion:focus-visible .floatingQuestionText {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.floatingQuestion:disabled {
+  cursor: default;
   opacity: 0.5;
-  cursor: not-allowed;
+}
+
+@keyframes questionEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes questionFloat {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-3px);
+  }
+}
+
+[data-theme="dark"] .floatingQuestion {
+  color: #a1a1aa;
+}
+
+[data-theme="dark"] .floatingQuestion:hover:not(:disabled),
+[data-theme="dark"] .floatingQuestion:focus-visible {
+  color: #f4f4f5;
 }
 
 /* Typing Indicator Animation */
