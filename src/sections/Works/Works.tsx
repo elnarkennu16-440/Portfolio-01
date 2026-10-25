@@ -45,6 +45,49 @@ const ConnectorArrow: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+/**
+ * WAVE REVEAL helpers (same idea as Capabilities):
+ * - renderWaveChars: every LETTER rises out of a clipping line, one after another (title + link label)
+ * - renderWords:     every WORD rises out of a clipping line, one after another (intro sentence)
+ * The animation itself lives in Works.module.css and starts when .headRevealed is set.
+ */
+const renderWaveChars = (text: string) => {
+  let ch = 0;
+  return text.split(" ").map((word, wi, words) => (
+    <React.Fragment key={wi}>
+      <span className={styles.waveWord}>
+        {Array.from(word).map((letter, li) => (
+          <span
+            key={li}
+            className={styles.waveChar}
+            style={{ "--ch": ch++ } as React.CSSProperties}
+          >
+            {letter}
+          </span>
+        ))}
+      </span>
+      {wi < words.length - 1 ? (ch++, " ") : null}
+    </React.Fragment>
+  ));
+};
+
+const renderWords = (text: string) => {
+  const words = text.split(" ");
+  return words.map((word, i) => (
+    <React.Fragment key={i}>
+      <span className={styles.wMask} aria-hidden="true">
+        <span
+          className={styles.wInner}
+          style={{ "--w": i } as React.CSSProperties}
+        >
+          {word}
+        </span>
+      </span>
+      {i < words.length - 1 ? " " : null}
+    </React.Fragment>
+  ));
+};
+
 const ProjectCardItem: React.FC<{
   project: ProjectItem;
   index: number;
@@ -218,6 +261,14 @@ export const Works: React.FC<WorksProps> = ({ onOpenAllProjects }) => {
   const { elementRef, isRevealed } = useScrollReveal<HTMLElement>({
     threshold: 0.08,
   });
+
+  // The title + intro + "view all works" link get their OWN trigger, so the wave
+  // starts exactly when this header block scrolls into view (even on phones)
+  const { elementRef: headRef, isRevealed: isHeadRevealed } =
+    useScrollReveal<HTMLDivElement>({
+      threshold: 0.2,
+      rootMargin: "0px 0px -10% 0px",
+    });
 
   // Coming back from the All Projects page? (read once, when Works mounts)
   const [isRestoring] = useState<boolean>(readRestoreFlag);
@@ -425,42 +476,59 @@ export const Works: React.FC<WorksProps> = ({ onOpenAllProjects }) => {
       </div>
 
       <div className="container">
-        {/* Section Header with Left Accent Bar */}
-        <div className={styles.headerRow}>
-          <div className={styles.sectionHeader}>
-            <div className={styles.titleAccentBar} aria-hidden="true" />
-            {works.sectionNumber ? (
-              <span className={styles.sectionNumber}>
-                {works.sectionNumber}
-              </span>
-            ) : null}
-            {/* Title rises out of an invisible clipping line (same reveal as the About text) */}
-            <h2 className={styles.sectionTitle}>
-              <span className={styles.riseMask}>
-                <span className={styles.riseInner}>{works.sectionTitle}</span>
-              </span>
-            </h2>
+        {/* Header block (title + intro + link): has its own scroll trigger for the wave reveal */}
+        <div
+          ref={headRef}
+          className={`${styles.headBlock} ${
+            isHeadRevealed || isRestoring ? styles.headRevealed : ""
+          }`}
+        >
+          {/* Section Header with Left Accent Bar */}
+          <div className={styles.headerRow}>
+            <div className={styles.sectionHeader}>
+              <div className={styles.titleAccentBar} aria-hidden="true" />
+              {works.sectionNumber ? (
+                <span className={styles.sectionNumber}>
+                  {works.sectionNumber}
+                </span>
+              ) : null}
+              {/* Title: every letter rises out of a clipping line (wave) */}
+              <h2
+                className={styles.sectionTitle}
+                aria-label={works.sectionTitle}
+              >
+                <span aria-hidden="true">
+                  {renderWaveChars(works.sectionTitle)}
+                </span>
+              </h2>
+            </div>
+            <div className={styles.headerUnderline} aria-hidden="true" />
           </div>
-          <div className={styles.headerUnderline} aria-hidden="true" />
-        </div>
 
-        {/* Intro text + small "View all projects" line-arrow link */}
-        <div className={styles.introRow}>
-          <div className={styles.introMask}>
-            <p className={styles.introText}>{works.intro}</p>
+          {/* Intro text + small "View all projects" line-arrow link */}
+          <div className={styles.introRow}>
+            <div className={styles.introMask}>
+              <p className={styles.introText} aria-label={works.intro}>
+                {renderWords(works.intro)}
+              </p>
+            </div>
+
+            {extraProjects.length > 0 && (
+              <button
+                type="button"
+                className={styles.viewAllLink}
+                onClick={handleViewAll}
+                aria-label="View all works in archive"
+              >
+                <span className={styles.viewAllLinkLabel}>
+                  <span className={styles.linkMask} aria-hidden="true">
+                    {renderWaveChars("View all works")}
+                  </span>
+                </span>
+                <ConnectorArrow className={styles.connectorArrow} />
+              </button>
+            )}
           </div>
-
-          {extraProjects.length > 0 && (
-            <button
-              type="button"
-              className={styles.viewAllLink}
-              onClick={handleViewAll}
-              aria-label="View all works in archive"
-            >
-              <span className={styles.viewAllLinkLabel}>View all works</span>
-              <ConnectorArrow className={styles.connectorArrow} />
-            </button>
-          )}
         </div>
 
         {/* Dynamic Projects Grid */}

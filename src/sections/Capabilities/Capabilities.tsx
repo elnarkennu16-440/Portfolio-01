@@ -8,6 +8,55 @@ import {
 } from "./CapabilityIcons";
 import styles from "./Capabilities.module.css";
 
+/* ── Wave reveal for the section title + intro text ───────────────────── */
+
+// Title: letters rise one by one out of a mask
+const HeadingWaveChars: React.FC<{ text: string }> = ({ text }) => {
+  let index = 0;
+  return (
+    <>
+      {text.split(" ").map((word, w, words) => (
+        <React.Fragment key={`${word}-${w}`}>
+          <span className={styles.headWord} aria-hidden="true">
+            {Array.from(word).map((ch, c) => (
+              <span
+                key={c}
+                className={styles.headChar}
+                style={{ "--hc": index++ } as React.CSSProperties}
+              >
+                {ch}
+              </span>
+            ))}
+          </span>
+          {w < words.length - 1 ? (index++, " ") : null}
+        </React.Fragment>
+      ))}
+    </>
+  );
+};
+
+// Short description: words rise one after another
+const IntroWaveWords: React.FC<{ text: string }> = ({ text }) => {
+  const words = text.split(/\s+/).filter(Boolean);
+  return (
+    <>
+      {words.map((word, i) => (
+        <React.Fragment key={`${word}-${i}`}>
+          <span className={styles.introWord} aria-hidden="true">
+            <span
+              className={styles.introWordInner}
+              style={{ "--iw": i } as React.CSSProperties}
+            >
+              {word}
+            </span>
+          </span>
+          {i < words.length - 1 ? " " : null}
+        </React.Fragment>
+      ))}
+    </>
+  );
+};
+
 export const Capabilities: React.FC = () => {
   const { capabilities, meta } = siteContent;
   // Layout follows the sketch: columns 1-3, each column stacks its categories
@@ -113,13 +162,20 @@ export const Capabilities: React.FC = () => {
                 {capabilities.sectionNumber}
               </span>
             ) : null}
-            <h2 className={styles.sectionTitle}>{capabilities.sectionTitle}</h2>
+            <h2
+              className={styles.sectionTitle}
+              aria-label={capabilities.sectionTitle}
+            >
+              <HeadingWaveChars text={capabilities.sectionTitle} />
+            </h2>
           </div>
           <div className={styles.headerUnderline} aria-hidden="true" />
         </div>
 
         <div className={styles.introRow}>
-          <p className={styles.introText}>{capabilities.intro}</p>
+          <p className={styles.introText} aria-label={capabilities.intro}>
+            <IntroWaveWords text={capabilities.intro} />
+          </p>
 
           {/* Download CV with DOCX and PDF Format Options */}
           <div className={styles.downloadWrapper} ref={menuRef}>

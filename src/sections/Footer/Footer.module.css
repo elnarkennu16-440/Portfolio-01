@@ -377,3 +377,40 @@
     font-size: 0.72rem;
   }
 }
+
+/* Mobile: tighter, even spacing between the footer links */
+@media (max-width: 767px) {
+  .linkColumn .linkList {
+    gap: 0.1rem;
+  }
+
+  .linkColumn .linkList li {
+    margin: 0;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .linkColumn .footerNavLink {
+    min-height: 0;
+    padding: 0.45rem 0; /* keeps a comfortable tap area */
+    line-height: 1.2;
+  }
+
+  .linkColumn {
+    gap: var(--space-2);
+  }
+}
+
+/* Bigger column headings: PROFESSIONAL OVERVIEW / CONNECT */
+.columnHeading {
+  font-size: 0.85rem;
+  letter-spacing: var(--tracking-wider);
+}
+
+@media (max-width: 767px) {
+  .columnHeading {
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    min-height: 2.6em; /* keeps both columns' links lined up if a heading wraps */
+  }
+}

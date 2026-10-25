@@ -14,6 +14,11 @@
   overflow: hidden;
 }
 
+/* wrapper around title + intro + link (carries the wave-reveal trigger; no layout of its own) */
+.headBlock {
+  display: block;
+}
+
 .headerRow {
   display: flex;
   justify-content: space-between;
@@ -75,26 +80,60 @@
   letter-spacing: var(--tracking-wide);
   color: var(--text-primary);
   text-transform: uppercase;
+  /* the "mask line": letters rise from under this box (wave reveal) */
+  overflow: hidden;
+  padding: 0.1em 0 0.24em;
+  margin: -0.1em 0 -0.24em;
 }
 
-/* Masked rise (same reveal as the About text): the text rises out of an invisible clipping line */
-.riseMask {
+/* =========================================================================
+   WAVE REVEAL (title, intro, "view all works" label)
+   Same movement as the Capabilities section: every letter / word starts below an
+   invisible clipping line, tilted, and rises one after another.
+   Triggered by .headRevealed (set in Works.tsx when the header block scrolls into view).
+   Only transform is animated, so it stays smooth on phones.
+   ========================================================================= */
+.waveWord {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.waveChar {
+  display: inline-block;
+  white-space: pre;
+  transform-origin: 0% 100%;
+  transform: translate3d(0, 118%, 0) rotate(calc(6deg + var(--ch, 0) * 1.2deg));
+  transition: transform 1.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+/* title letters */
+.sectionTitle .waveChar {
+  transition-delay: calc(var(--ch, 0) * 75ms + 120ms);
+}
+
+/* intro sentence: word by word */
+.wMask {
   display: inline-block;
   overflow: hidden;
   vertical-align: top;
-  /* room for descenders without changing the line height */
-  padding-bottom: 0.22em;
-  margin-bottom: -0.22em;
+  padding: 0.05em 0 0.28em;
+  margin: -0.05em 0 -0.28em;
 }
 
-.riseInner {
+.wInner {
   display: inline-block;
-  transform: translate3d(0, 118%, 0);
-  transition: transform 1.4s var(--ease-slowmo) 0.15s;
+  transform-origin: 0% 100%;
+  transform: translate3d(0, 120%, 0) rotate(3.5deg);
+  transition: transform 1.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: calc(var(--w, 0) * 70ms + 520ms);
+  will-change: transform;
 }
 
-.isRevealed .riseInner {
-  transform: translate3d(0, 0, 0);
+.headRevealed .waveChar,
+.headRevealed .wInner {
+  transform: none;
+  will-change: auto;
 }
 
 /* Intro row: intro sentence + small "View all projects" line-arrow link beside it */
@@ -108,9 +147,7 @@
 }
 
 .introMask {
-  overflow: hidden;
-  padding-bottom: 0.25em;
-  margin-bottom: -0.25em;
+  min-width: 0;
 }
 
 .introText {
@@ -119,14 +156,6 @@
   color: var(--text-secondary);
   max-width: 58ch;
   margin-bottom: 0;
-  /* rises out of .introMask */
-  transform: translate3d(0, 120%, 0);
-  transition: transform 1.5s var(--ease-slowmo) 0.35s;
-  will-change: transform;
-}
-
-.isRevealed .introText {
-  transform: translate3d(0, 0, 0);
 }
 
 /* Shared minimal connector: continuous line that bends up into an arrow head */
@@ -153,17 +182,7 @@
   text-transform: uppercase;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  opacity: 0;
-  transform: translate3d(0, 32px, 0);
-  transition:
-    opacity 1.25s var(--ease-slowmo) 0.3s,
-    transform 1.25s var(--ease-slowmo) 0.3s,
-    color 0.3s var(--ease-editorial);
-}
-
-.isRevealed .viewAllLink {
-  opacity: 1;
-  transform: translate3d(0, 0, 0);
+  transition: color 0.3s var(--ease-editorial);
 }
 
 .viewAllLink:hover {
@@ -175,11 +194,44 @@
   outline-offset: 4px;
 }
 
+/* The underline is drawn with a background line (same position as the old border-bottom,
+   hence the extra 1px of padding) so it can draw left -> right after the letters rise. */
 .viewAllLinkLabel {
-  padding: 0 0.15rem 0.4rem;
-  border-bottom: 1px solid currentColor;
+  padding: 0 0.15rem calc(0.4rem + 1px);
   white-space: nowrap;
   line-height: 1.2;
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 0.9s var(--ease-slowmo) 1.25s;
+}
+
+.headRevealed .viewAllLinkLabel {
+  background-size: 100% 1px;
+}
+
+/* letters of the label rise out of their own clipping line */
+.linkMask {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding: 0.1em 0.1em 0.3em 0;
+  margin: -0.1em -0.1em -0.3em 0;
+}
+
+.viewAllLinkLabel .waveChar {
+  transition-delay: calc(var(--ch, 0) * 30ms + 850ms);
+}
+
+/* the arrow (its horizontal stroke continues the underline) appears as the line arrives */
+.viewAllLink .connectorArrow {
+  opacity: 0;
+  transition: opacity 0.6s ease-out 1.95s;
+}
+
+.headRevealed .viewAllLink .connectorArrow {
+  opacity: 1;
 }
 
 /* Responsive, well-aligned Projects Grid */
@@ -254,30 +306,77 @@
   border: 1px solid var(--border-hairline);
   overflow: hidden;
 
-  /* REVEAL: the image rises in from below, a little 3D, slow and smooth.
-     It is triggered per card (.cardRevealed = when THIS card scrolls into view),
-     so the 4 images appear one after another as you scroll. */
+  /* BEFORE the card scrolls into view: hidden under the "floor" */
   opacity: 0;
-  transform: perspective(1400px) translate3d(0, 46px, 0) rotateX(10deg)
-    rotateY(5deg) scale(0.97);
-  transform-origin: 50% 100%;
   clip-path: inset(100% 0 0 0);
-  transition:
-    opacity 1s ease-out 0.15s,
-    transform 1.9s var(--ease-slowmo) 0.15s,
-    clip-path 1.9s var(--ease-slowmo) 0.15s;
+  transform-origin: 50% 50%;
+  backface-visibility: visible;
 }
 
+/* REVEAL (per card, when THIS card scrolls into view — so the 4 cards appear in order as you scroll):
+   1) the picture card slowly RISES out from below,
+   2) a short pause,
+   3) it does a slow-motion COIN-FLIP SPIN (one full turn),
+   4) it settles back to normal. Total ≈ 3.4 s.
+   After the animation ends the element simply keeps these normal values. */
 .cardRevealed .mediaContainer {
   opacity: 1;
-  transform: perspective(1400px) translate3d(0, 0, 0) rotateX(0deg)
-    rotateY(0deg) scale(1);
   clip-path: inset(0 0 0 0);
+  transform: none;
+  animation: mediaRiseSpin 3.4s linear 0.15s backwards;
 }
 
 /* second column starts a little later, so they come in order (left, then right) */
-.projectCard:nth-child(even) .mediaContainer {
-  transition-delay: 0.45s;
+.cardRevealed:nth-child(even) .mediaContainer {
+  animation-delay: 0.55s;
+}
+
+@keyframes mediaRiseSpin {
+  /* hidden below the floor */
+  0% {
+    opacity: 0;
+    clip-path: inset(100% 0 0 0);
+    transform: perspective(1400px) translate3d(0, 150px, 0) rotateY(0deg)
+      scale(0.94);
+    filter: brightness(1);
+    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  /* risen into place (slow ease-out) */
+  38% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: perspective(1400px) translate3d(0, 0, 0) rotateY(0deg) scale(1);
+    filter: brightness(1);
+  }
+  /* tiny pause before the spin */
+  44% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: perspective(1400px) translate3d(0, 0, 0) rotateY(0deg) scale(1);
+    filter: brightness(1);
+    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  /* edge-on / back side: a little darker, like the other side of a coin */
+  67% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: perspective(1400px) translate3d(0, -6px, 0) rotateY(180deg)
+      scale(1.03);
+    filter: brightness(0.45);
+  }
+  /* full turn done */
+  92% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: perspective(1400px) translate3d(0, 0, 0) rotateY(360deg) scale(1);
+    filter: brightness(1);
+  }
+  100% {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: perspective(1400px) translate3d(0, 0, 0) rotateY(360deg) scale(1);
+    filter: brightness(1);
+  }
 }
 
 @media (max-width: 640px) {
@@ -287,8 +386,8 @@
   }
 
   /* on phones every card is in its own row: no extra delay */
-  .projectCard:nth-child(even) .mediaContainer {
-    transition-delay: 0.15s;
+  .cardRevealed:nth-child(even) .mediaContainer {
+    animation-delay: 0.15s;
   }
 }
 
@@ -771,6 +870,29 @@
   }
 }
 
+/* phones: the wave starts sooner so it keeps up with scrolling */
+@media (max-width: 640px) {
+  .sectionTitle .waveChar {
+    transition-delay: calc(var(--ch, 0) * 60ms + 80ms);
+  }
+
+  .wInner {
+    transition-delay: calc(var(--w, 0) * 50ms + 300ms);
+  }
+
+  .viewAllLinkLabel .waveChar {
+    transition-delay: calc(var(--ch, 0) * 26ms + 560ms);
+  }
+
+  .viewAllLinkLabel {
+    transition-delay: 0.9s;
+  }
+
+  .viewAllLink .connectorArrow {
+    transition-delay: 1.5s;
+  }
+}
+
 /* Unboxed Tech Metadata */
 .techTagsList {
   display: flex;
@@ -1024,18 +1146,34 @@
     transform: none !important;
     transition: none !important;
   }
-  .introText,
-  .riseInner,
-  .viewAllLink,
   .projectCard {
     opacity: 1 !important;
     transform: none !important;
+    transition: none !important;
+  }
+  /* wave reveal: everything is simply there */
+  .waveChar,
+  .wInner {
+    transform: none !important;
+    transition: none !important;
+  }
+  .viewAllLink {
+    transition: none !important;
+  }
+  .viewAllLinkLabel {
+    background-size: 100% 1px !important;
+    transition: none !important;
+  }
+  .viewAllLink .connectorArrow {
+    opacity: 1 !important;
     transition: none !important;
   }
   .mediaContainer {
     opacity: 1 !important;
     transform: none !important;
     clip-path: none !important;
+    filter: none !important;
+    animation: none !important;
     transition: none !important;
   }
   .projectCard:hover .labelPanel,
@@ -1076,4 +1214,9 @@
 .worksInstant *::before,
 .worksInstant *::after {
   transition: none !important;
+}
+
+/* the picture-card spin must not replay when coming back either */
+.worksInstant .mediaContainer {
+  animation: none !important;
 }

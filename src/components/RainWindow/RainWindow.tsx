@@ -491,7 +491,6 @@ const LiveClock = memo(function LiveClock() {
       <div className={styles.hudTop}>
         <span className={styles.place}>
           <span className={styles.liveDot} aria-hidden="true" />
-          MANILA · PH
         </span>
       </div>
 
