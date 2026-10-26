@@ -314,16 +314,13 @@
 }
 
 /* REVEAL (per card, when THIS card scrolls into view — so the 4 cards appear in order as you scroll):
-   1) the picture card slowly RISES out from below,
-   2) a short pause,
-   3) it does a slow-motion COIN-FLIP SPIN (one full turn),
-   4) it settles back to normal. Total ≈ 3.4 s.
-   After the animation ends the element simply keeps these normal values. */
+   the picture card slowly RISES out from below the "floor" and settles in place.
+   (No spin / flip anymore.) After the animation ends the element simply keeps these normal values. */
 .cardRevealed .mediaContainer {
   opacity: 1;
   clip-path: inset(0 0 0 0);
   transform: none;
-  animation: mediaRiseSpin 3.4s linear 0.15s backwards;
+  animation: mediaRise 2.8s cubic-bezier(0.3, 0.55, 0.3, 1) 0.15s backwards;
 }
 
 /* second column starts a little later, so they come in order (left, then right) */
@@ -331,51 +328,18 @@
   animation-delay: 0.55s;
 }
 
-@keyframes mediaRiseSpin {
+@keyframes mediaRise {
   /* hidden below the floor */
-  0% {
+  from {
     opacity: 0;
     clip-path: inset(100% 0 0 0);
-    transform: perspective(1400px) translate3d(0, 150px, 0) rotateY(0deg)
-      scale(0.94);
-    filter: brightness(1);
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    transform: translate3d(0, 150px, 0) scale(0.94);
   }
-  /* risen into place (slow ease-out) */
-  38% {
+  /* risen into place */
+  to {
     opacity: 1;
     clip-path: inset(0 0 0 0);
-    transform: perspective(1400px) translate3d(0, 0, 0) rotateY(0deg) scale(1);
-    filter: brightness(1);
-  }
-  /* tiny pause before the spin */
-  44% {
-    opacity: 1;
-    clip-path: inset(0 0 0 0);
-    transform: perspective(1400px) translate3d(0, 0, 0) rotateY(0deg) scale(1);
-    filter: brightness(1);
-    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
-  }
-  /* edge-on / back side: a little darker, like the other side of a coin */
-  67% {
-    opacity: 1;
-    clip-path: inset(0 0 0 0);
-    transform: perspective(1400px) translate3d(0, -6px, 0) rotateY(180deg)
-      scale(1.03);
-    filter: brightness(0.45);
-  }
-  /* full turn done */
-  92% {
-    opacity: 1;
-    clip-path: inset(0 0 0 0);
-    transform: perspective(1400px) translate3d(0, 0, 0) rotateY(360deg) scale(1);
-    filter: brightness(1);
-  }
-  100% {
-    opacity: 1;
-    clip-path: inset(0 0 0 0);
-    transform: perspective(1400px) translate3d(0, 0, 0) rotateY(360deg) scale(1);
-    filter: brightness(1);
+    transform: none;
   }
 }
 

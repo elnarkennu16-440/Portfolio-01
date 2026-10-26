@@ -19,19 +19,19 @@ const AUTO_SWITCH_MS = 4000;
 
 const EXTRA_PRINCIPLES: { term: string; description: string }[] = [
   {
-    term: "Regression & Retest Cycles",
+    term: "Refining Details and Polish",
     description:
-      "Re-running affected flows after every fix to confirm the bug is gone and nothing else broke.",
+      "I often revisit completed features to clean up styling, remove unnecessary complexity, and ensure the overall user experience feels smooth and deliberate.",
   },
   {
-    term: "Cross-Device Responsive Checks",
+    term: "Exploring New Technical Concepts",
     description:
-      "Verifying layouts and interactions across desktop, tablet, and mobile screen sizes and browsers.",
+      "I set aside time to test new tools, frameworks, and patterns out of curiosity, seeing how they fit into my personal projects and expand what I can build.",
   },
   {
-    term: "Clear Documentation & Handoff",
+    term: "Documenting Progress Along the Way",
     description:
-      "Keeping test notes, findings, and project records organized so teams can pick up work easily.",
+      "I make a habit of noting down what I build, what challenges I hit, and how I solved them, creating a personal knowledge base I can look back on.",
   },
 ];
 
@@ -72,6 +72,22 @@ const pad = (n: number) => String(n).padStart(2, "0");
  * from below with a wave (see .wMask / .wInner in the CSS). Used for the body
  * paragraphs and the contribution title.
  */
+const INTRO_MS = 3400; // how long the scatter → stack reveal runs
+
+// stable "random" so the scattered spots never change between renders
+const rnd = (n: number) => {
+  const s = Math.sin(n * 91.345 + 7.13) * 43758.5453;
+  return s - Math.floor(s);
+};
+const scatterFor = (i: number) => ({
+  "--sx": `${Math.round((rnd(i + 1) - 0.5) * 70)}%`,
+  "--sy": `${((rnd(i + 11) - 0.5) * 14).toFixed(1)}rem`,
+  "--sz": `${Math.round(-120 - rnd(i + 21) * 260)}px`,
+  "--srx": `${Math.round((rnd(i + 31) - 0.5) * 120)}deg`,
+  "--sry": `${Math.round((rnd(i + 41) - 0.5) * 140)}deg`,
+  "--srz": `${Math.round((rnd(i + 51) - 0.5) * 70)}deg`,
+});
+
 const renderWords = (text: string) => {
   const words = text.split(" ");
   return words.map((word, i) => (
@@ -191,6 +207,17 @@ export const About: React.FC = () => {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
 
+  const [introDone, setIntroDone] = useState(false);
+  useEffect(() => {
+    if (reducedMotion) {
+      setIntroDone(true);
+      return;
+    }
+    if (!isPrinciplesRevealed) return;
+    const t = window.setTimeout(() => setIntroDone(true), INTRO_MS);
+    return () => window.clearTimeout(t);
+  }, [isPrinciplesRevealed, reducedMotion]);
+
   // Remember the previous active card so a card that "wraps around" the stack can snap
   // (invisibly) instead of flying across the other cards.
   const prevActiveRef = useRef(0);
@@ -201,13 +228,20 @@ export const About: React.FC = () => {
 
   // Auto switch every AUTO_SWITCH_MS (starts once the cards are actually on screen, pauses on hover/focus)
   useEffect(() => {
-    if (!isPrinciplesRevealed || paused || reducedMotion || total < 2) return;
+    if (
+      !isPrinciplesRevealed ||
+      !introDone ||
+      paused ||
+      reducedMotion ||
+      total < 2
+    )
+      return;
     const timer = window.setTimeout(
       () => setActive((a) => (a + 1) % total),
       AUTO_SWITCH_MS,
     );
     return () => window.clearTimeout(timer);
-  }, [isPrinciplesRevealed, paused, reducedMotion, total, active]);
+  }, [isPrinciplesRevealed, introDone, paused, reducedMotion, total, active]);
 
   // Signed position of card i relative to the active one (0 = in focus, negative = above, positive = below)
   const getPos = (i: number, a: number) =>
@@ -336,7 +370,7 @@ export const About: React.FC = () => {
             ref={principlesRef}
             className={`${styles.principlesCol} ${
               isPrinciplesRevealed ? styles.principlesRevealed : ""
-            }`}
+            } ${introDone ? styles.introDone : ""}`}
             onPointerEnter={(e) => {
               if (e.pointerType === "mouse") setPaused(true);
             }}
@@ -347,9 +381,17 @@ export const About: React.FC = () => {
             onBlur={() => setPaused(false)}
           >
             <div className={styles.principlesHeader}>
-              <span>CORE FOCUS</span>
-              <span className={styles.principlesCounter} aria-hidden="true">
-                {pad(active + 1)} / {pad(total)}
+              <span className={styles.coreFocusTitle} aria-label="CORE FOCUS">
+                {Array.from("CORE FOCUS").map((ch, i) => (
+                  <span
+                    key={i}
+                    className={styles.cfChar}
+                    aria-hidden="true"
+                    style={{ "--ch": i } as React.CSSProperties}
+                  >
+                    {ch}
+                  </span>
+                ))}
               </span>
             </div>
 
@@ -383,6 +425,8 @@ export const About: React.FC = () => {
                     style={
                       {
                         "--pos": pos,
+                        "--k": index,
+                        ...scatterFor(index),
                         "--abs": abs,
                         "--x": X_OFFSETS[pos] ?? "0%",
                         "--ry": angle.ry,

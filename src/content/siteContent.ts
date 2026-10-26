@@ -211,19 +211,34 @@ export const siteContent = {
     ],
     principles: [
       {
-        term: "Functional & Exploratory Testing",
+        term: "Turning Ideas Into Working Features",
         description:
-          "Testing web applications through real user scenarios to spot functional edge cases and layout flaws.",
+          "I work on turning concepts into functional parts of an application, whether it’s a small interface update or a complete user flow. I try to keep each build practical, organized, and easy to improve later.",
       },
       {
-        term: "Web & DOM Inspection",
+        term: "Paying Attention to Interface Behavior",
         description:
-          "Using browser tools to examine page elements, observe console outputs, and verify UI behavior.",
+          "I look closely at how an interface behaves in real use. Layout, responsiveness, interaction flow, and edge cases matter to me because they affect how reliable and comfortable an application feels.",
       },
       {
-        term: "Structured Defect Reporting",
+        term: "Understanding Issues Before Fixing Them",
         description:
-          "Writing clean bug tickets with exact steps, expected behavior, and environment logs for quick developer fixes.",
+          "When something doesn’t work as expected, I take time to trace what actually caused it. I prefer addressing the root of the problem instead of applying a quick fix that may create another issue later.",
+      },
+      {
+        term: "Testing Applications Through Real User Flows",
+        description:
+          "I test my work by following the way a user would actually move through an application. This helps me notice issues that may not appear during development and improve the overall stability of a feature.",
+      },
+      {
+        term: "Keeping Code and Projects Organized",
+        description:
+          "I value a clean structure in both code and project files. Consistent naming, clear separation of concerns, and an organized setup make future changes easier to manage.",
+      },
+      {
+        term: "Learning Through Hands-On Practice",
+        description:
+          "I learn best by building, testing, breaking, and fixing things myself. Each project gives me a clearer understanding of what works, what doesn’t, and how I can approach the next one better.",
       },
     ],
     status: "final" as const,
@@ -233,7 +248,7 @@ export const siteContent = {
     sectionNumber: "",
     sectionTitle: "WORKS",
     faintWatermark: "WORKS",
-    intro: "Recent web projects and testing work.",
+    intro: "Highlighted builds, side projects, and testing.",
     // The first 4 projects are always shown. Any project after the 4th (05, 06, ...)
     // is hidden behind the floating "Show more" button in the Works section.
     // Projects 05 and 06 are SAMPLE placeholders (status: "placeholder") — replace them
@@ -478,7 +493,8 @@ export const siteContent = {
     sectionNumber: "",
     sectionTitle: "CAPABILITIES",
     faintWatermark: "SKILLS",
-    intro: "The tools and technologies I work with.",
+    intro:
+      "A selection of frameworks, languages, and testing tools I use to build, evaluate, and maintain web applications.",
     groups: [
       {
         category: "Frontend",
