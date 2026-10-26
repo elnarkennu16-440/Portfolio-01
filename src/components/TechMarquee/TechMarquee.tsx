@@ -19,11 +19,20 @@ export const TechMarquee: React.FC = () => {
             <div
               key={`g1-${item.id}-${index}`}
               className={styles.marqueeItem}
-              style={{
-                animationDelay: `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
-              }}
+              style={
+                {
+                  animationDelay: `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
+                  // the icon INSIDE the slab uses this delay for the same wave
+                  "--wd": `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
+                } as React.CSSProperties
+              }
               title={item.name}
             >
+              <span className={styles.stripes} aria-hidden="true" />
+              {/* soft shadow of the icon on the slab (shown on hover) */}
+              <span className={styles.iconShadow} aria-hidden="true">
+                {item.icon}
+              </span>
               {item.icon}
               <span className={styles.srOnly}>{item.name}</span>
             </div>
@@ -36,11 +45,19 @@ export const TechMarquee: React.FC = () => {
             <div
               key={`g2-${item.id}-${index}`}
               className={styles.marqueeItem}
-              style={{
-                animationDelay: `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
-              }}
+              style={
+                {
+                  animationDelay: `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
+                  "--wd": `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
+                } as React.CSSProperties
+              }
               title={item.name}
             >
+              <span className={styles.stripes} aria-hidden="true" />
+              {/* soft shadow of the icon on the slab (shown on hover) */}
+              <span className={styles.iconShadow} aria-hidden="true">
+                {item.icon}
+              </span>
               {item.icon}
               <span className={styles.srOnly}>{item.name}</span>
             </div>

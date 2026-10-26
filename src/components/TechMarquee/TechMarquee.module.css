@@ -2,7 +2,8 @@
   position: relative;
   width: 100%;
   overflow: hidden;
-  padding: clamp(2.5rem, 5.5vh, 4.25rem) 0;
+  /* breathing room above and below (and for the hover zoom) */
+  padding: clamp(4.5rem, 13vh, 9.5rem) 0;
   border-top: none;
   border-bottom: none;
   background-color: transparent;
@@ -28,9 +29,8 @@
   align-items: center;
   width: max-content;
   will-change: transform;
-  /* Smooth horizontal sliding marquee */
-  /* dati: 83s (bilis ng original mong video) */
-  animation: marqueeLoop 125s linear infinite;
+  /* Smooth horizontal sliding marquee (longer loop = same speed with the bigger slabs) */
+  animation: marqueeLoop 200s linear infinite;
 }
 
 .techMarqueeSection:hover .marqueeTrack {
@@ -40,81 +40,288 @@
 .marqueeGroup {
   display: flex;
   align-items: center;
-  /* Large generous spacing based on user's 3rd image */
-  gap: clamp(44px, 5.5vw, 76px);
-  padding-right: clamp(44px, 5.5vw, 76px);
+  gap: clamp(36px, 4vw, 64px);
+  padding-right: clamp(36px, 4vw, 64px);
   flex-shrink: 0;
 }
 
-/* Large, real tech brand icons - NO background, NO box, clean gray */
+/* =========================================================================
+   3D SLAB (like the sketch): tall front face + thin left side + thin top.
+   It is turned slightly so its front faces right; the icon spins INSIDE it.
+   --w   width of the front face
+   --t   thickness of the slab (kept thin: NOT a fat cube)
+   ========================================================================= */
 .marqueeItem {
+  --w: clamp(104px, 8.4vw, 132px);
+  --t: calc(var(--w) * 0.24);
+  --face-a: #131417; /* upper-left half: SAME black as the lower-right */
+  --face-b: #131417; /* lower-right half: black */
+  --top-a: #62656d;
+  --top-b: #43464d;
+  --side-a: #202225;
+  --side-b: #2e3034;
+  --rim: rgba(255, 255, 255, 0.12);
+  --stripe-dark: rgba(
+    150,
+    153,
+    160,
+    0.34
+  ); /* thin lines in the upper-left corner (gray, so they stay visible on black) */
+  --stripe-light: rgba(170, 173, 180, 0.5); /* thin lines in the dark corner */
+
   position: relative;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  /* Large icon dimensions based on user's 2nd & 3rd images */
-  width: clamp(44px, 4vw, 54px);
-  height: clamp(44px, 4vw, 54px);
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  border-radius: 0;
-  color: #8e8e96;
+  flex-shrink: 0;
+  width: var(--w);
+  height: calc(var(--w) * 1.28);
+  box-sizing: border-box;
+  color: #a4a6ad;
   cursor: default;
-  transform-origin: center center;
+
+  /* front face: half gray / half dark, split along the diagonal from the
+     bottom-left corner to the top-right corner (like the sketch) + soft glass sheen */
+  background: linear-gradient(
+    to bottom right,
+    var(--face-a) 0%,
+    var(--face-a) 49.6%,
+    var(--face-b) 50.4%,
+    var(--face-b) 100%
+  );
+  border: 1px solid var(--rim);
+  border-radius: 2px;
+
+  /* turned like the drawing: left side + top visible, front faces right */
   transform-style: preserve-3d;
-  will-change: transform, opacity;
-  /* 3D Wave spin-jumping animation */
-  /* dati: 3.2s */
-  animation: spinJumpWave 4.8s cubic-bezier(0.34, 1.25, 0.64, 1) infinite;
+  transform: perspective(900px) rotateX(-10deg) rotateY(26deg) translateZ(0)
+    scale(1);
+  transform-origin: 50% 50%;
+  will-change: transform;
+  transition: transform 0.55s var(--ease-editorial);
 }
 
+/* LEFT SIDE face (darker) */
+.marqueeItem::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: var(--t);
+  height: calc(100% + 2px);
+  background: linear-gradient(90deg, var(--side-a), var(--side-b));
+  border: 1px solid var(--rim);
+  box-sizing: border-box;
+  transform-origin: 0% 50%;
+  transform: rotateY(90deg);
+  pointer-events: none;
+}
+
+/* TOP face (lighter) */
+.marqueeItem::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  width: calc(100% + 2px);
+  height: var(--t);
+  background: linear-gradient(180deg, var(--top-a), var(--top-b));
+  border: 1px solid var(--rim);
+  box-sizing: border-box;
+  transform-origin: 50% 0%;
+  transform: rotateX(-90deg);
+  pointer-events: none;
+}
+
+/* Light theme: same slab, light grays */
+[data-theme="light"] .marqueeItem {
+  --face-a: #f0f2f5;
+  --face-b: #b7bcc4;
+  --top-a: #fbfbfc;
+  --top-b: #e3e6ea;
+  --side-a: #b9bec5;
+  --side-b: #cdd1d6;
+  --rim: rgba(0, 0, 0, 0.1);
+  --stripe-dark: rgba(0, 0, 0, 0.3);
+  --stripe-light: rgba(255, 255, 255, 0.65);
+  color: #55595f;
+}
+
+/* STRIPES (like the sketch): many thin diagonal lines, parallel to the gray/dark split.
+   - upper-left corner (gray half): thin BLACK lines
+   - lower-right corner (dark half): thin GRAY lines
+   Each band is masked to a small corner area, so it always keeps a clear gap
+   from the icon in the middle and never touches it. */
+.stripes {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateZ(0.5px);
+}
+
+.stripes::before,
+.stripes::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* 128deg = perpendicular to the bottom-left -> top-right split of the 1 : 1.28 face */
+.stripes::before {
+  background: repeating-linear-gradient(
+    128deg,
+    transparent 0,
+    transparent 3.6px,
+    var(--stripe-dark) 3.6px,
+    var(--stripe-dark) 4.8px
+  );
+  -webkit-mask-image: linear-gradient(
+    128deg,
+    transparent 0%,
+    #000 3%,
+    #000 12%,
+    transparent 17%
+  );
+  mask-image: linear-gradient(
+    128deg,
+    transparent 0%,
+    #000 3%,
+    #000 12%,
+    transparent 17%
+  );
+}
+
+.stripes::after {
+  background: repeating-linear-gradient(
+    128deg,
+    transparent 0,
+    transparent 3.6px,
+    var(--stripe-light) 3.6px,
+    var(--stripe-light) 4.8px
+  );
+  -webkit-mask-image: linear-gradient(
+    128deg,
+    transparent 83%,
+    #000 88%,
+    #000 97%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    128deg,
+    transparent 83%,
+    #000 88%,
+    #000 97%,
+    transparent 100%
+  );
+}
+
+/* The icon sits in the middle of the front face and SPINS inside the slab
+   (same rotateY wave as before, per-icon delay from --wd) */
 .marqueeItem svg {
-  width: 100%;
-  height: 100%;
+  width: 58%;
+  height: auto;
+  aspect-ratio: 1 / 1;
   display: block;
   flex-shrink: 0;
-  .marqueeItem svg {
-    transition: color var(--duration-fast) ease;
-  }
-
-  .marqueeItem:hover svg {
-    color: var(--brand, currentColor);
-  }
-
-  [data-theme="light"] .marqueeItem:hover svg {
-    color: var(--brand, currentColor);
-  }
+  transform-origin: center center;
 }
 
-[data-theme="light"] .marqueeItem {
-  color: #555560;
+/* the real icon (direct child): spins inside the slab */
+.marqueeItem > svg {
+  position: relative;
+  transform: translateZ(2px);
+  animation: spinInside 4.8s cubic-bezier(0.34, 1.25, 0.64, 1) infinite;
+  animation-delay: var(--wd, 0s);
+  transition:
+    transform 0.6s var(--ease-editorial),
+    color 0.3s ease;
 }
 
-/* 3D Spin-Jumping Wave Animation (scaled for large 50px icons) */
-@keyframes spinJumpWave {
+/* soft shadow of the icon, lying on the slab (hidden until hover) */
+.iconShadow {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateZ(1px);
+  transition:
+    opacity 0.45s ease,
+    visibility 0s linear 0.45s;
+}
+
+.iconShadow svg {
+  color: rgba(0, 0, 0, 0.75);
+  filter: blur(4px);
+  /* light comes from the upper-left, so the shadow falls to the lower-right */
+  transform: translate(8%, 9%) scale(1.04);
+}
+
+[data-theme="light"] .iconShadow svg {
+  color: rgba(0, 0, 0, 0.4);
+}
+
+/* HOVER: the slab comes a little closer, but the ICON is the star:
+   it stops spinning, faces front and POPS OUT of the slab toward the direction the
+   slab faces (to the right), in its REAL brand colour, with its shadow left on the slab.
+   (--brand is set per icon by RealTechIcons.tsx; black logos fall back to white / black.) */
+.marqueeItem:hover {
+  z-index: 3;
+  transform: perspective(900px) rotateX(-10deg) rotateY(26deg) translateZ(26px)
+    scale(1.05);
+}
+
+.marqueeItem:hover > svg {
+  animation: none;
+  opacity: 1;
+  color: var(--brand, #ffffff);
+  transform: translateZ(66px) translateY(-3px) scale(1.18);
+}
+
+[data-theme="light"] .marqueeItem:hover > svg {
+  color: var(--brand, #000000);
+}
+
+.marqueeItem:hover .iconShadow {
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.45s ease 0.08s,
+    visibility 0s linear 0s;
+}
+
+/* Spin inside the slab: same rotateY timeline as the original wave,
+   with only a tiny hop so the icon never leaves the slab */
+@keyframes spinInside {
   0% {
-    transform: perspective(500px) rotateY(0deg) translateY(0);
+    transform: perspective(500px) translateZ(2px) rotateY(0deg) translateY(0);
     opacity: 0.82;
   }
   14% {
-    transform: perspective(500px) rotateY(90deg) translateY(-8px);
+    transform: perspective(500px) translateZ(2px) rotateY(90deg)
+      translateY(-2px);
     opacity: 0.94;
   }
   28% {
-    transform: perspective(500px) rotateY(180deg) translateY(-12px);
+    transform: perspective(500px) translateZ(2px) rotateY(180deg)
+      translateY(-3px);
     opacity: 1;
   }
   42% {
-    transform: perspective(500px) rotateY(270deg) translateY(-6px);
+    transform: perspective(500px) translateZ(2px) rotateY(270deg)
+      translateY(-1px);
     opacity: 0.94;
   }
   54% {
-    transform: perspective(500px) rotateY(360deg) translateY(0);
+    transform: perspective(500px) translateZ(2px) rotateY(360deg) translateY(0);
     opacity: 0.82;
   }
   100% {
-    transform: perspective(500px) rotateY(360deg) translateY(0);
+    transform: perspective(500px) translateZ(2px) rotateY(360deg) translateY(0);
     opacity: 0.82;
   }
 }
@@ -129,22 +336,6 @@
   }
 }
 
-.marqueeItem:hover {
-  color: #ffffff !important;
-  opacity: 1;
-  transform: perspective(500px) translateY(-4px) scale(1.15);
-  animation-play-state: paused;
-  transition:
-    transform var(--duration-fast) var(--ease-editorial),
-    color var(--duration-fast) ease;
-}
-
-[data-theme="light"] .marqueeItem:hover {
-  color: #000000 !important;
-  opacity: 1;
-  transform: perspective(500px) translateY(-4px) scale(1.15);
-}
-
 .srOnly {
   position: absolute;
   width: 1px;
@@ -157,12 +348,34 @@
   border: 0;
 }
 
+/* Phones: still big, but sized so the ribbon never overflows */
+@media (max-width: 600px) {
+  .techMarqueeSection {
+    padding: clamp(3.5rem, 9vh, 5.5rem) 0;
+  }
+
+  .marqueeGroup {
+    gap: 30px;
+    padding-right: 30px;
+  }
+
+  .marqueeItem {
+    --w: 88px;
+  }
+
+  .marqueeTrack {
+    animation-duration: 150s;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .marqueeTrack {
     animation: none !important;
   }
-  .marqueeItem {
+  .marqueeItem > svg {
     animation: none !important;
-    transform: none !important;
+  }
+  .marqueeItem {
+    transition: none;
   }
 }
