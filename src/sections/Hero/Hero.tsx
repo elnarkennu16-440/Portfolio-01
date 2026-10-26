@@ -66,7 +66,11 @@ export const Hero: React.FC<HeroProps> = ({ isIntroDone = true }) => {
   }, []);
 
   return (
-    <section id="hero" className={styles.heroSection} aria-label="Introduction">
+    <section
+      id="hero"
+      className={`${styles.heroSection} ${isIntroDone ? styles.introReady : ""}`}
+      aria-label="Introduction"
+    >
       {/* Editorial Flow Hairline Curve */}
       <svg
         className={styles.heroBackgroundCurve}

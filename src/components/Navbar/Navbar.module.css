@@ -883,3 +883,92 @@
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='-1 -1 18 18' fill='none' stroke='black' stroke-width='1.1'%3E%3Cpath d='M0 15.5H3.5L13.5 5.5'/%3E%3Cpath d='M6.5 5.5H13.5V12.5'/%3E%3C/svg%3E")
     center / contain no-repeat;
 }
+
+/* =========================================================================
+   NAVBAR REVEAL (after the loader)
+   1) only the pill with the two buttons (theme + message) shows, anchored right
+   2) after ~1s the pill suddenly expands to the left to its normal size
+   3) logo + nav links fade in while it expands
+   Classes .navPre / .navPlay are only present during the intro; after the
+   animation ends they are removed, so the navbar goes back to its normal CSS.
+   ========================================================================= */
+.navPre .inner,
+.navPlay .inner {
+  --nav-w0: 9.5rem;
+  justify-content: flex-end;
+  overflow: hidden;
+  width: var(--nav-w0);
+  margin-left: calc(min(100%, 1120px) - var(--nav-w0));
+}
+
+@media (max-width: 959px) {
+  .navPre .inner,
+  .navPlay .inner {
+    --nav-w0: 11.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .navPre .inner,
+  .navPlay .inner {
+    --nav-w0: 8.5rem;
+  }
+}
+
+.navPre .inner {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.navPlay .inner {
+  animation: navReveal 2.1s linear both;
+}
+
+.navPre .brand,
+.navPlay .brand {
+  margin-right: auto;
+}
+
+.navPre .brand,
+.navPre .desktopNav {
+  opacity: 0;
+}
+
+.navPlay .brand,
+.navPlay .desktopNav {
+  animation: navContentIn 0.7s ease 1.5s both;
+}
+
+@keyframes navReveal {
+  0% {
+    opacity: 0;
+    width: var(--nav-w0);
+    margin-left: calc(min(100%, 1120px) - var(--nav-w0));
+    animation-timing-function: ease-out;
+  }
+  24% {
+    opacity: 1;
+    width: var(--nav-w0);
+    margin-left: calc(min(100%, 1120px) - var(--nav-w0));
+  }
+  48% {
+    opacity: 1;
+    width: var(--nav-w0);
+    margin-left: calc(min(100%, 1120px) - var(--nav-w0));
+    animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
+  }
+  100% {
+    opacity: 1;
+    width: min(100%, 1120px);
+    margin-left: 0;
+  }
+}
+
+@keyframes navContentIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

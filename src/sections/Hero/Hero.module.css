@@ -94,13 +94,6 @@
 
 .headlineLine {
   display: block;
-  transform: translateY(105%);
-  animation: revealLine 0.9s var(--ease-editorial) 0.15s forwards;
-  will-change: transform;
-}
-
-.headlineLineSecond {
-  animation-delay: 0.3s;
 }
 
 .heroLogoImage {
@@ -121,12 +114,6 @@
   filter: none;
 }
 
-@keyframes revealLine {
-  to {
-    transform: translateY(0);
-  }
-}
-
 .heroLeadStatement {
   font-family: var(--font-serif);
   font-size: clamp(1.15rem, 2.5vw, 1.75rem);
@@ -139,9 +126,6 @@
   margin-top: clamp(var(--space-3), 2vh, var(--space-5));
   margin-bottom: clamp(var(--space-6), 3.5vh, var(--space-8));
   text-wrap: balance;
-  opacity: 0;
-  transform: translateY(14px);
-  animation: fadeIn 0.7s var(--ease-editorial) 0.35s forwards;
 }
 
 .underlinedEmphasis {
@@ -152,23 +136,120 @@
   text-decoration-color: var(--border-medium);
 }
 
-@keyframes fadeIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 .ctaGroup {
   display: flex;
   align-items: center;
   /* clear distance between the two links (desktop) */
   gap: clamp(1.75rem, 3vw, 2.75rem);
   flex-wrap: wrap;
-  opacity: 0;
-  transform: translateY(12px);
-  animation: fadeIn 0.6s var(--ease-editorial) 0.6s forwards;
   width: 100%;
+}
+
+/* =========================================================================
+   HERO WAVE REVEAL (text + KENNU / ELNAR logo images only)
+   A soft wave edge rises from the bottom and uncovers the element in place
+   (no movement of the element itself, so layout / sizing are never affected).
+   The animation only starts when the section gets .introReady, i.e. when the
+   loader is done (isIntroDone), so it is actually visible after the loader.
+   The portrait is NOT part of this.
+   ========================================================================= */
+.eyebrowRow,
+.headlineLine,
+.heroLeadStatement,
+.ctaGroup {
+  /* start state: fully hidden below a wavy edge */
+  clip-path: polygon(
+    -5% 137%,
+    6% 113%,
+    17% 137%,
+    28% 113%,
+    39% 137%,
+    50% 113%,
+    61% 137%,
+    72% 113%,
+    83% 137%,
+    94% 113%,
+    105% 137%,
+    105% 200%,
+    -5% 200%
+  );
+  will-change: clip-path;
+}
+
+@keyframes waveReveal {
+  0% {
+    clip-path: polygon(
+      -5% 137%,
+      6% 113%,
+      17% 137%,
+      28% 113%,
+      39% 137%,
+      50% 113%,
+      61% 137%,
+      72% 113%,
+      83% 137%,
+      94% 113%,
+      105% 137%,
+      105% 200%,
+      -5% 200%
+    );
+  }
+  50% {
+    clip-path: polygon(
+      -5% 33%,
+      6% 57%,
+      17% 33%,
+      28% 57%,
+      39% 33%,
+      50% 57%,
+      61% 33%,
+      72% 57%,
+      83% 33%,
+      94% 57%,
+      105% 33%,
+      105% 200%,
+      -5% 200%
+    );
+  }
+  100% {
+    clip-path: polygon(
+      -5% -13%,
+      6% -37%,
+      17% -13%,
+      28% -37%,
+      39% -13%,
+      50% -37%,
+      61% -13%,
+      72% -37%,
+      83% -13%,
+      94% -37%,
+      105% -13%,
+      105% 200%,
+      -5% 200%
+    );
+  }
+}
+
+/* Slower wave + staggered (one after another, not at the same time):
+   2026 -> KENNU -> ELNAR -> tagline -> buttons */
+.introReady .eyebrowRow {
+  animation: waveReveal 1.8s var(--ease-editorial) 0.1s forwards;
+}
+
+.introReady .headlineLine {
+  animation: waveReveal 2.2s var(--ease-editorial) 0.6s forwards;
+}
+
+.introReady .headlineLineSecond {
+  animation-delay: 1.3s;
+}
+
+.introReady .heroLeadStatement {
+  animation: waveReveal 2.2s var(--ease-editorial) 2s forwards;
+}
+
+.introReady .ctaGroup {
+  animation: waveReveal 2s var(--ease-editorial) 2.7s forwards;
 }
 
 /* =========================================================================
@@ -366,11 +447,11 @@
     stroke-dashoffset: 0 !important;
     animation: none !important;
   }
+  .eyebrowRow,
   .headlineLine,
   .heroLeadStatement,
   .ctaGroup {
-    transform: none !important;
-    opacity: 1 !important;
+    clip-path: none !important;
     animation: none !important;
   }
   .ctaLink {

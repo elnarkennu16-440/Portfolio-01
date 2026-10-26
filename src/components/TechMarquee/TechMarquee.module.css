@@ -49,17 +49,19 @@
    3D SLAB (like the sketch): tall front face + thin left side + thin top.
    It is turned slightly so its front faces right; the icon spins INSIDE it.
    --w   width of the front face
-   --t   thickness of the slab (kept thin: NOT a fat cube)
+   --t   thickness of the top face (unchanged)
+   --ts  thickness of the LEFT side (thinner)
    ========================================================================= */
 .marqueeItem {
   --w: clamp(104px, 8.4vw, 132px);
-  --t: calc(var(--w) * 0.24);
+  --t: calc(var(--w) * 0.24); /* top: unchanged */
+  --ts: calc(var(--w) * 0.14); /* NEW: thinner left side */
   --face-a: #131417; /* upper-left half: SAME black as the lower-right */
   --face-b: #131417; /* lower-right half: black */
-  --top-a: #62656d;
-  --top-b: #43464d;
-  --side-a: #202225;
-  --side-b: #2e3034;
+  --top-a: #131417; /* top: now black */
+  --top-b: #131417;
+  --side-a: #131417; /* left side: now black */
+  --side-b: #131417;
   --rim: rgba(255, 255, 255, 0.12);
   --stripe-dark: rgba(
     150,
@@ -101,13 +103,13 @@
   transition: transform 0.55s var(--ease-editorial);
 }
 
-/* LEFT SIDE face (darker) */
+/* LEFT SIDE face (black, thinner) */
 .marqueeItem::before {
   content: "";
   position: absolute;
   top: -1px;
   left: -1px;
-  width: var(--t);
+  width: var(--ts);
   height: calc(100% + 2px);
   background: linear-gradient(90deg, var(--side-a), var(--side-b));
   border: 1px solid var(--rim);
@@ -117,7 +119,7 @@
   pointer-events: none;
 }
 
-/* TOP face (lighter) */
+/* TOP face (black) */
 .marqueeItem::after {
   content: "";
   position: absolute;
@@ -381,19 +383,20 @@
 }
 
 /* =========================================================================
-   WAVE REVEAL ON SCROLL
-   When the ribbon scrolls into view, the slabs rise one after another
-   (left -> right) from under a fixed mask line at the bottom of the row.
-   Uses the separate `translate` property, so the 3D slab transform, the spin
-   and the hover effect are not touched.
+   WAVE REVEAL ON SCROLL + ZIGZAG FORMATION
+   Each slab is placed up or down using --zz (-1 = up, 1 = down), set in the TSX.
+   The wave reveal, 3D transform, spin and hover are the same as before.
    ========================================================================= */
 .marqueeGroup {
-  /* mask line on the bottom edge only; the other sides stay open for hover pop-out */
-  clip-path: inset(-160px -60px -14px -60px);
+  /* how far up / down the zigzag goes */
+  --zz-amt: clamp(16px, 2.4vw, 34px);
+  /* mask line on the bottom edge only; extended by the zigzag amount so the
+     lowered slabs are not cut off. The other sides stay open for hover pop-out */
+  clip-path: inset(-160px -60px calc(-14px - var(--zz-amt)) -60px);
 }
 
 .marqueeItem {
-  translate: 0 190px;
+  translate: 0 calc(190px + var(--zz, 0) * var(--zz-amt));
   transition:
     transform 0.55s var(--ease-editorial),
     translate 1.15s cubic-bezier(0.16, 1, 0.3, 1)
@@ -401,7 +404,13 @@
 }
 
 .isRevealed .marqueeItem {
-  translate: 0 0;
+  translate: 0 calc(var(--zz, 0) * var(--zz-amt));
+}
+
+@media (max-width: 600px) {
+  .marqueeGroup {
+    --zz-amt: 14px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -410,7 +419,7 @@
   }
 
   .marqueeItem {
-    translate: none;
+    translate: 0 calc(var(--zz, 0) * var(--zz-amt));
     transition: none;
   }
 }

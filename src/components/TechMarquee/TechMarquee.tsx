@@ -58,6 +58,8 @@ export const TechMarquee: React.FC = () => {
                   "--wd": `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
                   // position in the reveal wave (only the first ones are on screen)
                   "--ri": Math.min(index, 12),
+                  // zigzag formation: -1 = up, 1 = down
+                  "--zz": index % 2 === 0 ? -1 : 1,
                 } as React.CSSProperties
               }
               title={item.name}
@@ -85,6 +87,8 @@ export const TechMarquee: React.FC = () => {
                   "--wd": `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
                   // position in the reveal wave (only the first ones are on screen)
                   "--ri": Math.min(index, 12),
+                  // zigzag continues across the seam between the two sets
+                  "--zz": (index + REAL_TECH_ITEMS.length) % 2 === 0 ? -1 : 1,
                 } as React.CSSProperties
               }
               title={item.name}

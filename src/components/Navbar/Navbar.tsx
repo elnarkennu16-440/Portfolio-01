@@ -12,17 +12,63 @@ interface NavbarProps {
   onToggleTheme: (e?: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenContact?: () => void;
   onOpenSubpage?: (subpage: "experience" | "workflows" | "services") => void;
+  /**
+   * Optional. When provided, the navbar reveal animation starts exactly when this
+   * becomes true (end of the loader). When NOT provided, it falls back to a 3s timer.
+   */
+  isIntroDone?: boolean;
 }
+
+// Remembers that the reveal already played, so it does not replay if Navbar remounts.
+let navRevealPlayed = false;
+
+type NavRevealPhase = "pre" | "play" | "done";
 
 export const Navbar: React.FC<NavbarProps> = ({
   theme,
   onToggleTheme,
   onOpenContact,
   onOpenSubpage,
+  isIntroDone,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [desktopDropdownOpen, setDesktopDropdownOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("hero");
+
+  // ---- Navbar reveal animation (starts after the loader) ----
+  const [timerReady, setTimerReady] = useState(false);
+  const [revealPhase, setRevealPhase] = useState<NavRevealPhase>(() => {
+    if (navRevealPlayed) return "done";
+    if (
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return "done";
+    }
+    return "pre";
+  });
+
+  useEffect(() => {
+    if (isIntroDone !== undefined || revealPhase !== "pre") return;
+    const t = setTimeout(() => setTimerReady(true), 3000);
+    return () => clearTimeout(t);
+  }, [isIntroDone, revealPhase]);
+
+  const introReady = isIntroDone ?? timerReady;
+
+  useEffect(() => {
+    if (introReady) {
+      setRevealPhase((p) => (p === "pre" ? "play" : p));
+    }
+  }, [introReady]);
+
+  const revealClass =
+    revealPhase === "pre"
+      ? styles.navPre
+      : revealPhase === "play"
+        ? styles.navPlay
+        : "";
   const dropdownCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -131,8 +177,16 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className={styles.header}>
-      <div className={styles.inner}>
+    <header className={`${styles.header} ${revealClass}`}>
+      <div
+        className={styles.inner}
+        onAnimationEnd={(e) => {
+          if (e.target === e.currentTarget && revealPhase === "play") {
+            navRevealPlayed = true;
+            setRevealPhase("done");
+          }
+        }}
+      >
         {/* Brand Logo Zone */}
         <a
           href="#hero"
