@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { REAL_TECH_ITEMS } from "./RealTechIcons";
 import styles from "./TechMarquee.module.css";
 
@@ -7,9 +7,41 @@ import styles from "./TechMarquee.module.css";
 const WAVE_STEP_SECONDS = 0.42;
 
 export const TechMarquee: React.FC = () => {
+  // Wave reveal: starts once, when the ribbon scrolls into view
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [isRevealed, setIsRevealed] = useState(false);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const reduceMotion =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (reduceMotion || typeof IntersectionObserver === "undefined") {
+      setIsRevealed(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setIsRevealed(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.25, rootMargin: "0px 0px -8% 0px" },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <section
-      className={styles.techMarqueeSection}
+      ref={sectionRef}
+      className={`${styles.techMarqueeSection} ${isRevealed ? styles.isRevealed : ""}`}
       aria-label="Technology Stack Sliding Ribbon"
     >
       <div className={styles.marqueeTrack}>
@@ -24,6 +56,8 @@ export const TechMarquee: React.FC = () => {
                   animationDelay: `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
                   // the icon INSIDE the slab uses this delay for the same wave
                   "--wd": `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
+                  // position in the reveal wave (only the first ones are on screen)
+                  "--ri": Math.min(index, 12),
                 } as React.CSSProperties
               }
               title={item.name}
@@ -49,6 +83,8 @@ export const TechMarquee: React.FC = () => {
                 {
                   animationDelay: `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
                   "--wd": `${(index % REAL_TECH_ITEMS.length) * WAVE_STEP_SECONDS}s`,
+                  // position in the reveal wave (only the first ones are on screen)
+                  "--ri": Math.min(index, 12),
                 } as React.CSSProperties
               }
               title={item.name}

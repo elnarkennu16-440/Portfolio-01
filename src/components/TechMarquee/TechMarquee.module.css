@@ -379,3 +379,38 @@
     transition: none;
   }
 }
+
+/* =========================================================================
+   WAVE REVEAL ON SCROLL
+   When the ribbon scrolls into view, the slabs rise one after another
+   (left -> right) from under a fixed mask line at the bottom of the row.
+   Uses the separate `translate` property, so the 3D slab transform, the spin
+   and the hover effect are not touched.
+   ========================================================================= */
+.marqueeGroup {
+  /* mask line on the bottom edge only; the other sides stay open for hover pop-out */
+  clip-path: inset(-160px -60px -14px -60px);
+}
+
+.marqueeItem {
+  translate: 0 190px;
+  transition:
+    transform 0.55s var(--ease-editorial),
+    translate 1.15s cubic-bezier(0.16, 1, 0.3, 1)
+      calc(var(--ri, 0) * 90ms + 150ms);
+}
+
+.isRevealed .marqueeItem {
+  translate: 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marqueeGroup {
+    clip-path: none;
+  }
+
+  .marqueeItem {
+    translate: none;
+    transition: none;
+  }
+}
