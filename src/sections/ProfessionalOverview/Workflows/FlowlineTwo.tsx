@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "./FlowLineTwo.module.css";
+import styles from "./FlowlineTwo.module.css";
 
 /**
  * FlowLineTwo  -  decorative thin curve for the Workflows page.

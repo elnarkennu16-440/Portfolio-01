@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "./FlowLineThree.module.css";
+import styles from "./FlowlineThree.module.css";
 
 /**
  * FlowLineThree  -  decorative thin curve for the Services page.
