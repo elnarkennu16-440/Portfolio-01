@@ -138,20 +138,60 @@ export const About: React.FC = () => {
       return;
     }
 
+    // A block is revealed the moment its top edge enters the visible area
+    // (3% above the bottom of the screen). Two independent triggers share this
+    // rule so the reveal always follows the scroll and never waits for the next
+    // scroll movement:
+    //   1) IntersectionObserver (primary)
+    //   2) a light scroll/resize check (backup, in case the observer callback
+    //      arrives late while the page is busy)
+    const VIEW_BOTTOM_MARGIN = 0.03;
+    const pending = new Set<HTMLElement>(blocks);
+    let rafId = 0;
+
+    const detach = () => {
+      window.removeEventListener("scroll", scheduleCheck);
+      window.removeEventListener("resize", scheduleCheck);
+      if (rafId) cancelAnimationFrame(rafId);
+      observer.disconnect();
+    };
+
+    const reveal = (el: HTMLElement) => {
+      if (!pending.has(el)) return;
+      el.setAttribute("data-revealed", "true");
+      pending.delete(el);
+      observer.unobserve(el);
+      if (pending.size === 0) detach();
+    };
+
+    const check = () => {
+      rafId = 0;
+      const limit = window.innerHeight * (1 - VIEW_BOTTOM_MARGIN);
+      Array.from(pending).forEach((el) => {
+        const rect = el.getBoundingClientRect();
+        if (rect.top < limit && rect.bottom > 0) reveal(el);
+      });
+    };
+
+    function scheduleCheck() {
+      if (!rafId) rafId = requestAnimationFrame(check);
+    }
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.setAttribute("data-revealed", "true");
-            observer.unobserve(entry.target);
-          }
+          if (entry.isIntersecting) reveal(entry.target as HTMLElement);
         });
       },
-      { threshold: 0.15, rootMargin: "0px 0px -8% 0px" },
+      { threshold: 0, rootMargin: `0px 0px -${VIEW_BOTTOM_MARGIN * 100}% 0px` },
     );
 
     blocks.forEach((b) => observer.observe(b));
-    return () => observer.disconnect();
+    window.addEventListener("scroll", scheduleCheck, { passive: true });
+    window.addEventListener("resize", scheduleCheck, { passive: true });
+    scheduleCheck(); // also check once right away
+
+    return detach;
   }, []);
 
   // Observer for the layout (kept from before)
@@ -357,7 +397,8 @@ export const About: React.FC = () => {
                       src="/images/Github-Contribution.png"
                       alt="Kennu Elnar GitHub repository contribution graph"
                       className={styles.contributionImage}
-                      loading="lazy"
+                      loading="eager"
+                      decoding="async"
                     />
                   </div>
                 </div>

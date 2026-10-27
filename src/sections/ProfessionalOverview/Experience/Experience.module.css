@@ -1,13 +1,13 @@
 /* Experience Subpage Styles
- * Full-screen standalone page with editorial typography, architectural timeline rail,
- * zero-card minimalist scroll design, and matching dark/light mode theme tokens.
- * + Scroll-based side reveal, scroll-linked rail progress, hover interactions.
+ * Full-screen standalone page with editorial typography and matching dark/light tokens.
+ *
+ * Two layouts:
+ *  - DEFAULT (phones / short screens / reduced motion): normal stacked timeline.
+ *  - .isPinned (desktop, added by GSAP): pinned stage with a left step rail and
+ *    one experience visible at a time, driven by ScrollTrigger.
  */
 
 .pageContainer {
-  /* distance the content travels when it slides in from the side */
-  --shift: 56px;
-
   position: fixed;
   inset: 0;
   width: 100%;
@@ -132,86 +132,6 @@
 }
 
 /* =========================================================================
-   SCROLL REVEAL
-   Elements start hidden. When they scroll into view the component sets
-   data-in="true" and they slide in from the side (transform + opacity only,
-   so it stays smooth). --d = stagger delay, --dir = side, --flip = opposite side.
-   ========================================================================= */
-.pageContainer [data-reveal]:not([data-in="true"]) {
-  opacity: 0;
-}
-
-.pageContainer [data-reveal="side"][data-in="true"] {
-  animation: revealSide 0.95s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms)
-    backwards;
-}
-
-.pageContainer [data-reveal="grow"][data-in="true"] {
-  transform-origin: 50% 0%;
-  animation: revealGrow 0.9s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms)
-    backwards;
-}
-
-.pageContainer [data-reveal="rule"][data-in="true"] {
-  transform-origin: 0% 50%;
-  animation: revealRule 1.1s cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms)
-    backwards;
-}
-
-.pageContainer [data-reveal="pop"][data-in="true"] {
-  animation: revealPop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) var(--d, 0ms)
-    backwards;
-}
-
-@keyframes revealSide {
-  from {
-    opacity: 0;
-    transform: translate3d(
-      calc(var(--dir, -1) * var(--flip, 1) * var(--shift, 56px)),
-      0,
-      0
-    );
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes revealGrow {
-  from {
-    opacity: 0;
-    transform: scaleY(0);
-  }
-  to {
-    opacity: 1;
-    transform: scaleY(1);
-  }
-}
-
-@keyframes revealRule {
-  from {
-    opacity: 0;
-    transform: scaleX(0);
-  }
-  to {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-}
-
-@keyframes revealPop {
-  from {
-    opacity: 0;
-    transform: scale(0);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* =========================================================================
    MAIN CONTENT AREA (Spacious, Editorial Layout)
    ========================================================================= */
 .mainContent {
@@ -222,6 +142,10 @@
   max-width: 1080px;
   margin: 0 auto;
   padding: clamp(2rem, 5vw, 3.5rem) clamp(1rem, 3.5vw, 2.5rem);
+}
+
+.stage {
+  position: relative;
 }
 
 .subHeaderRow {
@@ -264,12 +188,15 @@
   margin: 0;
 }
 
-/* =========================================================================
-   ARCHITECTURAL TIMELINE STREAM (Zero-Card Minimalist Aesthetic)
-   ========================================================================= */
-.timelineStream {
-  --p: 0; /* scroll progress of the rail (0 -> 1), set from the component */
+/* Step rail: only visible in the pinned desktop layout */
+.railNav {
+  display: none;
+}
 
+/* =========================================================================
+   TIMELINE (default stacked layout)
+   ========================================================================= */
+.slides {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -279,31 +206,28 @@
   gap: clamp(3rem, 7vw, 4.5rem);
 }
 
-/* The line that fills while you scroll */
-.railFill {
-  position: absolute;
-  left: -1px;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: linear-gradient(
-    to bottom,
-    var(--text-primary),
-    var(--text-secondary)
-  );
-  transform-origin: 50% 0%;
-  transform: scaleY(var(--p, 0));
-  will-change: transform;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.timelineItem {
+.slide {
   position: relative;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  isolation: isolate;
+}
+
+.slideCol {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+/* wrapper around the pages: invisible in the stacked layout */
+.leafStack {
+  display: contents;
+}
+
+/* fold shadow: only used in the book layout */
+.pageShade {
+  display: none;
 }
 
 /* Node indicator along the vertical architectural axis */
@@ -317,36 +241,9 @@
   background-color: var(--bg-primary);
   border: 2px solid var(--text-primary);
   transition: transform 0.25s var(--ease-editorial);
-  z-index: 2;
 }
 
-/* one soft ring that expands when the node appears */
-.timelineNode::after {
-  content: "";
-  position: absolute;
-  inset: -2px;
-  border-radius: 50%;
-  border: 1px solid var(--text-primary);
-  opacity: 0;
-  pointer-events: none;
-}
-
-.timelineNode[data-in="true"]::after {
-  animation: nodeRing 1.4s cubic-bezier(0.16, 1, 0.3, 1) 0.25s;
-}
-
-@keyframes nodeRing {
-  0% {
-    opacity: 0.55;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(3.4);
-  }
-}
-
-.timelineItem:hover .timelineNode {
+.slide:hover .timelineNode {
   transform: scale(1.4);
   background-color: var(--text-primary);
 }
@@ -413,7 +310,7 @@
   color: var(--border-medium);
 }
 
-/* Thin line under the header that draws itself */
+/* Thin line under the header */
 .headerRule {
   display: block;
   width: 100%;
@@ -467,7 +364,7 @@
   color: var(--text-secondary);
   transition:
     color 0.25s ease,
-    transform 0.35s var(--ease-editorial);
+    translate 0.35s var(--ease-editorial);
 }
 
 /* small dash marker that stretches on hover */
@@ -486,7 +383,7 @@
 
 .responsibilityItem:hover {
   color: var(--text-primary);
-  transform: translateX(4px);
+  translate: 4px 0;
 }
 
 .responsibilityItem:hover::before {
@@ -579,17 +476,219 @@
   transition:
     color 0.2s ease,
     border-color 0.2s ease,
-    transform 0.25s var(--ease-editorial);
+    translate 0.25s var(--ease-editorial);
 }
 
-.timelineItem:hover .skillPill {
+.slide:hover .skillPill {
   color: var(--text-primary);
   border-color: var(--border-medium);
 }
 
 .skillPill:hover {
-  transform: translateY(-2px);
+  translate: 0 -2px;
   border-color: var(--border-strong);
+}
+
+/* =========================================================================
+   PINNED DESKTOP LAYOUT (class added by GSAP only when it is active)
+   Left: title + step rail. Right: one experience at a time.
+   ========================================================================= */
+.pageContainer.isPinned .mainContent {
+  max-width: 1240px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.pageContainer.isPinned .stage {
+  height: calc(100dvh - var(--nav-h, 64px));
+  display: grid;
+  grid-template-columns: clamp(230px, 22vw, 290px) minmax(0, 1fr);
+  column-gap: clamp(2rem, 4vw, 4rem);
+  align-items: center;
+}
+
+.pageContainer.isPinned .stageAside {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 4vh, 2.75rem);
+}
+
+.pageContainer.isPinned .subHeaderRow {
+  margin-bottom: 0;
+}
+
+.pageContainer.isPinned .pageTitle {
+  font-size: clamp(2rem, 3.4vw, 2.75rem);
+}
+
+.pageContainer.isPinned .pageDescription {
+  font-size: clamp(0.84rem, 1.05vw, 0.94rem);
+}
+
+/* ----- step rail ----- */
+.pageContainer.isPinned .railNav {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.railTrack,
+.railFill,
+.railMarker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+.railTrack {
+  bottom: 0;
+  width: 1px;
+  background-color: var(--border-hairline);
+}
+
+/* fills while you scroll (--p is set on the stage by ScrollTrigger) */
+.railFill {
+  bottom: 0;
+  width: 1px;
+  background-color: var(--text-muted);
+  transform-origin: 50% 0%;
+  transform: scaleY(var(--p, 0));
+  will-change: transform;
+}
+
+/* the active marker: stretches / morphs between steps (animated by GSAP) */
+.railMarker {
+  left: -0.5px;
+  width: 2px;
+  height: 0;
+  background-color: var(--text-primary);
+  border-radius: 2px;
+  will-change: transform, height;
+}
+
+.railItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.7rem 0 0.7rem 1rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition:
+    color 0.3s ease,
+    padding-left 0.4s var(--ease-editorial);
+}
+
+.railItem:hover {
+  color: var(--text-secondary);
+  padding-left: 1.2rem;
+}
+
+.railItem.navActive {
+  color: var(--text-primary);
+  padding-left: 1.2rem;
+}
+
+.railPeriod {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.railRole {
+  font-family: var(--font-serif);
+  font-size: 1.02rem;
+  line-height: 1.25;
+}
+
+/* ----- the book: a stack of pages. GSAP folds the top page down over its
+   bottom edge (hinge at the bottom) and brings the next page forward ----- */
+.pageContainer.isPinned .slides {
+  position: relative;
+  display: block;
+  align-self: stretch;
+  height: 100%;
+  padding-left: 0;
+  margin-left: 0;
+  border-left: none;
+  gap: 0;
+}
+
+.pageContainer.isPinned .leafStack {
+  display: block;
+  position: absolute;
+  top: clamp(28px, 5vh, 46px); /* room where the pages underneath peek out */
+  bottom: clamp(16px, 3vh, 32px);
+  left: 0;
+  right: 0;
+  perspective: 1800px;
+  perspective-origin: 50% 15%;
+}
+
+.pageContainer.isPinned .slide {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  column-gap: clamp(2rem, 3.5vw, 3.25rem);
+  align-items: center;
+  padding: clamp(1.5rem, 3vh, 2.5rem) clamp(1.5rem, 2.8vw, 2.75rem);
+  background: var(--bg-surface, #131417);
+  border: 1px solid var(--border-hairline);
+  border-radius: 10px;
+  box-shadow: 0 28px 60px -28px rgba(0, 0, 0, 0.65);
+  transform-origin: 50% 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+[data-theme="light"] .pageContainer.isPinned .slide {
+  box-shadow: 0 28px 60px -30px rgba(0, 0, 0, 0.25);
+}
+
+.pageContainer.isPinned .pageShade {
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.pageContainer.isPinned .timelineNode {
+  display: none;
+}
+
+/* shorter laptop screens: tighten spacing so one experience always fits */
+@media (max-height: 800px) {
+  .pageContainer.isPinned .slideCol {
+    gap: 1rem;
+  }
+
+  .pageContainer.isPinned .responsibilitiesList {
+    gap: 0.4rem;
+  }
+
+  .pageContainer.isPinned .roleTitle {
+    font-size: clamp(1.4rem, 2.4vw, 1.85rem);
+  }
+
+  .pageContainer.isPinned .itemNarrative,
+  .pageContainer.isPinned .responsibilityItem {
+    line-height: 1.5;
+  }
+
+  .pageContainer.isPinned .highlightsBox {
+    padding: 0.8rem 1rem;
+  }
 }
 
 /* =========================================================================
@@ -638,11 +737,7 @@
 }
 
 @media (max-width: 640px) {
-  .pageContainer {
-    --shift: 28px;
-  }
-
-  .timelineStream {
+  .slides {
     padding-left: 1rem;
     margin-left: 0.25rem;
     gap: 2.5rem;
@@ -659,19 +754,9 @@
   }
 }
 
-/* Reduced motion: everything is simply visible, no sliding */
 @media (prefers-reduced-motion: reduce) {
-  .pageContainer [data-reveal]:not([data-in="true"]) {
-    opacity: 1;
-  }
-
-  .pageContainer [data-reveal][data-in="true"],
-  .timelineNode[data-in="true"]::after {
-    animation: none;
-  }
-
   .responsibilityItem:hover,
   .skillPill:hover {
-    transform: none;
+    translate: none;
   }
 }

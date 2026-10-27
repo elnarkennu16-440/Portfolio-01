@@ -35,6 +35,10 @@ const PHOTO_START = 0.5;
 const PARTICLE_FADE_START = 0.84;
 const PHOTO_BLUR_PX = 14;
 
+/* Exact CSS equivalent of smoothstep(t) = 3t² − 2t³ (used so the photo's
+   opacity/blur can run on the GPU with the SAME curve as before). */
+const SMOOTHSTEP_EASING = "cubic-bezier(0.3333, 0, 0.6667, 1)";
+
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const smoothstep = (t: number) => {
   const c = clamp01(t);
@@ -43,6 +47,17 @@ const smoothstep = (t: number) => {
 // Gentle slow-in / slow-out: dust drifts, glides, then softly settles
 const easeInOutCubic = (t: number) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * DUST DRAWING (performance)
+ * Instead of one canvas fill per grain (7,500 fills every frame on desktop),
+ * grains that share the same tone + opacity step are added to ONE path and
+ * filled together. Tones step by 10 (RGB 165-245) and opacity in 14 steps, which
+ * is not visible on tiny dust but cuts the draw calls from thousands to ~100.
+ * ──────────────────────────────────────────────────────────────────────────── */
+const SHADE_LEVELS = 9; // 165, 175, ... 245
+const ALPHA_LEVELS = 14;
+const BUCKET_STRIDE = ALPHA_LEVELS + 1;
 
 /**
  * Pre-loads Kennu's center photo ONCE and shares it.
@@ -357,17 +372,54 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
     let startTimeout: ReturnType<typeof setTimeout> | undefined;
     let loadTimeout: ReturnType<typeof setTimeout> | undefined;
     let began = false;
+    // GPU-driven photo opacity + blur animations (null = fallback to per-frame styles)
+    let gpuAnims: Animation[] | null = null;
 
-    // Pre-built light-gray colour strings (avoids creating thousands of strings per frame)
-    const shadeStyles: string[] = [];
-    const getShadeStyle = (shade: number) => {
-      const s = Math.max(0, Math.min(255, shade | 0));
-      if (!shadeStyles[s]) shadeStyles[s] = `rgb(${s}, ${s}, ${s})`;
-      return shadeStyles[s];
+    const cancelGpuAnims = () => {
+      if (gpuAnims) {
+        gpuAnims.forEach((a) => a.cancel());
+        gpuAnims = null;
+      }
+    };
+
+    /**
+     * PERF: the photo's opacity + blur used to be rewritten on the main thread
+     * EVERY frame, which forced the browser to re-render the whole filtered
+     * portrait (9 images + grayscale/contrast/drop-shadow/mask) 60x per second.
+     * They now run as native animations with the exact same timing and the exact
+     * same smoothstep curve, so they cost the main thread nothing.
+     */
+    const startGpuPhotoReveal = (): Animation[] | null => {
+      if (typeof wrapper.animate !== "function") return null;
+      try {
+        const timing: KeyframeAnimationOptions = {
+          delay: PHOTO_START * REVEAL_DURATION_MS,
+          duration: (1 - PHOTO_START) * REVEAL_DURATION_MS,
+          easing: SMOOTHSTEP_EASING,
+          fill: "both",
+        };
+        const list: Animation[] = [];
+        list.push(wrapper.animate([{ opacity: 0 }, { opacity: 1 }], timing));
+
+        const fromFilter = getComputedStyle(wrapper).filter;
+        if (fromFilter && /blur\(/.test(fromFilter)) {
+          const toFilter = fromFilter.replace(/blur\([^)]*\)/, "blur(0px)");
+          list.push(
+            wrapper.animate(
+              [{ filter: fromFilter }, { filter: toFilter }],
+              timing,
+            ),
+          );
+        }
+        return list;
+      } catch {
+        return null;
+      }
     };
 
     const finishReveal = () => {
       hasCompletedRef.current = true;
+      cancelGpuAnims();
       ctx.globalAlpha = 1;
       ctx.globalCompositeOperation = "source-over";
       ctx.clearRect(0, 0, sceneWidth, sceneHeight);
@@ -393,6 +445,12 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
       const vortexDirs = new Float32Array(count);
       const randoms = new Float32Array(count);
 
+      // Target data in flat typed arrays (faster than reading objects every frame)
+      const targetX = new Float32Array(count);
+      const targetY = new Float32Array(count);
+      const targetSize = new Float32Array(count);
+      const targetShadeLevel = new Uint8Array(count);
+
       // Dust starts as a soft round cloud that stays INSIDE the canvas
       // (no grains clipped at the canvas edge → no visible square box)
       const halfW = stageWidth / 2 + 24;
@@ -406,6 +464,14 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
         origZ[i] = (Math.random() - 0.5) * 360 - 40; // 3D depth
         settleZ[i] = (Math.random() - 0.5) * 5; // stable (no per-frame flicker)
 
+        targetX[i] = targets[i].x;
+        targetY[i] = targets[i].y;
+        targetSize[i] = targets[i].size;
+        targetShadeLevel[i] = Math.max(
+          0,
+          Math.min(SHADE_LEVELS - 1, Math.round((targets[i].shade - 165) / 10)),
+        );
+
         // Head & face start forming first, shoulders / suit follow (organic flow)
         const topFactor = clamp01(
           (stageHeight / 2 - targets[i].y) / stageHeight,
@@ -417,9 +483,28 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
         randoms[i] = Math.random();
       }
 
+      // Pre-built light-gray colour strings (one per tone step)
+      const shadeStyles: string[] = [];
+      for (let k = 0; k < SHADE_LEVELS; k++) {
+        const g = 165 + k * 10;
+        shadeStyles.push(`rgb(${g}, ${g}, ${g})`);
+      }
+      const bucketPaths: (Path2D | undefined)[] = new Array(
+        SHADE_LEVELS * BUCKET_STRIDE,
+      );
+
+      // Safety net for slow PCs: if frames take too long, draw a slightly smaller
+      // share of the grains (never goes below 50%). On a healthy PC this stays at
+      // 100% so the dust looks exactly the same. Timing is never affected.
+      let drawFraction = 1;
+      let emaDt = 16.7;
+      let lastTs = 0;
+      let frameCounter = 0;
+
       const cx = sceneWidth / 2;
       const cy = sceneHeight / 2;
       const fovZ = 520;
+      const TWO_PI = Math.PI * 2;
       let animStartTime: number | null = null;
 
       const renderFrame = (timestamp: number) => {
@@ -427,7 +512,17 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
 
         if (animStartTime === null) {
           animStartTime = timestamp;
+          gpuAnims = startGpuPhotoReveal();
         }
+
+        if (lastTs > 0) {
+          emaDt = emaDt * 0.9 + (timestamp - lastTs) * 0.1;
+          frameCounter++;
+          if (frameCounter % 20 === 0 && emaDt > 24 && drawFraction > 0.5) {
+            drawFraction = Math.max(0.5, drawFraction - 0.1);
+          }
+        }
+        lastTs = timestamp;
 
         const time = timestamp * 0.001;
         const elapsed = timestamp - animStartTime;
@@ -435,16 +530,20 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
 
         // PHOTO DEVELOPS UNDERNEATH THE DUST
         // Slow smoothstep cross-dissolve: blurry → sharp while the dust melts into it.
-        if (progress < PHOTO_START) {
-          wrapper.style.opacity = "0";
-        } else {
-          const photoT = (progress - PHOTO_START) / (1.0 - PHOTO_START);
-          const photoEase = smoothstep(photoT);
-          wrapper.style.opacity = `${photoEase}`;
-          wrapper.style.setProperty(
-            "--reveal-blur",
-            `${((1.0 - photoEase) * PHOTO_BLUR_PX).toFixed(2)}px`,
-          );
+        // (Normally handled by the native animations above; this is only the
+        // fallback for browsers without the Web Animations API.)
+        if (!gpuAnims) {
+          if (progress < PHOTO_START) {
+            wrapper.style.opacity = "0";
+          } else {
+            const photoT = (progress - PHOTO_START) / (1.0 - PHOTO_START);
+            const photoEase = smoothstep(photoT);
+            wrapper.style.opacity = `${photoEase}`;
+            wrapper.style.setProperty(
+              "--reveal-blur",
+              `${((1.0 - photoEase) * PHOTO_BLUR_PX).toFixed(2)}px`,
+            );
+          }
         }
 
         // Finish when progress reaches 1.0
@@ -473,8 +572,10 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
         const particleAlpha = introAlpha * meltAlpha;
         const EDGE_MARGIN = 70;
 
-        for (let i = 0; i < count; i++) {
-          const pt = targets[i];
+        bucketPaths.fill(undefined);
+        const drawCount = Math.max(1, Math.floor(count * drawFraction));
+
+        for (let i = 0; i < drawCount; i++) {
           const aDelay = delays[i];
           const aRandom = randoms[i];
 
@@ -499,8 +600,8 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
           const turbY =
             Math.cos(churnPhase * 0.8 + aRandom * 9.0) * 26.0 * churn;
 
-          let posX = origX[i] + (pt.x - origX[i]) * ease + ambX + turbX;
-          let posY = origY[i] + (pt.y - origY[i]) * ease + ambY + turbY;
+          let posX = origX[i] + (targetX[i] - origX[i]) * ease + ambX + turbX;
+          let posY = origY[i] + (targetY[i] - origY[i]) * ease + ambY + turbY;
           const posZ = origZ[i] * (1.0 - ease) + settleZ[i] * ease + ambZ;
 
           // Coherent 3D vortex swirl that unwinds smoothly to exactly 0 on arrival
@@ -536,7 +637,7 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
 
           // Depth of field feel: far grains are dimmer, near grains brighter
           const depthFade = Math.min(1, Math.max(0.45, depthScale));
-          const shimmer = 0.9 + 0.1 * Math.sin(time * 2.2 + aRandom * 6.28);
+          const shimmer = 0.9 + 0.1 * Math.sin(time * 2.2 + aRandom * TWO_PI);
           const ptAlpha =
             (0.3 + 0.62 * ease) *
             shimmer *
@@ -548,15 +649,30 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
 
           const ptSize = Math.max(
             0.9,
-            Math.min(pt.size * depthScale * (1.0 - ease * 0.1), 14.0),
+            Math.min(targetSize[i] * depthScale * (1.0 - ease * 0.1), 14.0),
           );
 
-          ctx.globalAlpha = Math.min(ptAlpha, 0.94);
-          // STRICTLY LIGHT GRAY TONES (RGB 165 - 245)
-          ctx.fillStyle = getShadeStyle(pt.shade);
-          ctx.beginPath();
-          ctx.arc(screenX, screenY, ptSize * 0.5, 0, Math.PI * 2);
-          ctx.fill();
+          // STRICTLY LIGHT GRAY TONES (RGB 165 - 245): grains with the same tone
+          // and opacity step are collected into one path and filled once below
+          let alphaIdx = Math.round(Math.min(ptAlpha, 0.94) * ALPHA_LEVELS);
+          if (alphaIdx < 1) alphaIdx = 1;
+          const bucket = targetShadeLevel[i] * BUCKET_STRIDE + alphaIdx;
+          let path = bucketPaths[bucket];
+          if (!path) {
+            path = new Path2D();
+            bucketPaths[bucket] = path;
+          }
+          const radius = ptSize * 0.5;
+          path.moveTo(screenX + radius, screenY);
+          path.arc(screenX, screenY, radius, 0, TWO_PI);
+        }
+
+        for (let b = 0; b < bucketPaths.length; b++) {
+          const path = bucketPaths[b];
+          if (!path) continue;
+          ctx.globalAlpha = (b % BUCKET_STRIDE) / ALPHA_LEVELS;
+          ctx.fillStyle = shadeStyles[Math.floor(b / BUCKET_STRIDE)];
+          ctx.fill(path);
         }
 
         ctx.globalAlpha = 1;
@@ -609,6 +725,7 @@ export const LookAtPortrait: React.FC<LookAtPortraitProps> = ({
       if (animId !== null) {
         cancelAnimationFrame(animId);
       }
+      cancelGpuAnims();
       // If React re-runs this effect before we finished, allow a clean restart
       if (!hasCompletedRef.current) {
         hasStartedRef.current = false;

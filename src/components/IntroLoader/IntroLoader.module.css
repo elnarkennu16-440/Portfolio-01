@@ -222,3 +222,49 @@
     height: clamp(230px, 82vw, 275px);
   }
 }
+
+/* =========================================================================
+   LOGO FLIGHT (loader -> navbar)  — ADD THIS AT THE VERY END of
+   Navbar.module.css. Nothing above it is changed.
+   The flying logo is a fixed copy of the loader logo. It sits above the
+   loader overlay (z-index 99999999), glides into the navbar logo spot and
+   then cross-fades into the real logo.
+   ========================================================================= */
+.flyLogo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100000000;
+  pointer-events: none;
+  transform-origin: 0 0;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+/* In light theme the real navbar logo is inverted (dark). The flying logo
+   turns dark smoothly while the loader fades away, so it never disappears
+   on the light page. */
+.flyLogoTone {
+  width: 100%;
+  height: 100%;
+  transition: filter 0.65s ease;
+}
+
+.flyLogoToneLight {
+  filter: invert(1);
+}
+
+.flyLogoImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.26));
+  user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flyLogo {
+    display: none;
+  }
+}

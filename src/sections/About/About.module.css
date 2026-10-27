@@ -189,10 +189,10 @@
   will-change: auto;
 }
 
-/* body paragraphs: word-by-word wave; each paragraph waits for the one before it */
+/* body paragraphs: word-by-word wave; each paragraph follows closely after the one before it */
 .maskBlock {
-  /* desktop: paragraphs follow the lead sentence, one after another */
-  --base: calc(var(--bi, 0) * 550ms + 900ms);
+  /* desktop: short, tight stagger so the reveal keeps up with the scroll */
+  --base: calc(var(--bi, 0) * 200ms + 350ms);
 }
 
 .paragraph {
@@ -234,8 +234,8 @@
 
 /* GitHub Repository Contribution Widget (Plain black background, no blue borders, aligned to bottom) */
 .contributionWidget {
-  /* desktop: the widget comes last in the sequence */
-  --base: 2000ms;
+  /* starts the moment it scrolls into view (no waiting) */
+  --base: 0ms;
 
   display: flex;
   flex-direction: column;
@@ -248,9 +248,12 @@
 /* stacked layout (tablet / phone): every block is on its own scroll position,
    so it only needs a short delay */
 @media (max-width: 1023px) {
-  .maskBlock,
-  .contributionWidget {
+  .maskBlock {
     --base: 160ms;
+  }
+
+  .contributionWidget {
+    --base: 0ms;
   }
 }
 
@@ -360,9 +363,9 @@
   transform: translate3d(0, 105%, 0) rotate(2.5deg);
   opacity: 0;
   transition:
-    transform 1.6s cubic-bezier(0.16, 1, 0.3, 1),
-    opacity 0.7s ease-out;
-  transition-delay: calc(var(--base, 0ms) + 450ms);
+    transform 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.5s ease-out;
+  transition-delay: calc(var(--base, 0ms) + 120ms);
 }
 
 .contributionWidget[data-revealed="true"]
