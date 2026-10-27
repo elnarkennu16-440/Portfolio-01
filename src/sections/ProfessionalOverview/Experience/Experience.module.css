@@ -1,10 +1,11 @@
 /* Experience Subpage Styles
  * Full-screen standalone page with editorial typography and matching dark/light tokens.
  *
- * Two layouts:
- *  - DEFAULT (phones / short screens / reduced motion): normal stacked timeline.
- *  - .isPinned (desktop, added by GSAP): pinned stage with a left step rail and
- *    one experience visible at a time, driven by ScrollTrigger.
+ * Layouts:
+ *  - DEFAULT (very short screens): normal stacked timeline with native scroll.
+ *  - .isPaged + .isBook (desktop) / .isPhone (phones, tablets): added by GSAP.
+ *    One gray page at a time, turning in from the RIGHT.
+ *    One wheel / swipe = exactly one page.
  */
 
 .pageContainer {
@@ -225,7 +226,7 @@
   display: contents;
 }
 
-/* fold shadow: only used in the book layout */
+/* shade: only used in the book layout */
 .pageShade {
   display: none;
 }
@@ -490,16 +491,133 @@
 }
 
 /* =========================================================================
-   PINNED DESKTOP LAYOUT (class added by GSAP only when it is active)
-   Left: title + step rail. Right: one experience at a time.
+   PAGED LAYOUT  (classes added by GSAP: isPaged + isBook on desktop,
+   isPhone on phones/tablets). One scroll / swipe = one gray page.
    ========================================================================= */
-.pageContainer.isPinned .mainContent {
+.pageContainer.isPaged {
+  /* gray page color (same family as the site theme, not white) */
+  --leaf-bg: #17181b;
+  --leaf-bg-inset: rgba(255, 255, 255, 0.035);
+  --leaf-pill-bg: rgba(255, 255, 255, 0.045);
+  /* no native scrolling here: pages are switched by wheel / swipe / keys */
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+[data-theme="light"] .pageContainer.isPaged {
+  --leaf-bg: #e6e7ea;
+  --leaf-bg-inset: rgba(0, 0, 0, 0.04);
+  --leaf-pill-bg: rgba(0, 0, 0, 0.05);
+}
+
+.pageContainer.isPaged .pageFooter {
+  display: none;
+}
+
+.pageContainer.isPaged .timelineNode {
+  display: none;
+}
+
+/* the page stack */
+.pageContainer.isPaged .slides {
+  position: relative;
+  display: block;
+  padding-left: 0;
+  margin-left: 0;
+  border-left: none;
+  gap: 0;
+}
+
+.pageContainer.isPaged .leafStack {
+  display: block;
+  position: absolute;
+  perspective: 1800px;
+  perspective-origin: 50% 50%;
+}
+
+.pageContainer.isPaged .slide {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 40%),
+    var(--leaf-bg);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  /* the shadow falls to the left, onto the page underneath */
+  box-shadow: -26px 0 50px -24px rgba(0, 0, 0, 0.65);
+  transform-origin: 0% 50%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform, opacity;
+}
+
+[data-theme="light"] .pageContainer.isPaged .slide {
+  box-shadow: -26px 0 50px -26px rgba(0, 0, 0, 0.28);
+}
+
+/* tiny screens only: a page that still does not fit scrolls inside itself */
+.pageContainer.isPaged .slide[data-scroll] {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* inner elements sit on the gray page, so give them matching tones */
+.pageContainer.isPaged .highlightsBox {
+  background-color: var(--leaf-bg-inset);
+}
+
+.pageContainer.isPaged .typeBadge,
+.pageContainer.isPaged .skillPill {
+  background-color: var(--leaf-pill-bg);
+}
+
+/* darkens a page while it sinks into the stack */
+.pageContainer.isPaged .pageShade {
+  display: block;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* page dots: phone only */
+.dotsNav {
+  display: none;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    width 0.35s var(--ease-editorial),
+    background-color 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.dot.dotActive {
+  width: 22px;
+  background-color: var(--text-primary);
+  border-color: var(--text-primary);
+}
+
+/* ------------------------------ DESKTOP ------------------------------ */
+.pageContainer.isBook .mainContent {
   max-width: 1240px;
   padding-top: 0;
   padding-bottom: 0;
 }
 
-.pageContainer.isPinned .stage {
+.pageContainer.isBook .stage {
   height: calc(100dvh - var(--nav-h, 64px));
   display: grid;
   grid-template-columns: clamp(230px, 22vw, 290px) minmax(0, 1fr);
@@ -507,33 +625,32 @@
   align-items: center;
 }
 
-.pageContainer.isPinned .stageAside {
+.pageContainer.isBook .stageAside {
   display: flex;
   flex-direction: column;
   gap: clamp(1.5rem, 4vh, 2.75rem);
 }
 
-.pageContainer.isPinned .subHeaderRow {
+.pageContainer.isBook .subHeaderRow {
   margin-bottom: 0;
 }
 
-.pageContainer.isPinned .pageTitle {
+.pageContainer.isBook .pageTitle {
   font-size: clamp(2rem, 3.4vw, 2.75rem);
 }
 
-.pageContainer.isPinned .pageDescription {
+.pageContainer.isBook .pageDescription {
   font-size: clamp(0.84rem, 1.05vw, 0.94rem);
 }
 
 /* ----- step rail ----- */
-.pageContainer.isPinned .railNav {
+.pageContainer.isBook .railNav {
   position: relative;
   display: flex;
   flex-direction: column;
 }
 
 .railTrack,
-.railFill,
 .railMarker {
   position: absolute;
   left: 0;
@@ -545,16 +662,6 @@
   bottom: 0;
   width: 1px;
   background-color: var(--border-hairline);
-}
-
-/* fills while you scroll (--p is set on the stage by ScrollTrigger) */
-.railFill {
-  bottom: 0;
-  width: 1px;
-  background-color: var(--text-muted);
-  transform-origin: 50% 0%;
-  transform: scaleY(var(--p, 0));
-  will-change: transform;
 }
 
 /* the active marker: stretches / morphs between steps (animated by GSAP) */
@@ -605,90 +712,278 @@
   line-height: 1.25;
 }
 
-/* ----- the book: a stack of pages. GSAP folds the top page down over its
-   bottom edge (hinge at the bottom) and brings the next page forward ----- */
-.pageContainer.isPinned .slides {
-  position: relative;
-  display: block;
+.pageContainer.isBook .slides {
   align-self: stretch;
   height: 100%;
-  padding-left: 0;
-  margin-left: 0;
-  border-left: none;
-  gap: 0;
 }
 
-.pageContainer.isPinned .leafStack {
-  display: block;
-  position: absolute;
-  top: clamp(28px, 5vh, 46px); /* room where the pages underneath peek out */
-  bottom: clamp(16px, 3vh, 32px);
+.pageContainer.isBook .leafStack {
+  top: clamp(16px, 3vh, 30px);
+  bottom: clamp(16px, 3vh, 30px);
   left: 0;
   right: 0;
-  perspective: 1800px;
-  perspective-origin: 50% 15%;
 }
 
-.pageContainer.isPinned .slide {
-  position: absolute;
-  inset: 0;
-  box-sizing: border-box;
+.pageContainer.isBook .slide {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   column-gap: clamp(2rem, 3.5vw, 3.25rem);
   align-items: center;
   padding: clamp(1.5rem, 3vh, 2.5rem) clamp(1.5rem, 2.8vw, 2.75rem);
-  background: var(--bg-surface, #131417);
-  border: 1px solid var(--border-hairline);
-  border-radius: 10px;
-  box-shadow: 0 28px 60px -28px rgba(0, 0, 0, 0.65);
-  transform-origin: 50% 100%;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  will-change: transform, opacity;
-}
-
-[data-theme="light"] .pageContainer.isPinned .slide {
-  box-shadow: 0 28px 60px -30px rgba(0, 0, 0, 0.25);
-}
-
-.pageContainer.isPinned .pageShade {
-  display: block;
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: #000;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.pageContainer.isPinned .timelineNode {
-  display: none;
 }
 
 /* shorter laptop screens: tighten spacing so one experience always fits */
 @media (max-height: 800px) {
-  .pageContainer.isPinned .slideCol {
+  .pageContainer.isBook .slideCol {
     gap: 1rem;
   }
 
-  .pageContainer.isPinned .responsibilitiesList {
+  .pageContainer.isBook .responsibilitiesList {
     gap: 0.4rem;
   }
 
-  .pageContainer.isPinned .roleTitle {
+  .pageContainer.isBook .roleTitle {
     font-size: clamp(1.4rem, 2.4vw, 1.85rem);
   }
 
-  .pageContainer.isPinned .itemNarrative,
-  .pageContainer.isPinned .responsibilityItem {
+  .pageContainer.isBook .itemNarrative,
+  .pageContainer.isBook .responsibilityItem {
     line-height: 1.5;
   }
 
-  .pageContainer.isPinned .highlightsBox {
+  .pageContainer.isBook .highlightsBox {
     padding: 0.8rem 1rem;
   }
+}
+
+/* short viewports (laptops with 125-150% Windows scaling): fit one page */
+@media (max-height: 700px) {
+  .pageContainer.isBook .leafStack {
+    top: 10px;
+    bottom: 10px;
+  }
+
+  .pageContainer.isBook .slide {
+    padding: 1rem 1.5rem;
+    column-gap: 1.75rem;
+  }
+
+  .pageContainer.isBook .slideCol {
+    gap: 0.7rem;
+  }
+
+  .pageContainer.isBook .itemHeader {
+    gap: 0.25rem;
+  }
+
+  .pageContainer.isBook .roleTitle {
+    font-size: clamp(1.2rem, 2vw, 1.55rem);
+  }
+
+  .pageContainer.isBook .itemNarrative {
+    font-size: 0.8rem;
+    line-height: 1.45;
+  }
+
+  .pageContainer.isBook .responsibilitiesBlock {
+    gap: 0.4rem;
+  }
+
+  .pageContainer.isBook .responsibilitiesList {
+    gap: 0.3rem;
+  }
+
+  .pageContainer.isBook .responsibilityItem {
+    font-size: 0.76rem;
+    line-height: 1.42;
+  }
+
+  .pageContainer.isBook .highlightsBox {
+    padding: 0.6rem 0.85rem;
+    gap: 0.3rem;
+  }
+
+  .pageContainer.isBook .highlightItem {
+    font-size: 0.76rem;
+    line-height: 1.4;
+  }
+
+  .pageContainer.isBook .skillsRow {
+    gap: 0.3rem;
+    padding-top: 0;
+  }
+
+  .pageContainer.isBook .skillPill {
+    font-size: 0.64rem;
+    padding: 2px 6px;
+  }
+
+  .pageContainer.isBook .pageDescription {
+    display: none;
+  }
+}
+
+/* ------------------------------- PHONE -------------------------------
+   One gray card fills the screen under the title. All text sizes are in
+   "em" of --m-fs, which the script lowers until the whole page fits. */
+.pageContainer.isPhone {
+  --m-fs: 13px;
+}
+
+.pageContainer.isPhone .mainContent {
+  max-width: none;
+  padding: 0 10px;
+  display: flex;
+}
+
+.pageContainer.isPhone .stage {
+  width: 100%;
+  height: calc(100dvh - var(--nav-h, 56px));
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.7rem 0 0.8rem;
+  box-sizing: border-box;
+}
+
+.pageContainer.isPhone .stageAside {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-shrink: 0;
+  padding: 0 4px;
+}
+
+.pageContainer.isPhone .subHeaderRow {
+  margin: 0;
+}
+
+.pageContainer.isPhone .pageTitle {
+  font-size: 1.6rem;
+}
+
+.pageContainer.isPhone .titleAccentBar {
+  height: 1.15rem;
+}
+
+.pageContainer.isPhone .pageDescription {
+  display: none;
+}
+
+.pageContainer.isPhone .railNav {
+  display: none;
+}
+
+.pageContainer.isPhone .dotsNav {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pageContainer.isPhone .slides {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.pageContainer.isPhone .leafStack {
+  inset: 0 0 0 14px; /* room on the left for the pages underneath */
+}
+
+.pageContainer.isPhone .slide {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9em;
+  padding: 1.1em;
+  font-size: var(--m-fs, 13px);
+  border-radius: 16px;
+}
+
+.pageContainer.isPhone .slideCol {
+  gap: 0.85em;
+}
+
+.pageContainer.isPhone .colFirst {
+  margin-top: auto; /* centers the content when there is spare room */
+}
+
+.pageContainer.isPhone .colLast {
+  margin-bottom: auto;
+}
+
+.pageContainer.isPhone .itemHeader {
+  gap: 0.35em;
+}
+
+.pageContainer.isPhone .itemMetaRow {
+  gap: 0.6em;
+}
+
+.pageContainer.isPhone .periodMono {
+  font-size: 0.78em;
+}
+
+.pageContainer.isPhone .typeBadge {
+  font-size: 0.7em;
+}
+
+.pageContainer.isPhone .roleTitle {
+  font-size: 1.75em;
+  line-height: 1.15;
+}
+
+.pageContainer.isPhone .companyRow {
+  font-size: 0.95em;
+  flex-wrap: wrap;
+  gap: 0.2em 0.5em;
+}
+
+.pageContainer.isPhone .headerRule {
+  margin-top: 0.3em;
+}
+
+.pageContainer.isPhone .itemNarrative {
+  font-size: 1em;
+  line-height: 1.45;
+  max-width: none;
+}
+
+.pageContainer.isPhone .blockHeading {
+  font-size: 0.75em;
+}
+
+.pageContainer.isPhone .responsibilitiesBlock {
+  gap: 0.5em;
+}
+
+.pageContainer.isPhone .responsibilitiesList {
+  gap: 0.45em;
+}
+
+.pageContainer.isPhone .responsibilityItem {
+  font-size: 0.95em;
+  line-height: 1.4;
+  padding-left: 1.2em;
+}
+
+.pageContainer.isPhone .highlightsBox {
+  padding: 0.8em 1em;
+  gap: 0.4em;
+}
+
+.pageContainer.isPhone .highlightItem {
+  font-size: 0.95em;
+  line-height: 1.4;
+}
+
+.pageContainer.isPhone .skillsRow {
+  gap: 0.35em;
+  padding-top: 0;
+}
+
+.pageContainer.isPhone .skillPill {
+  font-size: 0.78em;
+  padding: 0.2em 0.55em;
 }
 
 /* =========================================================================
