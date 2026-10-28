@@ -2,13 +2,12 @@
  * @file visitorTracker.ts
  * Authentic Real-Time Live Presence Service for Kennu Elnar's Portfolio.
  *
- * Features:
- * 1. Tracks REAL-TIME concurrent live visitors ("X person / people viewing now").
- * 2. Starts authentically at 1 (the current visitor), never fake inflated numbers.
- * 3. Uses Supabase Realtime Presence channel (`online_presence`) for cross-browser, cross-device live tracking.
- * 4. Includes dual BroadcastChannel + heartbeat sync across tabs/windows on the same machine
- *    so testing in Chrome/Brave/multiple tabs works instantaneously even before Supabase env vars are set.
- * 5. Automatically cleans up when visitors close tab or disconnect.
+ * - Tracks REAL-TIME concurrent live viewers across ALL browsers/devices
+ *   through a Supabase Realtime Presence channel.
+ * - Starts at 1 (the current viewer), never inflated.
+ * - Falls back to a same-browser tab counter (BroadcastChannel + localStorage)
+ *   ONLY when Supabase is not configured or temporarily disconnected.
+ * - Auto-reconnects and re-tracks after mobile backgrounding / bfcache restore.
  */
 
 import {
@@ -27,7 +26,6 @@ type Listener = (state: LivePresenceState) => void;
 
 const listeners: Set<Listener> = new Set();
 
-// Active state: starts at 1 for the current viewer
 let currentState: LivePresenceState = {
   count: 1,
   isLive: false,
@@ -44,7 +42,12 @@ function notifyListeners() {
   });
 }
 
-// Generate or retrieve a persistent session key for this tab/visitor
+function setState(next: LivePresenceState) {
+  currentState = next;
+  notifyListeners();
+}
+
+// Persistent session key for this tab/visitor
 function getVisitorSessionId(): string {
   if (typeof window === "undefined") return "server_session";
   try {
@@ -63,7 +66,7 @@ function getVisitorSessionId(): string {
   }
 }
 
-// Safely retrieve Supabase credentials from Vite environment
+// Supabase credentials from Vite env (build-time)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
 
@@ -74,14 +77,17 @@ const isSupabaseConfigured = Boolean(
   supabaseAnonKey.length > 20,
 );
 
+const RECONNECT_DELAY_MS = 3000;
+
 let supabaseClient: SupabaseClient | null = null;
 let realtimeChannel: RealtimeChannel | null = null;
+let supabaseConnected = false;
 let broadcastChannel: BroadcastChannel | null = null;
-let heartbeatTimer: any = null;
-let pruneTimer: any = null;
+let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let isInitialized = false;
 
-// Local tab presence registry for instant multi-tab testing
+// ---------- Local (same-browser) fallback ----------
 const LOCAL_HEARTBEAT_PREFIX = "ke_tab_presence_";
 
 function updateLocalHeartbeat(sessionId: string) {
@@ -110,7 +116,8 @@ function countActiveLocalTabs(): number {
   try {
     const now = Date.now();
     let count = 0;
-    const thresholdMs = 12000; // Heartbeat valid for 12 seconds
+    const thresholdMs = 12000;
+    const staleKeys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
       if (key && key.startsWith(LOCAL_HEARTBEAT_PREFIX)) {
@@ -118,14 +125,123 @@ function countActiveLocalTabs(): number {
         if (now - lastSeen < thresholdMs) {
           count++;
         } else {
-          // Stale tab: clean up
-          localStorage.removeItem(key);
+          staleKeys.push(key);
         }
       }
     }
+    staleKeys.forEach((k) => localStorage.removeItem(k));
     return Math.max(1, count);
   } catch {
     return 1;
+  }
+}
+
+function applyLocalCount() {
+  const tabsCount = countActiveLocalTabs();
+  if (
+    tabsCount !== currentState.count ||
+    currentState.provider !== "broadcast_presence" ||
+    !currentState.isLive
+  ) {
+    setState({
+      count: tabsCount,
+      isLive: true,
+      provider: "broadcast_presence",
+    });
+  }
+}
+
+// ---------- Supabase Realtime ----------
+function trackPayload() {
+  return {
+    online_at: new Date().toISOString(),
+    device: /Mobi|Android/i.test(navigator.userAgent) ? "mobile" : "desktop",
+  };
+}
+
+function clearReconnectTimer() {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+}
+
+function scheduleReconnect(sessionId: string) {
+  if (!isInitialized || reconnectTimer) return;
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    if (isInitialized) connectSupabase(sessionId);
+  }, RECONNECT_DELAY_MS);
+}
+
+function connectSupabase(sessionId: string) {
+  if (!isSupabaseConfigured || !supabaseUrl || !supabaseAnonKey) return;
+
+  try {
+    if (!supabaseClient) {
+      supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: { persistSession: false },
+        realtime: { params: { eventsPerSecond: 10 } },
+      });
+    }
+
+    // Drop any previous channel before creating a new one
+    if (realtimeChannel) {
+      const old = realtimeChannel;
+      realtimeChannel = null;
+      supabaseClient.removeChannel(old);
+    }
+
+    const channel = supabaseClient.channel("online_portfolio_presence", {
+      config: { presence: { key: sessionId } },
+    });
+    realtimeChannel = channel;
+
+    const syncCount = () => {
+      if (channel !== realtimeChannel) return;
+      const total = Object.keys(channel.presenceState()).length;
+      setState({
+        count: Math.max(1, total),
+        isLive: true,
+        provider: "supabase_realtime",
+      });
+    };
+
+    channel
+      .on("presence", { event: "sync" }, syncCount)
+      .on("presence", { event: "join" }, syncCount)
+      .on("presence", { event: "leave" }, syncCount)
+      .subscribe(async (status) => {
+        // Ignore events from channels we already replaced
+        if (channel !== realtimeChannel) return;
+
+        if (status === "SUBSCRIBED") {
+          supabaseConnected = true;
+          clearReconnectTimer();
+          try {
+            await channel.track(trackPayload());
+          } catch (err) {
+            console.warn("[VisitorTracker] track() failed:", err);
+          }
+          syncCount();
+        } else if (
+          status === "CHANNEL_ERROR" ||
+          status === "TIMED_OUT" ||
+          status === "CLOSED"
+        ) {
+          console.warn(
+            `[VisitorTracker] Supabase channel ${status}. Using local count and retrying...`,
+          );
+          supabaseConnected = false;
+          applyLocalCount();
+          scheduleReconnect(sessionId);
+        }
+      });
+  } catch (err) {
+    console.warn("[VisitorTracker] Supabase Realtime error:", err);
+    supabaseConnected = false;
+    applyLocalCount();
+    scheduleReconnect(sessionId);
   }
 }
 
@@ -140,146 +256,43 @@ export function initLivePresence(): () => void {
   const sessionId = getVisitorSessionId();
   updateLocalHeartbeat(sessionId);
 
-  // Setup BroadcastChannel for zero-latency local multi-tab sync
+  if (!isSupabaseConfigured) {
+    console.warn(
+      "[VisitorTracker] Supabase is NOT configured (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY missing in this build). " +
+        "Counting only tabs in THIS browser. Add the env vars in your host (e.g. Vercel) and redeploy.",
+    );
+  }
+
+  // BroadcastChannel for instant same-browser tab sync (fallback only)
   if (typeof BroadcastChannel !== "undefined") {
     try {
       broadcastChannel = new BroadcastChannel("ke_portfolio_presence_channel");
       broadcastChannel.onmessage = (event) => {
-        if (
-          event.data?.type === "JOIN" ||
-          event.data?.type === "LEAVE" ||
-          event.data?.type === "PING"
-        ) {
-          if (!supabaseClient || !isSupabaseConfigured) {
-            const tabsCount = countActiveLocalTabs();
-            currentState = {
-              count: tabsCount,
-              isLive: true,
-              provider: "broadcast_presence",
-            };
-            notifyListeners();
-          }
+        const type = event.data?.type;
+        if (type === "JOIN" || type === "LEAVE" || type === "PING") {
+          if (!supabaseConnected) applyLocalCount();
         }
       };
-
-      // Announce this tab's join
       broadcastChannel.postMessage({ type: "JOIN", sessionId });
     } catch (err) {
-      console.warn(
-        "[VisitorTracker] BroadcastChannel not supported or blocked:",
-        err,
-      );
+      console.warn("[VisitorTracker] BroadcastChannel unavailable:", err);
     }
   }
 
-  // Periodic heartbeat to keep presence alive in localStorage
+  // Heartbeat keeps local presence alive (local count only used if Supabase is down)
   heartbeatTimer = setInterval(() => {
     updateLocalHeartbeat(sessionId);
-    if (!supabaseClient || !isSupabaseConfigured) {
-      const tabsCount = countActiveLocalTabs();
-      if (tabsCount !== currentState.count) {
-        currentState = {
-          count: tabsCount,
-          isLive: true,
-          provider: "broadcast_presence",
-        };
-        notifyListeners();
-      }
-    }
+    if (!supabaseConnected) applyLocalCount();
   }, 4000);
 
-  // Setup Supabase Realtime if credentials exist
-  if (isSupabaseConfigured && supabaseUrl && supabaseAnonKey) {
-    try {
-      supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-        auth: { persistSession: false },
-        realtime: {
-          params: {
-            eventsPerSecond: 10,
-          },
-        },
-      });
-
-      realtimeChannel = supabaseClient.channel("online_portfolio_presence", {
-        config: {
-          presence: {
-            key: sessionId,
-          },
-        },
-      });
-
-      realtimeChannel
-        .on("presence", { event: "sync" }, () => {
-          if (!realtimeChannel) return;
-          const presenceState = realtimeChannel.presenceState();
-          const totalOnline = Object.keys(presenceState).length;
-          currentState = {
-            count: Math.max(1, totalOnline),
-            isLive: true,
-            provider: "supabase_realtime",
-          };
-          notifyListeners();
-        })
-        .on("presence", { event: "join" }, ({ key }) => {
-          // Handled via sync, but ensures instant responsiveness
-          if (realtimeChannel) {
-            const state = realtimeChannel.presenceState();
-            const count = Math.max(1, Object.keys(state).length);
-            currentState = {
-              count,
-              isLive: true,
-              provider: "supabase_realtime",
-            };
-            notifyListeners();
-          }
-        })
-        .on("presence", { event: "leave" }, ({ key }) => {
-          if (realtimeChannel) {
-            const state = realtimeChannel.presenceState();
-            const count = Math.max(1, Object.keys(state).length);
-            currentState = {
-              count,
-              isLive: true,
-              provider: "supabase_realtime",
-            };
-            notifyListeners();
-          }
-        })
-        .subscribe(async (status) => {
-          if (status === "SUBSCRIBED" && realtimeChannel) {
-            await realtimeChannel.track({
-              online_at: new Date().toISOString(),
-              device: /Mobi|Android/i.test(navigator.userAgent)
-                ? "mobile"
-                : "desktop",
-            });
-            currentState = {
-              ...currentState,
-              isLive: true,
-              provider: "supabase_realtime",
-            };
-            notifyListeners();
-          }
-        });
-    } catch (err) {
-      console.warn(
-        "[VisitorTracker] Supabase Realtime error, falling back to local presence:",
-        err,
-      );
-    }
+  if (isSupabaseConfigured) {
+    connectSupabase(sessionId);
   } else {
-    // Immediate fallback initialization
-    const initialTabs = countActiveLocalTabs();
-    currentState = {
-      count: initialTabs,
-      isLive: true,
-      provider: "broadcast_presence",
-    };
-    notifyListeners();
+    applyLocalCount();
   }
 
-  // Gracefully announce leave on window unload
-  const handleUnload = () => {
+  // Leave handling
+  const handleLeave = () => {
     clearLocalHeartbeat(sessionId);
     if (broadcastChannel) {
       try {
@@ -297,15 +310,62 @@ export function initLivePresence(): () => void {
     }
   };
 
-  window.addEventListener("beforeunload", handleUnload);
-  window.addEventListener("pagehide", handleUnload);
+  // Come back (tab focus, mobile app switch, bfcache restore, return from FB browser)
+  const handleReturn = () => {
+    updateLocalHeartbeat(sessionId);
+    if (!isSupabaseConfigured) {
+      applyLocalCount();
+      return;
+    }
+    if (realtimeChannel && supabaseConnected) {
+      realtimeChannel.track(trackPayload()).catch(() => {
+        // Connection may be stale: rebuild it
+        supabaseConnected = false;
+        connectSupabase(sessionId);
+      });
+    } else {
+      clearReconnectTimer();
+      connectSupabase(sessionId);
+    }
+  };
+
+  const handleVisibility = () => {
+    if (document.visibilityState === "visible") handleReturn();
+  };
+
+  const handlePageShow = (e: PageTransitionEvent) => {
+    if (e.persisted) handleReturn();
+  };
+
+  window.addEventListener("beforeunload", handleLeave);
+  window.addEventListener("pagehide", handleLeave);
+  window.addEventListener("pageshow", handlePageShow);
+  document.addEventListener("visibilitychange", handleVisibility);
 
   return () => {
-    handleUnload();
+    handleLeave();
+    clearReconnectTimer();
     if (heartbeatTimer) clearInterval(heartbeatTimer);
-    if (pruneTimer) clearInterval(pruneTimer);
-    window.removeEventListener("beforeunload", handleUnload);
-    window.removeEventListener("pagehide", handleUnload);
+    heartbeatTimer = null;
+    if (supabaseClient && realtimeChannel) {
+      const ch = realtimeChannel;
+      realtimeChannel = null;
+      supabaseClient.removeChannel(ch);
+    }
+    supabaseConnected = false;
+    if (broadcastChannel) {
+      try {
+        broadcastChannel.close();
+      } catch {
+        // Ignore
+      }
+      broadcastChannel = null;
+    }
+    window.removeEventListener("beforeunload", handleLeave);
+    window.removeEventListener("pagehide", handleLeave);
+    window.removeEventListener("pageshow", handlePageShow);
+    document.removeEventListener("visibilitychange", handleVisibility);
+    isInitialized = false;
   };
 }
 
@@ -314,10 +374,8 @@ export function initLivePresence(): () => void {
  */
 export function subscribeToLivePresence(listener: Listener): () => void {
   listeners.add(listener);
-  // Send current state immediately to the new listener
   listener(currentState);
 
-  // Ensure service is running
   if (!isInitialized) {
     initLivePresence();
   }
