@@ -2,18 +2,27 @@
 /* Layout: square avatar overlapping a slim pill (per user sketch) */
 
 .floatingTrackerContainer {
+  /* ---- Chatbot button reference (used to center this widget on it) ---- */
+  --chat-size: 48px;
+  --chat-bottom: 20px;
+  --chat-right: 20px;
+  --widget-gap: 10px; /* space between this widget and the chatbot button */
+
   --pill-bg: #121214;
-  --avatar-size: 44px;
-  --avatar-overlap: 14px;
+  --avatar-size: 36px;
+  --avatar-overlap: 12px;
 
   position: fixed;
-  bottom: 20px;
-  right: 80px;
+  /* vertical center of widget = vertical center of chatbot button */
+  bottom: calc(
+    var(--chat-bottom) + (var(--chat-size) - var(--avatar-size)) / 2
+  );
+  right: calc(var(--chat-right) + var(--chat-size) + var(--widget-gap));
   z-index: 99990;
   display: flex;
   align-items: center;
   user-select: none;
-  pointer-events: none; /* only avatar + pill react to the cursor */
+  pointer-events: none; /* only avatars + pill react to the cursor */
   font-family: var(
     --font-mono,
     "SF Mono",
@@ -45,12 +54,11 @@
 .avatarDisc {
   width: var(--avatar-size);
   height: var(--avatar-size);
-  border-radius: 13px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  /* thinner gap ring around the tile */
   box-shadow: 0 0 0 2px var(--pill-bg);
   transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
   will-change: transform;
@@ -58,12 +66,12 @@
 }
 
 .avatarDisc:nth-child(2) {
-  margin-left: -17px;
+  margin-left: -14px;
   z-index: 2;
 }
 
 .avatarDisc:nth-child(3) {
-  margin-left: -17px;
+  margin-left: -14px;
   z-index: 3;
 }
 
@@ -77,10 +85,17 @@
   z-index: 10;
 }
 
+/* Softer whites: lowers the brightness of the icons without changing the drawings */
 .faceSvg {
   width: 100%;
   height: 100%;
   display: block;
+  filter: brightness(var(--icon-brightness, 0.28));
+  transition: filter 0.28s ease;
+}
+
+.floatingTrackerContainer:hover .faceSvg {
+  filter: brightness(calc(var(--icon-brightness, 0.58) + 0.12));
 }
 
 /* Pill */
@@ -88,16 +103,17 @@
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 30px;
-  padding: 0 14px 0 calc(var(--avatar-overlap) + 10px);
+  gap: 0;
+  height: 26px;
+  padding: 0 12px 0 calc(var(--avatar-overlap) + 8px);
   background-color: var(--pill-bg);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
+  border-radius: 9px;
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.35),
     0 1px 3px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
+  cursor: default;
 }
 
 [data-theme="light"] .trackerPill {
@@ -107,10 +123,10 @@
     0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-/* Number + label: same size, weight, line-height and baseline. Medium weight, small size. */
+/* Number + label: same size, weight, line-height and baseline */
 .countDigit,
 .textLabel {
-  font-size: 0.5625rem;
+  font-size: 0.5rem;
   line-height: 1;
   font-weight: 500;
   letter-spacing: 0.12em;
@@ -134,38 +150,78 @@
   color: #52525b;
 }
 
+/* Auto-hide: only the VIEWER(S) text collapses. Number + avatars stay. */
+.labelWrap {
+  display: grid;
+  grid-template-columns: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-columns 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.25s ease;
+}
+
+.textLabel {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-indent: 0.8em; /* space between number and label, collapses together with it */
+}
+
+.collapsed .labelWrap {
+  grid-template-columns: 0fr;
+  opacity: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .avatarDisc {
+  .avatarDisc,
+  .faceSvg,
+  .labelWrap {
     transition: none;
   }
 }
 
-/* Mobile */
+/* Mobile: mini version, stacked right above the chatbot circle (never wider than it) */
 @media (max-width: 640px) {
   .floatingTrackerContainer {
-    --avatar-size: 38px;
-    --avatar-overlap: 12px;
-    bottom: 14px;
-    right: 70px;
+    --chat-size: 48px;
+    --chat-bottom: 12px;
+    --chat-right: 12px;
+    --stack-gap: 20px; /* space between the chatbot circle and this widget */
+
+    --avatar-size: 17px;
+    --avatar-overlap: 5px;
+
+    /* sits directly above the chatbot circle, right edges aligned */
+    bottom: calc(var(--chat-bottom) + var(--chat-size) + var(--stack-gap));
+    right: var(--chat-right);
+    width: var(--chat-size);
+    justify-content: flex-end; /* if the VIEWER text opens, it grows to the left */
   }
 
   .avatarDisc {
-    border-radius: 11px;
+    border-radius: 5px;
+    box-shadow: 0 0 0 1.5px var(--pill-bg);
   }
 
   .avatarDisc:nth-child(2),
   .avatarDisc:nth-child(3) {
-    margin-left: -15px;
+    margin-left: -9px;
   }
 
   .trackerPill {
-    height: 26px;
-    padding-right: 12px;
-    gap: 5px;
+    flex-shrink: 0;
+    height: 14px;
+    padding: 0 4px 0 calc(var(--avatar-overlap) + 3px);
+    border-radius: 5px;
   }
 
   .countDigit,
   .textLabel {
-    font-size: 0.5rem;
+    font-size: 0.4375rem;
+    letter-spacing: 0.08em;
+  }
+
+  .textLabel {
+    text-indent: 0.5em;
   }
 }

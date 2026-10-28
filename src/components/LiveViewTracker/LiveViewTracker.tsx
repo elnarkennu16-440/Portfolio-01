@@ -1,4 +1,4 @@
-import React, { useId, useState } from "react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useVisitorCount } from "../../hooks/useVisitorCount";
 import styles from "./LiveViewTracker.module.css";
 
@@ -10,6 +10,10 @@ type Mood = "wow" | "suspicious" | "smug" | "shy" | "deadpan";
 
 const MOODS: Mood[] = ["wow", "suspicious", "smug", "shy", "deadpan"];
 const MAX_AVATARS = 3;
+
+// How long the "VIEWER(S)" text stays visible before auto-hiding (ms)
+const LABEL_VISIBLE_MS = 3500;
+const LABEL_HOVER_LEAVE_MS = 700;
 
 // Strict monochrome palette
 const W = "#FFFFFF";
@@ -195,22 +199,76 @@ export const LiveViewTracker: React.FC<LiveViewTrackerProps> = ({
   const isMultiple = displayCount > 1;
   const avatarCount = Math.min(displayCount, MAX_AVATARS);
 
+  // ---- Auto-hide of the "VIEWER(S)" text only (number + avatars always stay) ----
+  const [expanded, setExpanded] = useState(true);
+  const hoveringRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const scheduleCollapse = useCallback(
+    (delay: number) => {
+      clearTimer();
+      timerRef.current = setTimeout(() => {
+        if (!hoveringRef.current) setExpanded(false);
+      }, delay);
+    },
+    [clearTimer],
+  );
+
+  // Show text on first load and whenever the count changes, then auto-hide
+  useEffect(() => {
+    setExpanded(true);
+    scheduleCollapse(LABEL_VISIBLE_MS);
+    return clearTimer;
+  }, [displayCount, scheduleCollapse, clearTimer]);
+
+  const interactionProps = {
+    // Mouse: show on hover, hide shortly after leaving
+    onPointerEnter: (e: React.PointerEvent) => {
+      if (e.pointerType !== "mouse") return;
+      hoveringRef.current = true;
+      clearTimer();
+      setExpanded(true);
+    },
+    onPointerLeave: (e: React.PointerEvent) => {
+      if (e.pointerType !== "mouse") return;
+      hoveringRef.current = false;
+      scheduleCollapse(LABEL_HOVER_LEAVE_MS);
+    },
+    // Touch / pen: tap to show, auto-hide again after a few seconds
+    onPointerDown: (e: React.PointerEvent) => {
+      if (e.pointerType === "mouse") return;
+      setExpanded(true);
+      scheduleCollapse(LABEL_VISIBLE_MS);
+    },
+  };
+
   return (
     <div
-      className={`${styles.floatingTrackerContainer} ${className}`}
+      className={`${styles.floatingTrackerContainer} ${
+        expanded ? "" : styles.collapsed
+      } ${className}`}
       role="status"
       aria-label={`${displayCount} ${isMultiple ? "viewers" : "viewer"} viewing now`}
     >
-      <div className={styles.avatarCluster}>
+      <div className={styles.avatarCluster} {...interactionProps}>
         {Array.from({ length: avatarCount }).map((_, i) => (
           <CharacterAvatar key={i} mood={MOODS[(offset + i) % MOODS.length]} />
         ))}
       </div>
 
-      <div className={styles.trackerPill}>
+      <div className={styles.trackerPill} {...interactionProps}>
         <span className={styles.countDigit}>{displayCount}</span>
-        <span className={styles.textLabel}>
-          {isMultiple ? "VIEWERS" : "VIEWER"}
+        <span className={styles.labelWrap} aria-hidden="true">
+          <span className={styles.textLabel}>
+            {isMultiple ? "VIEWERS" : "VIEWER"}
+          </span>
         </span>
       </div>
     </div>
