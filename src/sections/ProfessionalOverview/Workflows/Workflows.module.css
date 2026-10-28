@@ -886,3 +886,31 @@
     gap: 0.75rem;
   }
 }
+
+/* =========================================================================
+   SMOOTHNESS PATCH (paged layout)
+   Paste this at the very END of: Experience.module.css, Workflows.module.css
+   and Services.module.css (the same block in all three).
+   It only adds rules. Nothing above it is changed, nothing looks different.
+   ========================================================================= */
+
+/* The dark shade that dims a page while it sinks into the stack.
+   Without its own layer, every frame of its fade repainted the WHOLE page
+   (all the text) underneath it, on every page at once. With its own layer the
+   fade is done by the GPU only. This is the biggest smoothness fix. */
+.pageContainer.isPaged .pageShade {
+  will-change: opacity;
+}
+
+/* The top bar already has a solid background, so its blur is invisible but it
+   still costs a lot on phones while the pages move under/near it. */
+.pageContainer.isPaged .topNav {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/* Keep the animated pages from affecting the layout / paint of the rest of the
+   screen (header, rail, dots). */
+.pageContainer.isPaged .leafStack {
+  contain: layout;
+}
