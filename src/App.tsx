@@ -17,6 +17,7 @@ import { ProfessionalOverview } from "./sections/ProfessionalOverview/Profession
 import { Experience } from "./sections/ProfessionalOverview/Experience/Experience";
 import { Workflows } from "./sections/ProfessionalOverview/Workflows/Workflows";
 import { Services } from "./sections/ProfessionalOverview/Services/Services";
+import { Resume } from "./sections/Resume/Resume";
 import { PreFooterBanner } from "./sections/PreFooterBanner/PreFooterBanner";
 import { Footer } from "./sections/Footer/Footer";
 import { ContactModal } from "./components/ContactModal/ContactModal";
@@ -29,7 +30,7 @@ export default function App() {
   const [showIntro, setShowIntro] = useState(true);
   const [isViewAllProjectsOpen, setIsViewAllProjectsOpen] = useState(false);
   const [activeSubpage, setActiveSubpage] = useState<
-    "experience" | "workflows" | "services" | null
+    "experience" | "workflows" | "services" | "resume" | null
   >(null);
 
   const handleOpenContact = () => {
@@ -49,7 +50,7 @@ export default function App() {
   };
 
   const handleOpenSubpage = (
-    subpage: "experience" | "workflows" | "services",
+    subpage: "experience" | "workflows" | "services" | "resume",
   ) => {
     setActiveSubpage(subpage);
   };
@@ -155,6 +156,15 @@ export default function App() {
           theme={theme}
           onToggleTheme={toggleTheme}
           onOpenContact={handleOpenContact}
+        />
+      )}
+
+      {/* Standalone Curriculum Vitae / Resume Subpage */}
+      {activeSubpage === "resume" && (
+        <Resume
+          onBack={handleCloseSubpage}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
       )}
 

@@ -1,0 +1,74 @@
+/* FlowLineFour.module.css  -  styles for FlowLineFour.tsx (Resume page).
+ * One full-width svg BEHIND all content (z-index -1): never covers the paper,
+ * the text or the buttons, takes no space. Hidden below 1100px.
+ */
+
+.flowLine {
+  display: none;
+}
+
+/* safety: the svg is measured from its parent (the page column) */
+:has(> .flowLine) {
+  position: relative;
+}
+
+@media (min-width: 1100px) {
+  .flowLine {
+    display: block;
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+
+    top: -2.5rem; /* = the padding above the column, so it starts at the navbar */
+    left: calc((100% - 100vw) / 2);
+    width: 100vw;
+
+    color: var(--text-muted);
+    opacity: 0.5; /* line strength: raise for a stronger line */
+  }
+
+  /* hidden until the component has measured the paper (no jump / blink) */
+  .flowLine:not([data-ready]) {
+    visibility: hidden;
+  }
+
+  /* The lines are "written" along their own path (pathLength = 1).
+     Dash 1 + gap 1, offset 1 -> hidden; offset 0 -> fully drawn. */
+  .drawPath {
+    stroke-dasharray: 1 1;
+    stroke-dashoffset: 1;
+    stroke-linecap: butt;
+  }
+
+  /* 1) left line: first (slow & smooth: change 4.5s to speed up / slow down) */
+  .flowLine[data-ready="true"] .pathLeft {
+    animation: flowDraw 4.5s cubic-bezier(0.45, 0.05, 0.35, 1) 0.5s forwards;
+  }
+
+  /* 2) arc: comes out from under the paper after the left line arrives */
+  .flowLine[data-ready="true"] .pathArc {
+    animation: flowDraw 2.8s cubic-bezier(0.45, 0.05, 0.35, 1) 4.9s forwards;
+  }
+
+  /* 3) right line: follows the arc */
+  .flowLine[data-ready="true"] .pathRight {
+    animation: flowDraw 2.2s cubic-bezier(0.45, 0.05, 0.35, 1) 5.6s forwards;
+  }
+}
+
+@keyframes flowDraw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawPath {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}

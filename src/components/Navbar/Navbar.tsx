@@ -12,13 +12,123 @@ interface NavbarProps {
   theme: Theme;
   onToggleTheme: (e?: React.MouseEvent<HTMLButtonElement>) => void;
   onOpenContact?: () => void;
-  onOpenSubpage?: (subpage: "experience" | "workflows" | "services") => void;
+  onOpenSubpage?: (
+    subpage: "experience" | "workflows" | "services" | "resume",
+  ) => void;
   /**
    * Optional. When provided, the navbar reveal animation starts exactly when this
    * becomes true (end of the loader). When NOT provided, it falls back to a 3s timer.
    */
   isIntroDone?: boolean;
 }
+
+/**
+ * Handcrafted Document Resume Icon matching user reference image (image_1b3e5eda.png)
+ */
+const ResumeDocIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    viewBox="0 0 24 28"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className={className}
+    aria-hidden="true"
+  >
+    {/* Page base with top-right fold cut */}
+    <path
+      d="M2 3C2 1.89543 2.89543 1 4 1H15L22 8V25C22 26.1046 21.1046 27 20 27H4C2.89543 27 2 26.1046 2 25V3Z"
+      fill="currentColor"
+    />
+    {/* Dog-ear fold */}
+    <path
+      d="M14.5 1V7C14.5 7.55228 14.9477 8 15.5 8H22"
+      stroke="var(--bg-surface, #121214)"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    {/* Inner Avatar circle in top left */}
+    <circle
+      cx="8"
+      cy="10.5"
+      r="3.2"
+      stroke="var(--bg-surface, #121214)"
+      strokeWidth="1.2"
+      fill="none"
+    />
+    <circle cx="8" cy="9.6" r="1.3" fill="var(--bg-surface, #121214)" />
+    <path
+      d="M5.8 12.6C6.1 11.5 7 11.1 8 11.1C9 11.1 9.9 11.5 10.2 12.6"
+      stroke="var(--bg-surface, #121214)"
+      strokeWidth="1.1"
+      strokeLinecap="round"
+    />
+    {/* Top-right 3 lines */}
+    <line
+      x1="13.5"
+      y1="7.5"
+      x2="18.5"
+      y2="7.5"
+      stroke="var(--bg-surface, #121214)"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+    />
+    <line
+      x1="13.5"
+      y1="10.5"
+      x2="18.5"
+      y2="10.5"
+      stroke="var(--bg-surface, #121214)"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+    />
+    <line
+      x1="13.5"
+      y1="13.5"
+      x2="18.5"
+      y2="13.5"
+      stroke="var(--bg-surface, #121214)"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+    />
+    {/* 4 horizontal body bars */}
+    <line
+      x1="5.5"
+      y1="16.5"
+      x2="18.5"
+      y2="16.5"
+      stroke="var(--bg-surface, #121214)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+    <line
+      x1="5.5"
+      y1="19.5"
+      x2="18.5"
+      y2="19.5"
+      stroke="var(--bg-surface, #121214)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+    <line
+      x1="5.5"
+      y1="22.5"
+      x2="18.5"
+      y2="22.5"
+      stroke="var(--bg-surface, #121214)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+    <line
+      x1="5.5"
+      y1="25"
+      x2="18.5"
+      y2="25"
+      stroke="var(--bg-surface, #121214)"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+    />
+  </svg>
+);
 
 // Remembers that the reveal already played, so it does not replay if Navbar remounts.
 let navRevealPlayed = false;
@@ -582,8 +692,21 @@ export const Navbar: React.FC<NavbarProps> = ({
               </ul>
             </nav>
 
-            {/* Primary Actions: Theme Toggle, Mail Box Button, Hamburger */}
+            {/* Primary Actions: Resume Box Button, Theme Toggle, Mail Box Button, Hamburger */}
             <div className={styles.actions}>
+              {/* Square Resume / Curriculum Vitae Box Button (matching image_ea06234b.png & image_1b3e5eda.png) */}
+              <button
+                type="button"
+                className={styles.resumeBoxButton}
+                onClick={() =>
+                  onOpenSubpage ? onOpenSubpage("resume") : undefined
+                }
+                aria-label="View Resume / Curriculum Vitae"
+                title="Resume"
+              >
+                <ResumeDocIcon className={styles.resumeBoxIcon} />
+              </button>
+
               <ThemeToggle theme={theme} onToggle={onToggleTheme} />
 
               {/* Mail Box Button (both Desktop & Mobile) */}
@@ -790,6 +913,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className={styles.mobileActions}>
+            {/* Resume: text + underline only (same style as Experience / Workflows / Services, no arrow) */}
+            <button
+              type="button"
+              className={`${styles.mobileSubBtn} ${styles.mobileResumeBtn}`}
+              onClick={() => {
+                handleNavClick();
+                if (onOpenSubpage) onOpenSubpage("resume");
+              }}
+            >
+              <span>Resume</span>
+            </button>
             <button
               type="button"
               className="pillButton"

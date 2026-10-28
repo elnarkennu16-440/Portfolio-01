@@ -432,7 +432,8 @@
 }
 
 /* Primary Action: Mail Box Button (both Desktop & Mobile) */
-.mailBoxButton {
+.mailBoxButton,
+.resumeBoxButton {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -454,12 +455,14 @@
   user-select: none;
 }
 
-.mailBoxButton:hover {
+.mailBoxButton:hover,
+.resumeBoxButton:hover {
   border-color: var(--border-strong);
   transform: scale(1.05);
 }
 
-.mailBoxButton:active {
+.mailBoxButton:active,
+.resumeBoxButton:active {
   transform: scale(0.95);
 }
 
@@ -471,13 +474,23 @@
   color: var(--text-primary);
 }
 
+.resumeBoxIcon {
+  width: 18px;
+  height: 18px;
+  display: block;
+  pointer-events: none;
+  color: var(--text-primary);
+}
+
 @media (max-width: 768px) {
-  .mailBoxButton {
+  .mailBoxButton,
+  .resumeBoxButton {
     width: 26px;
     height: 26px;
   }
 
-  .mailBoxIcon {
+  .mailBoxIcon,
+  .resumeBoxIcon {
     width: 13px;
     height: 13px;
     stroke-width: 1.7;
@@ -524,6 +537,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .mailBoxButton,
+  .resumeBoxButton,
   .mobileMenuBtn {
     transition: none !important;
     transform: none !important;
@@ -581,6 +595,8 @@
     opacity var(--duration-normal) var(--ease-editorial),
     visibility var(--duration-normal) var(--ease-editorial);
   overflow-y: auto;
+  /* no sideways scrollbar: long labels fit inside the card */
+  overflow-x: hidden;
 }
 
 /* Completely remove mobile drawer on desktop screens to eliminate zero GPU/CPU cost */
@@ -634,6 +650,7 @@
   align-items: center;
   gap: var(--space-4);
   width: 100%;
+  min-width: 0;
 }
 
 .mobileNavWordBlock {
@@ -642,20 +659,23 @@
   flex-shrink: 0;
 }
 
+/* Smaller labels so the full text (even "PROFESSIONAL OVERVIEW") is visible.
+   If a screen is ever too narrow the text wraps instead of being cut off. */
 .mobileNavText {
   font-family: var(--font-serif);
-  font-size: clamp(1.4rem, 5.5vw, var(--text-2xl));
+  font-size: clamp(0.85rem, 3.6vw, 1.3rem);
   color: var(--text-primary);
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
   line-height: 1.1;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 /* Mini Moving & 3D Spinning Tech Language Icons Ribbon beside Mobile Nav Labels */
 .navTechTrackContainer {
   flex: 1;
-  min-width: 80px;
+  min-width: 0;
   height: 26px;
   overflow: hidden;
   position: relative;
@@ -867,6 +887,12 @@
   line-height: 1.2;
 }
 
+/* Resume button in the mobile drawer: same text + underline style as
+   Experience / Workflows / Services, but WITHOUT the arrow. */
+.mobileResumeBtn {
+  font-size: 0.78rem;
+}
+
 /* the arrow: same diagonal arrow drawn with CSS (replaces the ↗ character) */
 .mobileSubArrow {
   display: block;
@@ -886,15 +912,17 @@
 
 /* =========================================================================
    NAVBAR REVEAL (after the loader)
-   1) only the pill with the two buttons (theme + message) shows, anchored right
+   1) only the pill with the three buttons (resume + theme + message) shows, anchored right
    2) after ~1s the pill suddenly expands to the left to its normal size
    3) logo + nav links fade in while it expands
    Classes .navPre / .navPlay are only present during the intro; after the
    animation ends they are removed, so the navbar goes back to its normal CSS.
+   --nav-w0 = width of the short pill BEFORE it expands (wider now so the
+   Resume button is not squeezed).
    ========================================================================= */
 .navPre .inner,
 .navPlay .inner {
-  --nav-w0: 9.5rem;
+  --nav-w0: 12.5rem;
   justify-content: flex-end;
   overflow: hidden;
   width: var(--nav-w0);
@@ -904,14 +932,14 @@
 @media (max-width: 959px) {
   .navPre .inner,
   .navPlay .inner {
-    --nav-w0: 11.5rem;
+    --nav-w0: 14.5rem;
   }
 }
 
 @media (max-width: 768px) {
   .navPre .inner,
   .navPlay .inner {
-    --nav-w0: 8.5rem;
+    --nav-w0: 10.5rem;
   }
 }
 
