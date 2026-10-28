@@ -4,7 +4,7 @@ import { ThemeToggle } from "../../components/ThemeToggle/ThemeToggle";
 import type { Theme } from "../../hooks/useTheme";
 import logoImg from "../../assets/logo/KE-LOGO-.png";
 import styles from "./Resume.module.css";
-import { FlowLineFour } from "./Flowlinefour";
+import { FlowLineFour } from "./FlowLineFour";
 
 export interface ResumeProps {
   onBack: () => void;
