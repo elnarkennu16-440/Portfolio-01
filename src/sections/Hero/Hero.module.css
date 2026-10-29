@@ -1,165 +1,216 @@
+/* Brush-script font: used on the 3D billboard ("Focusing on") and for the sentence
+   on phones. HeroScene.tsx redraws the billboard once this font has loaded. */
+@import url("https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap");
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * HERO — a dark stage. The 3D street (HeroScene) sits at the back, a CSS
+ * vignette + grain above it, and the readable text on top.
+ * The hero stays black / grey in BOTH site themes (only the text is white).
+ * ──────────────────────────────────────────────────────────────────────────── */
+
 .heroSection {
+  --hand-font: "Kaushan Script", "Caveat", cursive;
+  --hero-bg: #121214; /* same colour as the fog inside the 3D scene */
+  --hero-fg: #f4f4f5;
+  --hero-fg-dim: rgba(244, 244, 245, 0.72);
+  --hero-fg-faint: rgba(244, 244, 245, 0.5);
+
   position: relative;
+  isolation: isolate;
+  width: 100%;
   min-height: calc(100vh - 65px);
   display: flex;
-  align-items: center;
-  padding-top: clamp(1rem, 3vh, 2.5rem);
-  padding-bottom: clamp(2rem, 5vh, 4rem);
+  align-items: flex-end;
+  background: var(--hero-bg);
+  color: var(--hero-fg);
   overflow: hidden;
-  width: 100%;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.heroBackgroundCurve {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
+.scene {
   z-index: 0;
-  opacity: 0.85;
 }
 
-.curvePath {
-  stroke: var(--border-hairline);
-  stroke-width: 1;
-  stroke-dasharray: 2000;
-  stroke-dashoffset: 2000;
-  animation: drawCurve 1.6s var(--ease-editorial) forwards;
+/* vignette (edges), a soft shade under the navbar and a scrim under the text,
+   plus very fine film grain */
+.atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      120% 90% at 50% 46%,
+      rgba(0, 0, 0, 0) 42%,
+      rgba(0, 0, 0, 0.55) 100%
+    ),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 22%),
+    linear-gradient(to top, rgba(10, 10, 12, 0.88) 0%, rgba(10, 10, 12, 0) 40%);
 }
 
-@keyframes drawCurve {
-  to {
-    stroke-dashoffset: 0;
-  }
+.atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.07;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 
-.watermark {
-  top: 15%;
-  right: -5%;
-  max-width: 100vw;
-  overflow: hidden;
-}
-
-.heroGrid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: clamp(var(--space-6), 4vw, var(--space-10));
-  align-items: center;
+/* ── Text layer ──────────────────────────────────────────────────────────── */
+.layer {
   position: relative;
   z-index: 2;
   width: 100%;
+  padding-top: 7rem;
+  padding-bottom: clamp(1.5rem, 4.5vh, 3.25rem);
 }
 
-@media (min-width: 992px) {
-  .heroGrid {
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-8);
-  }
+.copy {
+  max-width: 27rem;
 }
 
-.contentCol {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
+.srOnly,
+.statement {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
 }
 
-.eyebrowRow {
+.kicker {
+  --d: 2s;
+
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-2);
-}
-
-.accentRule {
-  width: 24px;
-  height: 2px;
-  background-color: var(--border-strong);
-  display: inline-block;
-}
-
-.eyebrow {
-  font-family: var(--font-sans);
-  font-size: var(--text-xs);
-  letter-spacing: var(--tracking-wider);
-  color: var(--text-muted);
+  gap: 0.85rem;
+  margin: 0 0 1rem;
+  font-family: var(
+    --font-mono,
+    ui-monospace,
+    "SF Mono",
+    Menlo,
+    Consolas,
+    monospace
+  );
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.24em;
   text-transform: uppercase;
+  color: var(--hero-fg-faint);
 }
 
-.headlineMask {
-  overflow: hidden;
-  width: 100%;
-  margin-bottom: clamp(var(--space-1), 0.8vw, var(--space-2));
+.kicker::before {
+  content: "";
+  width: 2.75rem;
+  height: 1px;
+  background: currentColor;
 }
 
-.headlineLine {
-  display: block;
+.statement {
+  --d: 2.2s;
 }
 
-.heroLogoImage {
-  display: block;
-  height: clamp(3rem, 7.8vw, 5.75rem);
-  width: auto;
-  max-width: min(100%, 420px);
-  object-fit: contain;
-  object-position: left center;
-  transition: filter var(--duration-normal) var(--ease-editorial);
-}
+.intro {
+  --d: 2.3s;
 
-[data-theme="light"] .heroLogoImage {
-  filter: invert(1) brightness(0.08);
-}
-
-[data-theme="dark"] .heroLogoImage {
-  filter: none;
-}
-
-.heroLeadStatement {
-  font-family: var(--font-serif);
-  font-size: clamp(1.15rem, 2.5vw, 1.75rem);
+  margin: 0 0 1.6rem;
+  font-size: clamp(0.95rem, 1.1vw, 1.08rem);
   font-weight: 400;
-  line-height: var(--leading-snug);
-  color: var(--text-primary);
-  text-transform: none;
-  letter-spacing: normal;
-  max-width: 44ch;
-  margin-top: clamp(var(--space-3), 2vh, var(--space-5));
-  margin-bottom: clamp(var(--space-6), 3.5vh, var(--space-8));
-  text-wrap: balance;
+  line-height: 1.6;
+  color: var(--hero-fg-dim);
+  text-wrap: pretty;
+}
+
+.links {
+  --d: 2.6s;
+
+  display: flex;
+  align-items: center;
+  gap: clamp(1.75rem, 3vw, 2.75rem);
+  flex-wrap: wrap;
 }
 
 .underlinedEmphasis {
-  position: relative;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 6px;
-  text-decoration-color: var(--border-medium);
+  text-decoration-color: rgba(255, 255, 255, 0.4);
 }
 
-.ctaGroup {
+/* scroll cue (bottom centre: the bottom-right corner belongs to the viewer
+   counter + chatbot) */
+.scrollCue {
+  --d: 3s;
+
+  position: absolute;
+  left: 50%;
+  bottom: clamp(1.25rem, 3.5vh, 2.25rem);
+  translate: -50% 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  /* clear distance between the two links (desktop) */
-  gap: clamp(1.75rem, 3vw, 2.75rem);
-  flex-wrap: wrap;
+  gap: 0.6rem;
+  color: var(--hero-fg-faint);
+  font-family: var(
+    --font-mono,
+    ui-monospace,
+    "SF Mono",
+    Menlo,
+    Consolas,
+    monospace
+  );
+  font-size: 0.62rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: color 0.3s var(--ease-editorial, ease);
+}
+
+.scrollCue:hover {
+  color: var(--hero-fg);
+}
+
+.scrollLine {
+  position: relative;
+  display: block;
+  width: 1px;
+  height: 2.4rem;
+  background: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.scrollLine::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 100%;
+  height: 40%;
+  background: var(--hero-fg);
+  animation: scrollDrip 2.2s var(--ease-editorial, ease) infinite;
+}
+
+@keyframes scrollDrip {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(260%);
+  }
 }
 
 /* =========================================================================
-   HERO WAVE REVEAL (text + KENNU / ELNAR logo images only)
-   A soft wave edge rises from the bottom and uncovers the element in place
-   (no movement of the element itself, so layout / sizing are never affected).
-   The animation only starts when the section gets .introReady, i.e. when the
-   loader is done (isIntroDone), so it is actually visible after the loader.
-   The portrait is NOT part of this.
+   WAVE REVEAL (same wave as the old hero) — starts when the loader is done
+   (.introReady), one element after another via --d.
    ========================================================================= */
-.eyebrowRow,
-.headlineLine,
-.heroLeadStatement,
-.ctaGroup {
-  /* start state: fully hidden below a wavy edge */
+.reveal {
   clip-path: polygon(
-    -5% 137%,
+    -30% 137%,
     6% 113%,
     17% 137%,
     28% 113%,
@@ -169,9 +220,9 @@
     72% 113%,
     83% 137%,
     94% 113%,
-    105% 137%,
-    105% 200%,
-    -5% 200%
+    130% 137%,
+    130% 200%,
+    -30% 200%
   );
   will-change: clip-path;
 }
@@ -179,7 +230,7 @@
 @keyframes waveReveal {
   0% {
     clip-path: polygon(
-      -5% 137%,
+      -30% 137%,
       6% 113%,
       17% 137%,
       28% 113%,
@@ -189,14 +240,14 @@
       72% 113%,
       83% 137%,
       94% 113%,
-      105% 137%,
-      105% 200%,
-      -5% 200%
+      130% 137%,
+      130% 200%,
+      -30% 200%
     );
   }
   50% {
     clip-path: polygon(
-      -5% 33%,
+      -30% 33%,
       6% 57%,
       17% 33%,
       28% 57%,
@@ -206,14 +257,14 @@
       72% 57%,
       83% 33%,
       94% 57%,
-      105% 33%,
-      105% 200%,
-      -5% 200%
+      130% 33%,
+      130% 200%,
+      -30% 200%
     );
   }
   100% {
     clip-path: polygon(
-      -5% -13%,
+      -30% -13%,
       6% -37%,
       17% -13%,
       28% -37%,
@@ -223,40 +274,29 @@
       72% -37%,
       83% -13%,
       94% -37%,
-      105% -13%,
-      105% 200%,
-      -5% 200%
+      130% -13%,
+      130% 200%,
+      -30% 200%
     );
   }
 }
 
-/* Slower wave + staggered (one after another, not at the same time):
-   2026 -> KENNU -> ELNAR -> tagline -> buttons */
-.introReady .eyebrowRow {
-  animation: waveReveal 1.8s var(--ease-editorial) 0.1s forwards;
+.introReady .reveal {
+  animation: waveReveal 2s var(--ease-editorial, cubic-bezier(0.16, 1, 0.3, 1))
+    var(--d, 0s) forwards;
 }
 
-.introReady .headlineLine {
-  animation: waveReveal 2.2s var(--ease-editorial) 0.6s forwards;
-}
-
-.introReady .headlineLineSecond {
-  animation-delay: 1.3s;
-}
-
-.introReady .heroLeadStatement {
-  animation: waveReveal 2.2s var(--ease-editorial) 2s forwards;
-}
-
-.introReady .ctaGroup {
-  animation: waveReveal 2s var(--ease-editorial) 2.7s forwards;
+/* PERF: when the wave has finished (Hero.tsx adds .revealDone) the last frame is
+   "everything visible", so the clip-path + will-change layers can be released.
+   Nothing changes on screen; the browser just stops masking text over the canvas. */
+.revealDone .reveal {
+  clip-path: none;
+  animation: none;
+  will-change: auto;
 }
 
 /* =========================================================================
-   HERO LINKS — same construction as "VIEW ALL PROJECTS" in Works:
-   the underline belongs to the LABEL only, and the arrow's own horizontal stroke
-   continues that line and bends up into the arrow head (one connected line).
-   No pill, no border box, no movement on hover (colour change only).
+   LINKS — "VIEW WORKS ↗" / "GITHUB ↗" (underlined label + connector arrow)
    ========================================================================= */
 .ctaLink {
   display: inline-flex;
@@ -264,7 +304,7 @@
   padding: 0;
   border: none;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--hero-fg);
   font-family: var(--font-sans);
   font-size: var(--text-xs);
   font-weight: 500;
@@ -273,15 +313,15 @@
   text-decoration: none;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.3s var(--ease-editorial);
+  transition: color 0.3s var(--ease-editorial, ease);
 }
 
 .ctaLink:hover {
-  color: var(--text-secondary);
+  color: rgba(244, 244, 245, 0.6);
 }
 
 .ctaLink:focus-visible {
-  outline: 1px solid var(--border-strong);
+  outline: 1px solid rgba(255, 255, 255, 0.6);
   outline-offset: 4px;
 }
 
@@ -307,154 +347,99 @@
   overflow: visible;
 }
 
-/* Portrait Column Stage */
-.portraitCol {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  width: 100%;
-}
-
-/* wrapper around <LookAtPortrait />: on desktop it is invisible to the layout.
-   Only phones / tablets scale it (see media queries below). */
-.portraitScale {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-}
-
+/* ── Phones / tablets ────────────────────────────────────────────────────── */
 @media (max-width: 991px) {
   .heroSection {
-    /* Hero fills the first screen on phones, so the About section starts BELOW
-       the fold and its scroll reveal can play. (svh = screen with browser bars shown) */
     min-height: calc(100vh - 56px);
     min-height: calc(100svh - 56px);
-    padding-top: var(--space-4);
-    padding-bottom: clamp(1.5rem, 3vh, 2.5rem);
-    align-items: center;
   }
 
-  .heroGrid {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0;
-    width: 100%;
+  .atmosphere {
+    background:
+      radial-gradient(
+        130% 80% at 50% 38%,
+        rgba(0, 0, 0, 0) 40%,
+        rgba(0, 0, 0, 0.5) 100%
+      ),
+      linear-gradient(to bottom, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0) 20%),
+      linear-gradient(
+        to top,
+        rgba(10, 10, 12, 0.94) 0%,
+        rgba(10, 10, 12, 0.7) 32%,
+        rgba(10, 10, 12, 0) 56%
+      );
   }
 
-  .contentCol {
-    display: contents;
-  }
-
-  .eyebrowRow {
-    order: 1;
-    margin-bottom: var(--space-2);
-  }
-
-  .headlineMask:nth-of-type(1) {
-    order: 2;
-    margin-bottom: 0.15rem;
-  }
-
-  .headlineMask:nth-of-type(2) {
-    order: 3;
-    margin-bottom: 0.25rem;
-  }
-
-  .heroLeadStatement {
-    order: 4;
-    font-size: clamp(1.05rem, 4.2vw, 1.35rem);
-    line-height: 1.38;
-    max-width: 100%;
-    margin-top: 0.45rem;
-    margin-bottom: clamp(0.65rem, 1.8vh, 1.15rem);
-  }
-
-  .portraitCol {
-    order: 5;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    margin-top: 0.25rem;
-    margin-bottom: clamp(1.35rem, 3.8vh, 2.1rem);
-    opacity: 1;
-    transform: none;
-  }
-
-  /* Bigger portrait: size only. The portrait component and its animation are untouched.
-     --ps-extra (px) is measured in Hero.tsx so the layout keeps the extra height. */
-  .portraitScale {
-    --ps: 1.1;
-
-    transform: scale(var(--ps));
-    transform-origin: 50% 0;
-    margin-bottom: var(--ps-extra, 0px);
-  }
-
-  .ctaGroup {
-    order: 6;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    /* the two links never touch each other on phones */
-    gap: 1.6rem;
-    row-gap: 0.75rem;
-    width: 100%;
-    margin-top: clamp(0.35rem, 1.2vh, 0.75rem);
+  .layer {
     padding-top: 0;
+    padding-bottom: 1.25rem;
   }
 
-  /* Smaller links on phones (still clearly separated) */
+  .copy {
+    max-width: 100%;
+  }
+
+  /* the billboard is hidden on phones, so the sentence becomes visible text */
+  .statement {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0 0 0.9rem;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    font-family: var(--hand-font);
+    font-size: clamp(1.1rem, 4.8vw, 1.4rem);
+    line-height: 1.35;
+    color: rgba(255, 255, 255, 0.92);
+    text-wrap: balance;
+  }
+
+  .kicker {
+    margin-bottom: 0.75rem;
+  }
+
+  .intro {
+    margin-bottom: 1.25rem;
+    font-size: 0.92rem;
+    line-height: 1.55;
+  }
+
+  .links {
+    gap: 1.25rem;
+  }
+
   .ctaLink {
-    font-size: 0.64rem;
+    font-size: clamp(0.55rem, 2.3vw, 0.68rem);
   }
 
   .ctaLabel {
-    gap: 0.4rem;
-    padding: 0 0.15rem 0.4rem;
+    gap: 0.3rem;
+    padding: 0 0.1rem 0.3rem;
   }
 
   .ctaGithub {
-    width: 13px;
-    height: 13px;
+    width: 10px;
+    height: 10px;
   }
 
   .ctaArrow {
-    width: 0.95rem;
-    height: 0.95rem;
+    width: 0.72rem;
+    height: 0.72rem;
   }
-}
 
-/* phones: portrait noticeably bigger */
-@media (max-width: 600px) {
-  .portraitScale {
-    --ps: 1.2;
-  }
-}
-
-@media (max-width: 480px) {
-  .portraitScale {
-    --ps: 1.28;
+  .scrollCue {
+    display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .curvePath {
-    stroke-dashoffset: 0 !important;
-    animation: none !important;
-  }
-  .eyebrowRow,
-  .headlineLine,
-  .heroLeadStatement,
-  .ctaGroup {
+  .reveal {
     clip-path: none !important;
     animation: none !important;
   }
-  .ctaLink {
-    transition: none !important;
+
+  .scrollLine::after {
+    animation: none;
   }
 }

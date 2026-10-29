@@ -2,173 +2,204 @@ import React, { useEffect, useRef } from "react";
 import styles from "./FlowLineFour.module.css";
 
 /**
- * FlowLineFour - decorative thin curves for the Resume page.
+ * FlowLineFour  -  decorative thin curves for the Resume page.
  *
- * Usage (unchanged):
- *   <FlowLineFour anchorRef={paperWrapRef} />
+ * HOW TO USE (in Resume.tsx, unchanged):
+ *   import { FlowLineFour } from "./FlowLineFour";
+ *   <div className={styles.column}>
+ *     <FlowLineFour anchorRef={paperWrapRef} />
+ *     <h1 className={styles.mainTitle}>RESUME</h1>
  *
- * ONE full-width svg that sits BEHIND everything (z-index -1). It holds 3 lines:
- *   1) LEFT line  : starts at the left screen edge, loops around the title /
- *                   paragraph, runs down the left side and goes in UNDER the
- *                   left edge of the resume paper.
- *   2) ARC line   : comes out from under the paper, rises between the two
- *                   button groups and goes back under the paper.
- *   3) RIGHT line : starts at the right edge of the paper and runs to the
- *                   right screen edge.
- * The paper is opaque and above the svg, so the parts that go "under" it are
- * simply hidden.  Shown on screens 1100px and wider only.
+ * Two lines, purely visual (behind everything, no pointer events, hidden for
+ * screen readers, no layout impact, never drawn over the resume paper):
+ *   - LEFT / TOP line: starts at the left screen edge under the navbar, loops
+ *     around the left of the title + paragraph, runs under the buttons and
+ *     stops exactly on the top edge of the resume paper.
+ *   - RIGHT line: a short curve from the right edge of the paper to the right
+ *     screen edge.
+ * Shown on screens 1100px and wider only.
  *
- * SMOOTHNESS: the paths are built in REAL PIXELS (viewBox = real size, nothing
- * stretched), from a few guide points, joined with matching tangents at every
- * point -> no kinks / "balikô".
+ * HOW THE SHAPE IS MADE
+ *   The curves are NOT hand-typed Bezier numbers any more. Below are simple
+ *   waypoints (TOP_POINTS / RIGHT_POINTS). A smoothing function turns them
+ *   into one continuous curve with no corners and no kinks, at any screen size.
+ *   To change the route, move the waypoints (keep them evenly spaced and the
+ *   turns gentle, and the line stays smooth).
+ *
+ * HOW IT ANIMATES
+ *   The line is drawn like a pen, slowly, from its start to its end (see the
+ *   CSS file for the timing). It starts only after the line has been measured,
+ *   so there is no flash / blink.
  */
 
 type Pt = [number, number];
 
-/* ── GUIDE POINTS ───────────────────────────────────────────────────────────
- * LEFT line  : [x as fraction of the LEFT MARGIN (0 = screen edge, 1 = paper's
- *               left edge), y as fraction of the paper-top height]
- * ARC line   : [x as fraction of the PAPER WIDTH, y in px relative to paper top
- *               (negative = above the paper)]
- * RIGHT line : [x as fraction of the RIGHT MARGIN (0 = paper's right edge,
- *               1 = screen edge), y in px below paper top]
- * ─────────────────────────────────────────────────────────────────────────── */
-const LEFT_POINTS: Pt[] = [
-  [0.0, 0.118],
-  [0.3, 0.185],
-  [0.8, 0.09],
-  [0.98, 0.07],
-  [1.19, 0.12],
-  [1.255, 0.2],
-  [1.22, 0.29],
-  [0.88, 0.43],
-  [0.43, 0.54],
-  [0.28, 0.65],
-  [0.26, 0.88],
-  [0.33, 1.02],
-  [0.5, 1.15],
-  [0.75, 1.215],
-  [1.08, 1.2],
-];
+/* Waypoints in "reference pixels". They are scaled to the real size of each
+   line, so the route always lines up with the page. */
+const TOP_REF = { w: 626, h: 352 }; // left screen edge .. paper center, navbar .. paper top
+const RIGHT_REF = { w: 175, h: 80 }; // paper right edge .. right screen edge
 
-const ARC_POINTS: Pt[] = [
-  [0.285, 5],
-  [0.35, -30],
-  [0.404, -66],
-  [0.46, -75],
-  [0.57, -47],
-  [0.65, -16],
-  [0.74, -7],
-  [0.8, 3],
+const TOP_POINTS: Pt[] = [
+  [-6, 10],
+  [28, 40],
+  [66, 54],
+  [108, 52],
+  [150, 44],
+  [182, 48],
+  [203, 70],
+  [208, 104],
+  [192, 138],
+  [166, 168],
+  [138, 198],
+  [116, 232],
+  [104, 266],
+  [110, 296],
+  [136, 316],
+  [182, 325],
+  [250, 328],
+  [330, 326],
+  [410, 321],
+  [490, 321],
+  [552, 329],
+  [596, 343],
+  [626, 352],
 ];
 
 const RIGHT_POINTS: Pt[] = [
-  [-0.03, 112],
-  [0.12, 134],
-  [0.36, 155],
-  [0.7, 172],
-  [1.0, 187],
+  [0, 30],
+  [22, 42],
+  [60, 51],
+  [105, 54],
+  [145, 50],
+  [175, 43],
 ];
 
-/** Smooth curve through absolute pixel points (shared tangent at each point,
- *  handle length follows segment length -> no corners, no overshoot). */
-function buildSmoothPath(p: Pt[]): string {
-  const n = p.length;
-  if (n < 2) return "";
+/** how far below the top edge of the paper the right line sits (px) */
+const RIGHT_LINE_OFFSET = 150;
 
-  const tangents: Pt[] = p.map((_, i) => {
-    const prev = p[Math.max(0, i - 1)];
-    const next = p[Math.min(n - 1, i + 1)];
-    const dx = next[0] - prev[0];
-    const dy = next[1] - prev[1];
-    const len = Math.hypot(dx, dy) || 1;
-    return [dx / len, dy / len];
+/**
+ * Turns waypoints into one smooth SVG path (cardinal spline with chord-length
+ * spacing). The curve passes through every point, has no corners, and does
+ * not overshoot when the points are unevenly spaced.
+ */
+function smoothPath(pts: Pt[]): string {
+  const n = pts.length;
+  if (n < 2) return "";
+  const dist = (a: Pt, b: Pt) => Math.hypot(b[0] - a[0], b[1] - a[1]) || 1e-6;
+
+  // direction (tangent) at every point
+  const tan: Pt[] = pts.map((p, i) => {
+    if (i === 0) {
+      const l = dist(p, pts[1]);
+      return [(pts[1][0] - p[0]) / l, (pts[1][1] - p[1]) / l];
+    }
+    if (i === n - 1) {
+      const l = dist(pts[n - 2], p);
+      return [(p[0] - pts[n - 2][0]) / l, (p[1] - pts[n - 2][1]) / l];
+    }
+    const a = pts[i - 1];
+    const b = pts[i + 1];
+    const l = dist(a, p) + dist(p, b);
+    return [(b[0] - a[0]) / l, (b[1] - a[1]) / l];
   });
 
-  const k = 0.36; // handle length (fraction of segment length)
-  let d = `M ${p[0][0].toFixed(2)} ${p[0][1].toFixed(2)}`;
+  const f = (v: number) => v.toFixed(2);
+  let d = `M ${f(pts[0][0])} ${f(pts[0][1])}`;
   for (let i = 0; i < n - 1; i++) {
-    const a = p[i];
-    const b = p[i + 1];
-    const seg = Math.hypot(b[0] - a[0], b[1] - a[1]);
-    const c1: Pt = [
-      a[0] + tangents[i][0] * seg * k,
-      a[1] + tangents[i][1] * seg * k,
-    ];
-    const c2: Pt = [
-      b[0] - tangents[i + 1][0] * seg * k,
-      b[1] - tangents[i + 1][1] * seg * k,
-    ];
-    d += ` C ${c1[0].toFixed(2)} ${c1[1].toFixed(2)}, ${c2[0].toFixed(2)} ${c2[1].toFixed(2)}, ${b[0].toFixed(2)} ${b[1].toFixed(2)}`;
+    const p0 = pts[i];
+    const p1 = pts[i + 1];
+    const k = dist(p0, p1) / 3;
+    d +=
+      ` C ${f(p0[0] + tan[i][0] * k)} ${f(p0[1] + tan[i][1] * k)}` +
+      ` ${f(p1[0] - tan[i + 1][0] * k)} ${f(p1[1] - tan[i + 1][1] * k)}` +
+      ` ${f(p1[0])} ${f(p1[1])}`;
   }
   return d;
 }
 
+function buildPath(
+  points: Pt[],
+  ref: { w: number; h: number },
+  w: number,
+  h: number,
+) {
+  const sx = w / ref.w;
+  const sy = h / ref.h;
+  return smoothPath(points.map(([x, y]) => [x * sx, y * sy] as Pt));
+}
+
 interface FlowLineFourProps {
-  /** the resume paper wrapper (the lines are placed relative to it) */
+  /** the element the line must stop at (the resume paper wrapper) */
   anchorRef: React.RefObject<HTMLElement | null>;
 }
 
 export const FlowLineFour: React.FC<FlowLineFourProps> = ({ anchorRef }) => {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const leftPathRef = useRef<SVGPathElement>(null);
-  const arcPathRef = useRef<SVGPathElement>(null);
+  const topRef = useRef<SVGSVGElement>(null);
+  const rightRef = useRef<SVGSVGElement>(null);
+  const topPathRef = useRef<SVGPathElement>(null);
   const rightPathRef = useRef<SVGPathElement>(null);
 
+  // useEffect (not useLayoutEffect): the paper is rendered AFTER this
+  // component, so its ref is only filled once everything has mounted.
   useEffect(() => {
-    const svg = svgRef.current;
-    const leftPath = leftPathRef.current;
-    const arcPath = arcPathRef.current;
+    const topSvg = topRef.current;
+    const rightSvg = rightRef.current;
+    const topPath = topPathRef.current;
     const rightPath = rightPathRef.current;
     const anchor = anchorRef.current;
-    const column = svg?.parentElement;
-    if (!svg || !leftPath || !arcPath || !rightPath || !anchor || !column)
+    const column = topSvg?.parentElement;
+    if (!topSvg || !rightSvg || !topPath || !rightPath || !anchor || !column)
       return;
 
+    // the lines are positioned from the column; make sure it is a positioning
+    // context (the CSS does this too, this covers browsers without :has)
     if (getComputedStyle(column).position === "static") {
       column.style.position = "relative";
     }
 
+    let drawn = false;
+    let raf = 0;
+
+    // fit one line to the real pixel size of its svg, so 1px stays 1px
+    const fitLine = (
+      svg: SVGSVGElement,
+      path: SVGPathElement,
+      pts: Pt[],
+      ref: { w: number; h: number },
+    ) => {
+      const r = svg.getBoundingClientRect();
+      if (r.width < 50 || r.height < 20) return false;
+      svg.setAttribute(
+        "viewBox",
+        `0 0 ${r.width.toFixed(1)} ${r.height.toFixed(1)}`,
+      );
+      path.setAttribute("d", buildPath(pts, ref, r.width, r.height));
+      svg.style.setProperty("--len", String(Math.ceil(path.getTotalLength())));
+      return true;
+    };
+
     const measure = () => {
-      // hidden on small screens (display: none) -> nothing to draw
-      const first = svg.getBoundingClientRect();
-      if (first.width < 1) return;
+      const paperTop =
+        anchor.getBoundingClientRect().top - column.getBoundingClientRect().top;
+      // the top line starts at the bottom of the navbar (a bit above the column)
+      const lift = -(parseFloat(getComputedStyle(topSvg).top) || 0);
 
-      const paper = anchor.getBoundingClientRect();
-      const P = paper.top - first.top; // paper top, in svg coordinates
-      if (P < 1) return;
+      topSvg.style.height = `${Math.max(0, paperTop + lift)}px`;
+      rightSvg.style.top = `${paperTop + RIGHT_LINE_OFFSET}px`;
 
-      // make the svg tall enough to hold the parts below the paper's top edge
-      const H = Math.round(Math.max(P * 1.3, P + 260));
-      svg.style.height = `${H}px`;
+      const okTop = fitLine(topSvg, topPath, TOP_POINTS, TOP_REF);
+      const okRight = fitLine(rightSvg, rightPath, RIGHT_POINTS, RIGHT_REF);
 
-      const W = first.width;
-      const paperLeft = paper.left - first.left;
-      const paperRight = paper.right - first.left;
-      const paperW = paper.width;
-      const rightMargin = Math.max(0, W - paperRight);
-      const s = Math.min(1, Math.max(0.6, paperW / 900)); // scale heights on narrow layouts
-
-      const leftPts: Pt[] = LEFT_POINTS.map(([fx, fy]) => [
-        fx * paperLeft,
-        fy * P,
-      ]);
-      const arcPts: Pt[] = ARC_POINTS.map(([fx, dy]) => [
-        paperLeft + fx * paperW,
-        P + dy * s,
-      ]);
-      const rightPts: Pt[] = RIGHT_POINTS.map(([fx, dy]) => [
-        paperRight + fx * rightMargin,
-        P + dy * s,
-      ]);
-
-      svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-      leftPath.setAttribute("d", buildSmoothPath(leftPts));
-      arcPath.setAttribute("d", buildSmoothPath(arcPts));
-      rightPath.setAttribute("d", buildSmoothPath(rightPts));
-
-      // animation starts only now (after the first real measurement)
-      svg.dataset.ready = "true";
+      // start drawing once, only after both lines have a real size
+      if (okTop && okRight && !drawn) {
+        drawn = true;
+        raf = requestAnimationFrame(() => {
+          raf = requestAnimationFrame(() => {
+            topSvg.dataset.draw = "true";
+            rightSvg.dataset.draw = "true";
+          });
+        });
+      }
     };
 
     measure();
@@ -179,43 +210,48 @@ export const FlowLineFour: React.FC<FlowLineFourProps> = ({ anchorRef }) => {
     window.addEventListener("resize", measure);
 
     return () => {
+      cancelAnimationFrame(raf);
       ro.disconnect();
       window.removeEventListener("resize", measure);
     };
   }, [anchorRef]);
 
   return (
-    <svg
-      ref={svgRef}
-      className={styles.flowLine}
-      aria-hidden="true"
-      focusable="false"
-    >
-      <path
-        ref={leftPathRef}
-        className={`${styles.drawPath} ${styles.pathLeft}`}
-        pathLength={1}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1"
-      />
-      <path
-        ref={arcPathRef}
-        className={`${styles.drawPath} ${styles.pathArc}`}
-        pathLength={1}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1"
-      />
-      <path
-        ref={rightPathRef}
-        className={`${styles.drawPath} ${styles.pathRight}`}
-        pathLength={1}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1"
-      />
-    </svg>
+    <>
+      {/* LEFT / TOP line: ends on the top edge of the paper */}
+      <svg
+        ref={topRef}
+        className={`${styles.flowLine} ${styles.lineTop}`}
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          ref={topPathRef}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1"
+          strokeLinecap="butt"
+          strokeLinejoin="round"
+        />
+      </svg>
+
+      {/* RIGHT line: from the right edge of the paper to the right screen edge */}
+      <svg
+        ref={rightRef}
+        className={`${styles.flowLine} ${styles.lineRight}`}
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          ref={rightPathRef}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1"
+          strokeLinecap="butt"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </>
   );
 };
 

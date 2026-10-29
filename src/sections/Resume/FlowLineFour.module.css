@@ -1,13 +1,15 @@
 /* FlowLineFour.module.css  -  styles for FlowLineFour.tsx (Resume page).
- * One full-width svg BEHIND all content (z-index -1): never covers the paper,
- * the text or the buttons, takes no space. Hidden below 1100px.
+ * Absolutely positioned and BEHIND all content (z-index -1), so it never
+ * covers the resume paper, the text or the buttons, and takes no space.
+ * Hidden below 1100px (phones / tablets): there is no side margin there.
  */
 
 .flowLine {
   display: none;
 }
 
-/* safety: the svg is measured from its parent (the page column) */
+/* safety: the lines are measured from their parent (the page column), so make
+   sure the parent is a positioning context */
 :has(> .flowLine) {
   position: relative;
 }
@@ -20,55 +22,81 @@
     pointer-events: none;
     overflow: hidden;
 
-    top: -2.5rem; /* = the padding above the column, so it starts at the navbar */
-    left: calc((100% - 100vw) / 2);
-    width: 100vw;
-
     color: var(--text-muted);
+
+    /* invisible until the component has measured everything, then it fades in
+       while the line is being drawn (no flash, no blink) */
+    opacity: 0;
+    transition: opacity 2.4s ease 0.4s;
+  }
+
+  .flowLine[data-draw="true"] {
     opacity: 0.5; /* line strength: raise for a stronger line */
   }
 
-  /* hidden until the component has measured the paper (no jump / blink) */
-  .flowLine:not([data-ready]) {
-    visibility: hidden;
+  /* The line is drawn like a pen. --len (the length of the line) is set by the
+     component. The dash is as long as the whole line and starts shifted away,
+     then slides into place. */
+  .flowLine path {
+    stroke-dasharray: var(--len, 0);
+    stroke-dashoffset: var(--len, 0);
   }
 
-  /* The lines are "written" along their own path (pathLength = 1).
-     Dash 1 + gap 1, offset 1 -> hidden; offset 0 -> fully drawn. */
-  .drawPath {
-    stroke-dasharray: 1 1;
-    stroke-dashoffset: 1;
-    stroke-linecap: butt;
-  }
-
-  /* 1) left line: first (slow & smooth: change 4.5s to speed up / slow down) */
-  .flowLine[data-ready="true"] .pathLeft {
-    animation: flowDraw 4.5s cubic-bezier(0.45, 0.05, 0.35, 1) 0.5s forwards;
-  }
-
-  /* 2) arc: comes out from under the paper after the left line arrives */
-  .flowLine[data-ready="true"] .pathArc {
-    animation: flowDraw 2.8s cubic-bezier(0.45, 0.05, 0.35, 1) 4.9s forwards;
-  }
-
-  /* 3) right line: follows the arc */
-  .flowLine[data-ready="true"] .pathRight {
-    animation: flowDraw 2.2s cubic-bezier(0.45, 0.05, 0.35, 1) 5.6s forwards;
-  }
-}
-
-@keyframes flowDraw {
-  from {
-    stroke-dashoffset: 1;
-  }
-  to {
+  .flowLine[data-draw="true"] path {
     stroke-dashoffset: 0;
+  }
+
+  /* LEFT / TOP line.
+     From the left screen edge (under the navbar) to the center of the paper.
+     Its height is set by the component: navbar bottom -> top edge of the paper.
+     SPEED: change the 4.2s below (bigger = slower). */
+  .lineTop {
+    top: -2.5rem; /* = the padding above the column, so it starts at the navbar */
+    left: calc((100% - 100vw) / 2);
+    width: calc((100vw - 100%) / 2 + 50%);
+
+    /* soft start at the top */
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent 0%,
+      #000 8%,
+      #000 100%
+    );
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 8%, #000 100%);
+  }
+
+  .lineTop path {
+    transition: stroke-dashoffset 4.2s cubic-bezier(0.45, 0, 0.25, 1) 0.5s;
+  }
+
+  /* RIGHT line.
+     From the right edge of the paper to the right screen edge.
+     Its top is set by the component (a little below the top of the paper).
+     It starts after the left line has finished (the 4.9s delays below). */
+  .lineRight {
+    left: 100%;
+    width: calc((100vw - 100%) / 2);
+    height: 80px;
+
+    -webkit-mask-image: linear-gradient(
+      to right,
+      #000 0%,
+      #000 78%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(to right, #000 0%, #000 78%, transparent 100%);
+
+    transition: opacity 2s ease 4.9s;
+  }
+
+  .lineRight path {
+    transition: stroke-dashoffset 2.8s cubic-bezier(0.45, 0, 0.25, 1) 4.9s;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .drawPath {
-    animation: none !important;
-    stroke-dashoffset: 0 !important;
+  .flowLine,
+  .flowLine path {
+    transition: none !important;
   }
 }

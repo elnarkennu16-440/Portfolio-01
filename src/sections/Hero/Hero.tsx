@@ -1,20 +1,19 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { siteContent } from "../../content/siteContent";
-import { getPlaceholderDebugAttr } from "../../utils/debugContent";
-import { LookAtPortrait } from "../../components/LookAtPortrait/LookAtPortrait";
-import kennuLogo from "../../assets/Minimalist-KennuLogo-.png";
-import elnarLogo from "../../assets/Minimalist-ElnarLogo-.png";
+import { HeroScene } from "../../components/HeroScene/HeroScene";
+
 import styles from "./Hero.module.css";
 
 interface HeroProps {
   isIntroDone?: boolean;
 }
 
+/** The longest wave-reveal is 3s delay + 2s animation; after this nothing animates any more. */
+const REVEAL_TOTAL_MS = 5600;
+
 /**
  * Same "line + arrow" connector as the VIEW ALL PROJECTS button in Works.tsx:
  * one continuous stroke — a horizontal line that bends upward into an arrow head (↗).
- * The horizontal part sits on the bottom edge of the SVG so it joins the underline
- * of the label right next to it.
  */
 const ConnectorArrow: React.FC<{ className?: string }> = ({ className }) => (
   <svg
@@ -32,103 +31,49 @@ const ConnectorArrow: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+/**
+ * Layers (back → front):
+ *   1. HeroScene   — the 3D street: KENNU monoliths, road + ELNAR, buildings, billboard
+ *   2. atmosphere  — vignette + film grain (CSS only)
+ *   3. text layer  — intro sentence, links, scroll cue (real HTML: selectable, accessible)
+ *
+ * The billboard shows the "Focusing on…" sentence inside the 3D scene. On phones the
+ * billboard is hidden and the same sentence is shown as normal text instead.
+ */
 export const Hero: React.FC<HeroProps> = ({ isIntroDone = true }) => {
   const { hero, meta } = siteContent;
 
-  // Mobile only: the portrait is scaled up with a CSS transform (--ps, see Hero.module.css).
-  // A transform does not take space in the layout, so we add the extra height back as
-  // margin. The portrait component itself (and its animation) is NOT touched.
-  const portraitScaleRef = useRef<HTMLDivElement | null>(null);
-
+  // PERF: once the text reveal has finished, drop its clip-path / will-change layers
+  // (they otherwise stay on top of the animated 3D canvas for the whole visit).
+  const [revealDone, setRevealDone] = useState(false);
   useEffect(() => {
-    const el = portraitScaleRef.current;
-    if (!el) return;
-
-    const sync = () => {
-      const scale =
-        parseFloat(getComputedStyle(el).getPropertyValue("--ps")) || 1;
-      el.style.setProperty(
-        "--ps-extra",
-        `${Math.max(0, (scale - 1) * el.offsetHeight).toFixed(1)}px`,
-      );
-    };
-
-    sync();
-    const observer =
-      typeof ResizeObserver !== "undefined" ? new ResizeObserver(sync) : null;
-    observer?.observe(el);
-    window.addEventListener("resize", sync);
-
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener("resize", sync);
-    };
-  }, []);
+    if (!isIntroDone) return;
+    const id = window.setTimeout(() => setRevealDone(true), REVEAL_TOTAL_MS);
+    return () => window.clearTimeout(id);
+  }, [isIntroDone]);
 
   return (
     <section
       id="hero"
-      className={`${styles.heroSection} ${isIntroDone ? styles.introReady : ""}`}
+      className={`${styles.heroSection} ${isIntroDone ? styles.introReady : ""} ${
+        revealDone ? styles.revealDone : ""
+      }`}
       aria-label="Introduction"
     >
-      {/* Editorial Flow Hairline Curve */}
-      <svg
-        className={styles.heroBackgroundCurve}
-        viewBox="0 0 1440 800"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M-50,650 C320,750 480,280 820,380 C1160,480 1280,120 1500,80"
-          className={styles.curvePath}
-        />
-      </svg>
+      <HeroScene isIntroDone={isIntroDone} className={styles.scene} />
+      <div className={styles.atmosphere} aria-hidden="true" />
 
-      {/* Faint Giant Background Watermark */}
-      <div className={`ghostWatermark ${styles.watermark}`} aria-hidden="true">
-        {hero.faintWatermark}
-      </div>
+      {/* The big 3D letters are drawn in WebGL, so the real heading lives here */}
+      <h1 className={styles.srOnly}>Kennu Elnar</h1>
 
       <div className="container">
-        <div className={styles.heroGrid}>
-          {/* Left Column: Typography & Intent */}
-          <div className={styles.contentCol}>
-            <div className={styles.eyebrowRow}>
-              <div className={styles.accentRule} aria-hidden="true" />
-              <span className={styles.eyebrow}>{hero.eyebrow}</span>
-            </div>
+        <div className={styles.layer}>
+          <div className={styles.copy}>
+            <p className={`${styles.reveal} ${styles.kicker}`}>
+              Portfolio — 2026
+            </p>
 
-            <div className={styles.headlineMask}>
-              <h1 className={styles.headlineLine}>
-                <img
-                  src={kennuLogo}
-                  alt="Kennu"
-                  className={styles.heroLogoImage}
-                  width={469}
-                  height={126}
-                  loading="eager"
-                />
-              </h1>
-            </div>
-
-            <div className={styles.headlineMask}>
-              <div
-                className={`${styles.headlineLine} ${styles.headlineLineSecond}`}
-              >
-                <img
-                  src={elnarLogo}
-                  alt="Elnar"
-                  className={styles.heroLogoImage}
-                  width={474}
-                  height={129}
-                  loading="eager"
-                />
-              </div>
-            </div>
-
-            <p className={styles.heroLeadStatement}>
+            <p className={`${styles.reveal} ${styles.statement}`}>
               Focusing on{" "}
               <span className={styles.underlinedEmphasis}>
                 software quality
@@ -140,7 +85,12 @@ export const Hero: React.FC<HeroProps> = ({ isIntroDone = true }) => {
               .
             </p>
 
-            <div className={styles.ctaGroup}>
+            <p className={`${styles.reveal} ${styles.intro}`}>
+              Hi, I&apos;m Kennu. I build simple, dependable web apps with care
+              for quality and smooth user flows.
+            </p>
+
+            <div className={`${styles.reveal} ${styles.links}`}>
               <a href="#works" className={styles.ctaLink}>
                 <span className={styles.ctaLabel}>{hero.ctaWorks}</span>
                 <ConnectorArrow className={styles.ctaArrow} />
@@ -175,12 +125,14 @@ export const Hero: React.FC<HeroProps> = ({ isIntroDone = true }) => {
             </div>
           </div>
 
-          {/* Right Column: Look-at-Cursor Portrait */}
-          <div className={styles.portraitCol}>
-            <div ref={portraitScaleRef} className={styles.portraitScale}>
-              <LookAtPortrait isIntroDone={isIntroDone} />
-            </div>
-          </div>
+          <a
+            href="#works"
+            className={`${styles.reveal} ${styles.scrollCue}`}
+            aria-label="Scroll to works"
+          >
+            <span>Scroll</span>
+            <i className={styles.scrollLine} aria-hidden="true" />
+          </a>
         </div>
       </div>
     </section>
