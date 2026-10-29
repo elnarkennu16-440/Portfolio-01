@@ -92,11 +92,17 @@ export default function App() {
         />
 
         <main id="main-content" tabIndex={-1}>
-          {/* Hero Section */}
-          <Hero isIntroDone={!showIntro} />
+          {/* Eksklusibong Wrapper para sa Hero at About sticky/folder transition lang */}
+          <div
+            className="heroAboutWrapper"
+            style={{ position: "relative", width: "100%" }}
+          >
+            {/* Hero Section */}
+            <Hero isIntroDone={!showIntro} />
 
-          {/* About Section */}
-          <About />
+            {/* About Section */}
+            <About />
+          </div>
 
           {/* Tech Stack Sliding Loop with Wave Spin Icons */}
           <TechMarquee />

@@ -3,10 +3,11 @@
   width: 100%;
   overflow: hidden;
   /* breathing room above and below (and for the hover zoom) */
-  padding: clamp(4.5rem, 13vh, 9.5rem) 0;
+  padding: clamp(3.5rem, 10vh, 7.5rem) 0;
+  margin-top: -1px; /* Sakto ang dikit sa About section para walang lumitaw na guhit */
+  background-color: #121214; /* Ipinantay sa kulay ng background ng About at Hero */
   border-top: none;
   border-bottom: none;
-  background-color: transparent;
   /* Gentle dissolve on outer screen margins */
   -webkit-mask-image: linear-gradient(
     to right,
@@ -423,3 +424,102 @@
     transition: none;
   }
 }
+
+.techMarqueeSection {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  /* breathing room above and below (and for the hover zoom) */
+  padding: clamp(3.5rem, 10vh, 7.5rem) 0;
+  margin-top: -1px; /* Sakto ang dikit sa About section para walang lumitaw na guhit */
+  background-color: #121214; /* Ipinantay sa kulay ng background ng About at Hero */
+  border-top: none;
+  border-bottom: none;
+  /* Gentle dissolve on outer screen margins */
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0%,
+    black 8%,
+    black 92%,
+    transparent 100%
+  );
+}
+
+.marqueeTrack {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  will-change: transform;
+  transform: translate3d(
+    0,
+    0,
+    0
+  ); /* Pinapakinis ang takbo sa GPU ng Brave/Chrome */
+  animation: marqueeLoop 200s linear infinite;
+}
+
+.techMarqueeSection:hover .marqueeTrack {
+  animation-play-state: paused;
+}
+
+.marqueeGroup {
+  display: flex;
+  align-items: center;
+  gap: clamp(36px, 4vw, 64px);
+  padding-right: clamp(36px, 4vw, 64px);
+  flex-shrink: 0;
+  transform: translateZ(0);
+}
+
+.marqueeItem {
+  --w: clamp(104px, 8.4vw, 132px);
+  --t: calc(var(--w) * 0.24);
+  --ts: calc(var(--w) * 0.14);
+  --face-a: #131417;
+  --face-b: #131417;
+  --top-a: #131417;
+  --top-b: #131417;
+  --side-a: #131417;
+  --side-b: #131417;
+  --rim: rgba(255, 255, 255, 0.12);
+  --stripe-dark: rgba(150, 153, 160, 0.34);
+  --stripe-light: rgba(170, 173, 180, 0.5);
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--w);
+  height: calc(var(--w) * 1.28);
+  box-sizing: border-box;
+  color: #a4a6ad;
+  cursor: default;
+
+  background: linear-gradient(
+    to bottom right,
+    var(--face-a) 0%,
+    var(--face-a) 49.6%,
+    var(--face-b) 50.4%,
+    var(--face-b) 100%
+  );
+  border: 1px solid var(--rim);
+  border-radius: 2px;
+
+  transform-style: preserve-3d;
+  transform: perspective(900px) rotateX(-10deg) rotateY(26deg) translateZ(0)
+    scale(1);
+  transform-origin: 50% 50%;
+  will-change: transform;
+  backface-visibility: hidden; /* Inaalis ang flickering at pinapagaan ang rendering sa browser */
+  transition: transform 0.55s var(--ease-editorial);
+}
+
+/* (Panatilihin ang iba pang existing styles ng TechMarquee.module.css tulad ng ::before, ::after, stripes, at hover effects sa ibaba nito nang walang binabago) */

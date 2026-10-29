@@ -5,7 +5,10 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  pointer-events: none; /* the 3D scene never blocks clicks on the text / buttons */
+  pointer-events: none;
+  transform: translateZ(
+    0
+  ); /* Pinipigilan ang WebGL ghosting/smearing sa scroll */
 }
 
 .canvas {

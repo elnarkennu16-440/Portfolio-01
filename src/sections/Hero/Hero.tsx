@@ -124,15 +124,6 @@ export const Hero: React.FC<HeroProps> = ({ isIntroDone = true }) => {
               </a>
             </div>
           </div>
-
-          <a
-            href="#works"
-            className={`${styles.reveal} ${styles.scrollCue}`}
-            aria-label="Scroll to works"
-          >
-            <span>Scroll</span>
-            <i className={styles.scrollLine} aria-hidden="true" />
-          </a>
         </div>
       </div>
     </section>

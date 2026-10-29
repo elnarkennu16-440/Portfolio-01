@@ -10,21 +10,29 @@
 
 .heroSection {
   --hand-font: "Kaushan Script", "Caveat", cursive;
-  --hero-bg: #121214; /* same colour as the fog inside the 3D scene */
+  --hero-bg: #121214;
   --hero-fg: #f4f4f5;
   --hero-fg-dim: rgba(244, 244, 245, 0.72);
   --hero-fg-faint: rgba(244, 244, 245, 0.5);
 
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--hero-bg);
+
   isolation: isolate;
   width: 100%;
-  min-height: calc(100vh - 65px);
+  min-height: 100vh;
   display: flex;
   align-items: flex-end;
-  background: var(--hero-bg);
   color: var(--hero-fg);
   overflow: hidden;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.heroAboutWrapper {
+  position: relative;
+  width: 100%;
 }
 
 .scene {
@@ -377,6 +385,8 @@
 
   .copy {
     max-width: 100%;
+    /* Nilagyan ng clearance sa kanan para hindi sumagi sa floating buttons */
+    padding-right: 3.5rem;
   }
 
   /* the billboard is hidden on phones, so the sentence becomes visible text */
@@ -384,25 +394,27 @@
     position: static;
     width: auto;
     height: auto;
-    margin: 0 0 0.9rem;
+    margin: 0 0 0.75rem;
     overflow: visible;
     clip: auto;
     white-space: normal;
     font-family: var(--hand-font);
-    font-size: clamp(1.1rem, 4.8vw, 1.4rem);
-    line-height: 1.35;
+    /* Pinaliit ang font size sa mobile */
+    font-size: clamp(0.95rem, 3.8vw, 1.15rem);
+    line-height: 1.3;
     color: rgba(255, 255, 255, 0.92);
     text-wrap: balance;
   }
 
   .kicker {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.6rem;
   }
 
   .intro {
-    margin-bottom: 1.25rem;
-    font-size: 0.92rem;
-    line-height: 1.55;
+    margin-bottom: 1rem;
+    /* Pinaliit ang font size sa mobile */
+    font-size: 0.8rem;
+    line-height: 1.45;
   }
 
   .links {

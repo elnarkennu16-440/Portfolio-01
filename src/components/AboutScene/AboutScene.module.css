@@ -1,0 +1,92 @@
+/* The WebGL canvas fills whatever box it is placed in (the About section).
+   Nothing here touches the rest of the page. */
+
+.root {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transform: translateZ(0);
+}
+
+.host {
+  position: absolute;
+  inset: 0;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+/* Phone tour: three small lines (also tappable). Only rendered on portrait screens. */
+.controls {
+  --dash-w: 2rem;
+  --dash-fill: #8a8e96;
+
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: max(0.7rem, env(safe-area-inset-bottom, 0px));
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.dash {
+  flex: 0 0 var(--dash-w);
+  width: var(--dash-w);
+  padding: 0.7rem 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dash:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.6);
+  outline-offset: 2px;
+}
+
+.dashTrack {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 2px;
+  background-color: rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+.dashFill {
+  position: absolute;
+  inset: 0;
+  background-color: var(--dash-fill);
+  transform: scaleX(0);
+  transform-origin: left;
+  animation-name: dashFillRun;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+.dashFillHeld {
+  animation: none;
+  transform: scaleX(1);
+}
+
+@keyframes dashFillRun {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashFill {
+    animation: none !important;
+    transform: scaleX(1);
+  }
+}
