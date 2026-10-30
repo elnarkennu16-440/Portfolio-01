@@ -6,6 +6,12 @@
   inset: 0;
   overflow: hidden;
   pointer-events: none;
+  /* same colour as the hero, so there is never a black flash before frame 1 */
+  background: var(--hero-bg, #121214);
+  /* PERF: the canvas is redrawn up to 60×/s. `contain` tells the browser that
+     nothing inside can change layout/paint outside this box, so it never has
+     to re-check the rest of the page when the canvas updates or is resized. */
+  contain: strict;
   transform: translateZ(
     0
   ); /* Pinipigilan ang WebGL ghosting/smearing sa scroll */

@@ -1136,8 +1136,21 @@ export function buildCity(
     scaleFace(1, rep(dp, f.tileW), ry); // -x
     scaleFace(4, rep(w, f.tileW), ry); // +z
     scaleFace(5, rep(w, f.tileW), ry); // -z
+    // PERF: a box has 6 material groups = 6 draw calls. Re-order the indices so the
+    // 4 facade faces come first and the 2 roof faces last: 2 draw calls, same look.
+    const index = geo.index;
+    if (index) {
+      const idx = Array.from(index.array as ArrayLike<number>);
+      geo.setIndex(
+        idx.slice(0, 12).concat(idx.slice(24, 36), idx.slice(12, 24)),
+      );
+      geo.clearGroups();
+      geo.addGroup(0, 24, 0);
+      geo.addGroup(24, 12, 1);
+    }
     const m = f.material;
-    const mesh = new THREE.Mesh(geo, [m, m, roofMat, roofMat, m, m]);
+    // facade material first, roof material second (matches the two groups above)
+    const mesh = new THREE.Mesh(geo, [m, roofMat]);
     mesh.position.set(cx, h / 2, cz);
     mesh.rotation.y = yaw;
     mesh.castShadow = shadow;
@@ -1179,7 +1192,7 @@ export function buildCity(
         dep,
         Math.atan2(-t.z, t.x) + jitter,
         facades[variant],
-        d < 170,
+        false,
       );
     }
     d += 8 + rand() * 7;

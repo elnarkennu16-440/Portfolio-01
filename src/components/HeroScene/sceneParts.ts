@@ -14,6 +14,7 @@ import * as THREE from "three";
  * ──────────────────────────────────────────────────────────────────────────── */
 
 export type Rand = () => number;
+export type ThemeMode = "dark" | "light";
 export type BlockFn = (x: number, z: number, pad: number) => boolean;
 
 /* ═══════════════════════════ TUNING (change freely) ═══════════════════════ */
@@ -202,13 +203,17 @@ export const isBlocked: BlockFn = (x, z, pad) => {
 
 /* ═══════════════════════════ TEXTURES ═════════════════════════════════════ */
 
-function makeAsphaltTexture(rand: Rand) {
+/* Every texture below can be drawn in a "dark" (the original look, drawn with the
+   shared seeded `rand` so the city layout never changes) or a "light" palette. */
+function makeAsphaltTexture(rand: Rand, light = false) {
   const S = 512;
   const { canvas, ctx } = makeCanvas(S, S);
-  ctx.fillStyle = "#1b1b1e";
+  ctx.fillStyle = light ? "#9b9ea5" : "#1b1b1e";
   ctx.fillRect(0, 0, S, S);
+  const vMin = light ? 118 : 26;
+  const vSpan = light ? 100 : 70;
   for (let i = 0; i < 26000; i++) {
-    const v = 26 + Math.floor(rand() * 70);
+    const v = vMin + Math.floor(rand() * vSpan);
     ctx.fillStyle = `rgba(${v},${v},${v + 3},${0.18 + rand() * 0.4})`;
     const size = rand() < 0.08 ? 2 : 1;
     ctx.fillRect(Math.floor(rand() * S), Math.floor(rand() * S), size, size);
@@ -218,30 +223,35 @@ function makeAsphaltTexture(rand: Rand) {
     const y = rand() * S;
     const r = 40 + rand() * 90;
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, `rgba(0,0,0,${0.18 + rand() * 0.2})`);
-    g.addColorStop(1, "rgba(0,0,0,0)");
+    g.addColorStop(
+      0,
+      light
+        ? `rgba(60,62,70,${0.12 + rand() * 0.14})`
+        : `rgba(0,0,0,${0.18 + rand() * 0.2})`,
+    );
+    g.addColorStop(1, light ? "rgba(60,62,70,0)" : "rgba(0,0,0,0)");
     ctx.fillStyle = g;
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
   return toTexture(canvas, true);
 }
 
-function makePavingTexture(rand: Rand) {
+function makePavingTexture(rand: Rand, light = false) {
   const S = 512;
   const { canvas, ctx } = makeCanvas(S, S);
-  ctx.fillStyle = "#26262a";
+  ctx.fillStyle = light ? "#e3e4e8" : "#26262a";
   ctx.fillRect(0, 0, S, S);
   for (let i = 0; i < 12000; i++) {
-    const v = 30 + Math.floor(rand() * 40);
-    ctx.fillStyle = `rgba(${v},${v},${v + 2},0.35)`;
+    const v = (light ? 150 : 30) + Math.floor(rand() * (light ? 55 : 40));
+    ctx.fillStyle = `rgba(${v},${v},${v + 2},${light ? 0.3 : 0.35})`;
     ctx.fillRect(rand() * S, rand() * S, 1.5, 1.5);
   }
   const cell = S / 4;
   for (let i = 0; i <= 4; i++) {
-    ctx.fillStyle = "rgba(0,0,0,0.75)";
+    ctx.fillStyle = light ? "rgba(110,114,124,0.5)" : "rgba(0,0,0,0.75)";
     ctx.fillRect(i * cell - 2, 0, 4, S);
     ctx.fillRect(0, i * cell - 2, S, 4);
-    ctx.fillStyle = "rgba(255,255,255,0.05)";
+    ctx.fillStyle = light ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.05)";
     ctx.fillRect(i * cell + 2, 0, 1, S);
     ctx.fillRect(0, i * cell + 2, S, 1);
   }
@@ -375,15 +385,14 @@ function buildRibbon(curve: THREE.CatmullRomCurve3, s: RibbonSpec) {
 export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
   const group = new THREE.Group();
   const L = curve.getLength();
+  const textures: THREE.Texture[] = [];
 
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(700, 700),
-    new THREE.MeshStandardMaterial({
-      color: 0x0d0d0f,
-      roughness: 0.96,
-      metalness: 0,
-    }),
-  );
+  const groundMat = new THREE.MeshStandardMaterial({
+    color: 0x0d0d0f,
+    roughness: 0.96,
+    metalness: 0,
+  });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(700, 700), groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.receiveShadow = true;
   // PERF: draw the huge ground plane LAST. Everything nearer is already in the
@@ -391,6 +400,14 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
   ground.renderOrder = 10;
   group.add(ground);
 
+  const pavingDark = makePavingTexture(rand);
+  textures.push(pavingDark);
+  const sidewalkMat = new THREE.MeshStandardMaterial({
+    map: pavingDark,
+    color: 0xb4b4ba,
+    roughness: 0.8,
+    metalness: 0.02,
+  });
   const sidewalk = new THREE.Mesh(
     buildRibbon(curve, {
       offset: 0,
@@ -401,18 +418,21 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
       uTile: 8,
       vTile: 8,
     }).geo,
-    new THREE.MeshStandardMaterial({
-      map: makePavingTexture(rand),
-      color: 0xb4b4ba,
-      roughness: 0.8,
-      metalness: 0.02,
-    }),
+    sidewalkMat,
   );
   sidewalk.receiveShadow = true;
   // PERF: after the road, before the ground (same reason as above)
   sidewalk.renderOrder = 5;
   group.add(sidewalk);
 
+  const asphaltDark = makeAsphaltTexture(rand);
+  textures.push(asphaltDark);
+  const roadMat = new THREE.MeshStandardMaterial({
+    map: asphaltDark,
+    color: 0xa6a6ac,
+    roughness: 0.44,
+    metalness: 0.15,
+  });
   const road = new THREE.Mesh(
     buildRibbon(curve, {
       offset: 0,
@@ -423,12 +443,7 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
       uTile: 6,
       vTile: 6,
     }).geo,
-    new THREE.MeshStandardMaterial({
-      map: makeAsphaltTexture(rand),
-      color: 0xa6a6ac,
-      roughness: 0.44,
-      metalness: 0.15,
-    }),
+    roadMat,
   );
   road.receiveShadow = true;
   group.add(road);
@@ -445,7 +460,11 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
     });
 
   // curbs + solid edge lines
+  const curbMats: THREE.MeshBasicMaterial[] = [];
+  const edgeMats: THREE.MeshBasicMaterial[] = [];
   for (const side of [1, -1]) {
+    const curbMat = flat(0x303034, 1);
+    curbMats.push(curbMat);
     group.add(
       new THREE.Mesh(
         buildRibbon(curve, {
@@ -457,9 +476,11 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
           uTile: 1,
           vTile: 1,
         }).geo,
-        flat(0x303034, 1),
+        curbMat,
       ),
     );
+    const edgeMat = flat(0x9b9ba2, 0.7);
+    edgeMats.push(edgeMat);
     group.add(
       new THREE.Mesh(
         buildRibbon(curve, {
@@ -471,7 +492,7 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
           uTile: 1,
           vTile: 1,
         }).geo,
-        flat(0x9b9ba2, 0.7),
+        edgeMat,
       ),
     );
   }
@@ -488,10 +509,32 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
     dash: 2.6,
     gap: 4.2,
   });
-  const dashes = new THREE.Mesh(dashed.geo, flat(0xd4d4d8, 0.9));
+  const dashMat = flat(0xd4d4d8, 0.9);
+  const dashes = new THREE.Mesh(dashed.geo, dashMat);
   group.add(dashes);
 
-  return { group, dashes, dashCount: dashed.count };
+  // light palette: drawn on first use (own seeded rand: the city layout above
+  // is untouched), swapped in/out without recompiling anything
+  let pavingLight: THREE.Texture | null = null;
+  let asphaltLight: THREE.Texture | null = null;
+  const setTheme = (mode: ThemeMode) => {
+    const light = mode === "light";
+    if (light && !pavingLight) {
+      pavingLight = makePavingTexture(mulberry32(51001), true);
+      asphaltLight = makeAsphaltTexture(mulberry32(51002), true);
+      textures.push(pavingLight, asphaltLight);
+    }
+    groundMat.color.setHex(light ? 0xe6e7ea : 0x0d0d0f);
+    sidewalkMat.map = light ? pavingLight : pavingDark;
+    sidewalkMat.color.setHex(light ? 0xffffff : 0xb4b4ba);
+    roadMat.map = light ? asphaltLight : asphaltDark;
+    roadMat.color.setHex(light ? 0xffffff : 0xa6a6ac);
+    for (const m of curbMats) m.color.setHex(light ? 0x9a9da5 : 0x303034);
+    for (const m of edgeMats) m.color.setHex(light ? 0xffffff : 0x9b9ba2);
+    dashMat.color.setHex(light ? 0xffffff : 0xd4d4d8);
+  };
+
+  return { group, dashes, dashCount: dashed.count, setTheme, textures };
 }
 
 export function buildRoadText(curve: THREE.CatmullRomCurve3, rand: Rand) {
@@ -515,7 +558,9 @@ export function buildRoadText(curve: THREE.CatmullRomCurve3, rand: Rand) {
   mesh.rotation.order = "YXZ";
   mesh.rotation.set(-Math.PI / 2, Math.atan2(-t.x, -t.z), 0);
   mesh.position.set(p.x, 0.075, p.z);
-  return { mesh, material };
+  const setTheme = (mode: ThemeMode) =>
+    material.color.setHex(mode === "light" ? 0xffffff : 0xd2d2d7);
+  return { mesh, material, setTheme };
 }
 
 /* ═══════════════════════════ KENNU LETTERS ════════════════════════════════ */
@@ -535,13 +580,14 @@ export function buildLetters() {
   });
 
   // concrete plinth under the letters
+  const plinthMat = new THREE.MeshStandardMaterial({
+    color: 0x2b2b2f,
+    roughness: 0.9,
+    metalness: 0.02,
+  });
   const plinth = new THREE.Mesh(
     new THREE.BoxGeometry(ROW_LEN + 1.6, PLINTH_H, LD + 1.4),
-    new THREE.MeshStandardMaterial({
-      color: 0x2b2b2f,
-      roughness: 0.9,
-      metalness: 0.02,
-    }),
+    plinthMat,
   );
   plinth.position.set(ROW_LEN / 2, PLINTH_H / 2, 0);
   plinth.castShadow = true;
@@ -573,7 +619,14 @@ export function buildLetters() {
     letters.push(mesh);
     cursor += def.w + LGAP;
   }
-  return { group, letters, plinth, material };
+  // light mode: dark monoliths on a white street (dark mode: pale on dark)
+  const setTheme = (mode: ThemeMode) => {
+    const light = mode === "light";
+    material.color.setHex(light ? 0x1a1a1e : 0xe9e9ec);
+    material.emissive.setHex(light ? 0x4a4a52 : 0xffffff);
+    plinthMat.color.setHex(light ? 0xb6b9c0 : 0x2b2b2f);
+  };
+  return { group, letters, plinth, material, setTheme };
 }
 
 /* ═══════════════════════════ BILLBOARD ════════════════════════════════════ */
@@ -743,13 +796,23 @@ const PX_W = 72;
 const PX_H = 96;
 const FACADE_BASE = ["#2a2a2e", "#222226", "#303035"] as const;
 
+interface FacadeTex {
+  map: THREE.CanvasTexture;
+  emissiveMap: THREE.CanvasTexture;
+}
+
 interface FacadeSet {
   material: THREE.MeshStandardMaterial;
   tileW: number;
   tileH: number;
+  dark: FacadeTex;
+  /** drawn on first use, with its own seeded rand */
+  light: () => FacadeTex;
 }
 
-function makeFacade(rand: Rand, variant: 0 | 1 | 2): FacadeSet {
+/** Draws one facade tile. The dark palette is the original look (same rand calls,
+ *  same order, so the layout never changes); "light" is the same tile in white. */
+function drawFacade(rand: Rand, variant: 0 | 1 | 2, light: boolean): FacadeTex {
   const W = COLS * PX_W;
   const H = ROWS * PX_H;
   const a = makeCanvas(W, H);
@@ -757,12 +820,36 @@ function makeFacade(rand: Rand, variant: 0 | 1 | 2): FacadeSet {
   const map = a.ctx;
   const glow = b.ctx;
 
-  map.fillStyle = FACADE_BASE[variant];
+  const pal = light
+    ? {
+        base: ["#d3d5da", "#c9ccd2", "#dbdde1"] as const,
+        nMin: 150,
+        nSpan: 55,
+        glass: "#3a3d45",
+        recess: "rgba(0,0,0,0.22)",
+        sill: "#a7aab2",
+        slab: "#b4b7be",
+        fin: "rgba(0,0,0,0.07)",
+        lit: (k: number) => `rgba(238,241,247,${0.35 + 0.6 * k})`,
+      }
+    : {
+        base: FACADE_BASE,
+        nMin: 20,
+        nSpan: 50,
+        glass: "#08080a",
+        recess: "rgba(0,0,0,0.55)",
+        sill: "#505057",
+        slab: "#18181b",
+        fin: "rgba(255,255,255,0.05)",
+        lit: (k: number) => `rgba(214,214,220,${0.1 + 0.8 * k})`,
+      };
+
+  map.fillStyle = pal.base[variant];
   map.fillRect(0, 0, W, H);
   glow.fillStyle = "#000000";
   glow.fillRect(0, 0, W, H);
   for (let i = 0; i < 5000; i++) {
-    const v = 20 + Math.floor(rand() * 50);
+    const v = pal.nMin + Math.floor(rand() * pal.nSpan);
     map.fillStyle = `rgba(${v},${v},${v + 2},0.35)`;
     map.fillRect(rand() * W, rand() * H, 1.5, 1.5);
   }
@@ -770,17 +857,17 @@ function makeFacade(rand: Rand, variant: 0 | 1 | 2): FacadeSet {
   const litChance = [0.2, 0.14, 0.26][variant];
   const lit = (x: number, y: number, w: number, h: number) => {
     const k = 0.55 + rand() * 0.45;
-    map.fillStyle = `rgba(214,214,220,${0.1 + 0.8 * k})`;
+    map.fillStyle = pal.lit(k);
     map.fillRect(x, y, w, h);
     glow.fillStyle = `rgba(255,255,255,${k})`;
     glow.fillRect(x, y, w, h);
   };
   const win = (x: number, y: number, w: number, h: number) => {
-    map.fillStyle = "#08080a";
+    map.fillStyle = pal.glass;
     map.fillRect(x, y, w, h);
-    map.fillStyle = "rgba(0,0,0,0.55)"; // recess shadow on top
+    map.fillStyle = pal.recess; // recess shadow on top
     map.fillRect(x - 3, y - 3, w + 6, 3);
-    map.fillStyle = "#505057"; // sill
+    map.fillStyle = pal.sill; // sill
     map.fillRect(x - 2, y + h, w + 4, 3);
     if (rand() < litChance) lit(x, y, w, h);
   };
@@ -791,12 +878,12 @@ function makeFacade(rand: Rand, variant: 0 | 1 | 2): FacadeSet {
       // ribbon windows with mullions
       const sy = y + PX_H * 0.24;
       const sh = PX_H * 0.46;
-      map.fillStyle = "#08080a";
+      map.fillStyle = pal.glass;
       map.fillRect(6, sy, W - 12, sh);
       for (let c = 0; c < COLS; c++) {
         if (rand() < litChance) lit(c * PX_W + 6, sy, PX_W - 8, sh);
       }
-      map.fillStyle = FACADE_BASE[1];
+      map.fillStyle = pal.base[1];
       for (let c = 1; c < COLS; c++) map.fillRect(c * PX_W - 2, sy, 4, sh);
     } else {
       for (let c = 0; c < COLS; c++) {
@@ -809,23 +896,49 @@ function makeFacade(rand: Rand, variant: 0 | 1 | 2): FacadeSet {
         }
       }
     }
-    map.fillStyle = "#18181b"; // floor slab shadow line
+    map.fillStyle = pal.slab; // floor slab shadow line
     map.fillRect(0, y + PX_H - 7, W, 7);
   }
   if (variant === 2) {
-    map.fillStyle = "rgba(255,255,255,0.05)"; // vertical fins
+    map.fillStyle = pal.fin; // vertical fins
     for (let c = 0; c <= COLS; c++) map.fillRect(c * PX_W - 1, 0, 2, H);
   }
 
-  const material = new THREE.MeshStandardMaterial({
+  return {
     map: toTexture(a.canvas, true),
     emissiveMap: toTexture(b.canvas, true),
+  };
+}
+
+function makeFacade(
+  rand: Rand,
+  variant: 0 | 1 | 2,
+  store: THREE.Texture[],
+): FacadeSet {
+  const dark = drawFacade(rand, variant, false);
+  store.push(dark.map, dark.emissiveMap);
+  let lightTex: FacadeTex | null = null;
+  const material = new THREE.MeshStandardMaterial({
+    map: dark.map,
+    emissiveMap: dark.emissiveMap,
     emissive: 0xffffff,
     emissiveIntensity: 0,
     roughness: 0.88,
     metalness: 0.06,
   });
-  return { material, tileW: COLS * CELL_W, tileH: ROWS * CELL_H };
+  return {
+    material,
+    tileW: COLS * CELL_W,
+    tileH: ROWS * CELL_H,
+    dark,
+    light: () => {
+      if (!lightTex) {
+        lightTex = drawFacade(mulberry32(52000 + variant), variant, true);
+        store.push(lightTex.map, lightTex.emissiveMap);
+      }
+      return lightTex;
+    },
+  };
 }
 
 export function buildCity(
@@ -833,10 +946,11 @@ export function buildCity(
   rand: Rand,
   blocked: BlockFn,
 ) {
+  const textures: THREE.Texture[] = [];
   const facades = [
-    makeFacade(rand, 0),
-    makeFacade(rand, 1),
-    makeFacade(rand, 2),
+    makeFacade(rand, 0, textures),
+    makeFacade(rand, 1, textures),
+    makeFacade(rand, 2, textures),
   ];
   const roofMat = new THREE.MeshStandardMaterial({
     color: 0x18181b,
@@ -874,7 +988,15 @@ export function buildCity(
     scaleFace(4, rep(w, f.tileW), ry); // +z
     scaleFace(5, rep(w, f.tileW), ry); // -z
     const m = f.material;
-    const mesh = new THREE.Mesh(geo, [m, m, roofMat, roofMat, m, m]);
+    // PERF: BoxGeometry ships 6 groups (one per face) = 6 draw calls per building,
+    // and the shadow pass repeats them. Faces that share a material are neighbours
+    // (+x/-x = facade, +y/-y = roof, +z/-z = facade), so merge them into 3 groups.
+    // Same pixels, half the draw calls.
+    geo.clearGroups();
+    geo.addGroup(0, 12, 0); // +x, -x  → facade
+    geo.addGroup(12, 12, 1); // +y, -y → roof
+    geo.addGroup(24, 12, 2); // +z, -z → facade
+    const mesh = new THREE.Mesh(geo, [m, roofMat, m]);
     mesh.position.set(cx, h / 2, cz);
     mesh.rotation.y = yaw;
     mesh.castShadow = shadow;
@@ -939,7 +1061,28 @@ export function buildCity(
   pylonB.castShadow = true;
   group.add(pylonA, pylonB);
 
-  return { group, facadeMats: facades.map((f) => f.material), beacons };
+  const setTheme = (mode: ThemeMode) => {
+    const light = mode === "light";
+    for (const f of facades) {
+      const t = light ? f.light() : f.dark;
+      f.material.map = t.map;
+      f.material.emissiveMap = t.emissiveMap;
+    }
+    roofMat.color.setHex(light ? 0xc2c5cb : 0x18181b);
+    pylonMat.color.setHex(light ? 0xb3b6bd : 0x2a2a2e);
+    for (const b of beacons)
+      (b.material as THREE.MeshBasicMaterial).color.setHex(
+        light ? 0x2b2b30 : 0xffffff,
+      );
+  };
+
+  return {
+    group,
+    facadeMats: facades.map((f) => f.material),
+    beacons,
+    setTheme,
+    textures,
+  };
 }
 
 /* ═══════════════════════════ STREET LIGHTS ════════════════════════════════ */

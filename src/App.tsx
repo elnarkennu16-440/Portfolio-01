@@ -9,7 +9,6 @@ import { IntroLoader } from "./components/IntroLoader/IntroLoader";
 import { Navbar } from "./components/Navbar/Navbar";
 import { Hero } from "./sections/Hero/Hero";
 import { About } from "./sections/About/About";
-import { TechMarquee } from "./components/TechMarquee/TechMarquee";
 import { Works } from "./sections/Works/Works";
 import { ViewAllProjects } from "./sections/Works/ViewAllProjects";
 import { Capabilities } from "./sections/Capabilities/Capabilities";
@@ -103,9 +102,6 @@ export default function App() {
             {/* About Section */}
             <About />
           </div>
-
-          {/* Tech Stack Sliding Loop with Wave Spin Icons */}
-          <TechMarquee />
 
           {/* Works Section with VIEW ALL PROJECTS button */}
           <Works onOpenAllProjects={handleOpenViewAllProjects} />

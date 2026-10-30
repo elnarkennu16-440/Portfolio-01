@@ -51,9 +51,11 @@ const MAX_DPR_MOBILE = 1.25;
 const MIN_DPR = 1;
 const TARGET_FPS = 60;
 const SHADOW_FREEZE_T = 4.4;
-const ADAPT_AFTER_T = 5;
-const SLOW_FRAME_MS = 22;
-const ADAPT_WINDOW = 90;
+const SHADOW_STEP = 4; // re-bake the shadow map every 4th frame during the reveal
+const VISIBLE_RATIO = 0.08; // the loop runs only when >= 8% of the section is on screen
+const ADAPT_AFTER_T = 2.5;
+const SLOW_FRAME_MS = 20;
+const ADAPT_WINDOW = 40;
 
 const BASE_TAN_V = Math.tan(THREE.MathUtils.degToRad(20));
 const TAN_H = BASE_TAN_V * (16 / 9);
@@ -120,23 +122,71 @@ interface SceneHandle {
   dispose: () => void;
 }
 
+/** yields to the browser so the hero (and scrolling) keep their frames while we build */
+const nextFrame = () =>
+  new Promise<void>((resolve) =>
+    requestAnimationFrame(() => window.setTimeout(resolve, 0)),
+  );
+
+type CompilingRenderer = THREE.WebGLRenderer & {
+  compileAsync?: (
+    scene: THREE.Object3D,
+    camera: THREE.Camera,
+  ) => Promise<unknown>;
+};
+
+const NOOP_HANDLE: SceneHandle = {
+  refresh: () => undefined,
+  dispose: () => undefined,
+};
+
+/**
+ * The scene is built in small steps (one per frame) instead of one long freeze,
+ * and shaders are compiled with compileAsync. dispose() can be called at any time.
+ */
 function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
+  let handle: SceneHandle | null = null;
+  let cancelled = false;
+  bootSceneAsync(host, ctl, () => cancelled)
+    .then((h) => {
+      if (cancelled) h.dispose();
+      else handle = h;
+    })
+    .catch(() => undefined);
+  return {
+    refresh: () => handle?.refresh(),
+    dispose: () => {
+      cancelled = true;
+      handle?.dispose();
+      handle = null;
+    },
+  };
+}
+
+async function bootSceneAsync(
+  host: HTMLDivElement,
+  ctl: BootControls,
+  isCancelled: () => boolean,
+): Promise<SceneHandle> {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const small =
     window.innerWidth < 768 || window.matchMedia("(pointer: coarse)").matches;
   const finePointer = window.matchMedia(
     "(hover: hover) and (pointer: fine)",
   ).matches;
+  const deviceDpr = window.devicePixelRatio || 1;
 
   let renderer: THREE.WebGLRenderer;
   try {
     renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      // PERF: MSAA on a big canvas is expensive. On dense screens (>= 1.5 dpr) the
+      // extra pixels already smooth the edges, so MSAA is only used on 1x / 1.25x screens.
+      antialias: deviceDpr < 1.5,
       stencil: false,
       powerPreference: "high-performance",
     });
   } catch {
-    return { refresh: () => undefined, dispose: () => undefined };
+    return NOOP_HANDLE;
   }
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -148,7 +198,7 @@ function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
   host.appendChild(renderer.domElement);
 
   let dprCap = small ? MAX_DPR_MOBILE : MAX_DPR_DESKTOP;
-  const dprFloor = Math.min(MIN_DPR, window.devicePixelRatio || 1);
+  const dprFloor = Math.min(MIN_DPR, deviceDpr);
   let lastW = 0;
   let lastH = 0;
   let lastDpr = 0;
@@ -169,7 +219,34 @@ function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
   scene.fog = fog;
 
   const pmrem = new THREE.PMREMGenerator(renderer);
-  const envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  let envTexture: THREE.Texture | null = null;
+
+  let disposed = false;
+  let raf = 0;
+  let running = false;
+  const cleanups: Array<() => void> = [];
+  const teardown = () => {
+    if (disposed) return;
+    disposed = true;
+    running = false;
+    cancelAnimationFrame(raf);
+    cleanups.forEach((fn) => fn());
+    disposeObject(scene);
+    envTexture?.dispose();
+    pmrem.dispose();
+    renderer.dispose();
+    renderer.forceContextLoss();
+    renderer.domElement.remove();
+  };
+  /** returns true (after cleaning up) when the component was unmounted meanwhile */
+  const aborted = () => {
+    if (!isCancelled()) return false;
+    teardown();
+    return true;
+  };
+
+  /* ── step 1: environment + lights ──────────────────────────────────────── */
+  envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environment = envTexture;
   scene.environmentIntensity = 0.3;
 
@@ -194,37 +271,47 @@ function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
   rim.position.set(34, 16, -44);
   scene.add(rim);
 
+  await nextFrame();
+  if (aborted()) return NOOP_HANDLE;
+
+  /* ── step 2: road ──────────────────────────────────────────────────────── */
   const rand = mulberry32(20261029 + 7);
   const curve = createRoadCurve();
-
   const roadParts = buildGroundAndRoad(curve, rand);
   const crossing = buildCrossing(curve, rand);
+  scene.add(roadParts.group, crossing.mesh);
+  roadParts.dashes.geometry.setDrawRange(0, 0);
+
+  await nextFrame();
+  if (aborted()) return NOOP_HANDLE;
+
+  /* ── step 3: buildings ─────────────────────────────────────────────────── */
   const city = buildCity(curve, rand, isBlocked);
+  scene.add(city.group);
+
+  await nextFrame();
+  if (aborted()) return NOOP_HANDLE;
+
+  /* ── step 4: billboards ────────────────────────────────────────────────── */
   const boardA = buildBoardA(ctl.githubImageSrc, () => renderOnce());
   const boardB = buildBoardB();
+  scene.add(boardA.group, boardB.group);
+
+  await nextFrame();
+  if (aborted()) return NOOP_HANDLE;
+
+  /* ── step 5: lamps, cat, traffic, dust ─────────────────────────────────── */
   const lamps = buildStreetLights(curve, isBlocked);
   const goose = buildGooseLamp();
   const cat = buildCat();
   const traffic = buildTraffic(curve, rand);
   const dust = buildDust(rand, small ? 90 : 180);
   traffic.group.visible = false;
+  scene.add(lamps.group, goose.group, cat.group, traffic.group, dust.points);
 
-  scene.add(
-    roadParts.group,
-    crossing.mesh,
-    city.group,
-    boardA.group,
-    boardB.group,
-    lamps.group,
-    goose.group,
-    cat.group,
-    traffic.group,
-    dust.points,
-  );
+  await nextFrame();
+  if (aborted()) return NOOP_HANDLE;
 
-  roadParts.dashes.geometry.setDrawRange(0, 0);
-
-  let disposed = false;
   const brushLoaded = () => {
     let ok = false;
     document.fonts.forEach((f) => {
@@ -269,14 +356,18 @@ function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
   let shotApplied = -1;
   let lastNow = 0;
 
+  /* ── step 6: compile every shader WITHOUT blocking the page ────────────── */
+  traffic.group.visible = true;
   try {
-    traffic.group.visible = true;
-    renderer.compile(scene, camera);
+    const r = renderer as CompilingRenderer;
+    if (r.compileAsync) await r.compileAsync(scene, camera);
+    else renderer.compile(scene, camera);
   } catch {
-    /* not critical */
+    /* not critical: three compiles on first use instead */
   } finally {
     traffic.group.visible = false;
   }
+  if (aborted()) return NOOP_HANDLE;
 
   const resize = () => {
     const w = Math.max(1, host.clientWidth);
@@ -318,6 +409,8 @@ function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
   let revealed = reduced;
   let shadowsPrimed = false;
   let shadowsFrozen = false;
+  let forceShadow = false;
+  let shadowFrame = 0;
 
   const getT = (now: number) =>
     reduced
@@ -359,7 +452,6 @@ function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
       camPos.y +=
         -pointer.cy * PARALLAX_Y * e + Math.sin(now * 0.00009) * 0.06 * e;
       camTarget.x += pointer.cx * 0.6 * e;
-      // Tinanggal ang scrollP dependency rito para mawala ang desktop scroll lag at layout thrashing
     } else if (!reduced) {
       camPos.y += Math.sin(now * 0.00009) * 0.05 * e;
     }
@@ -428,24 +520,28 @@ function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
     dust.material.opacity = 0.55 * seg(t, 2.5, 2);
     if (t > 2.4) dust.update(reduced ? 0 : now / 1000);
 
-    if (!shadowsPrimed) {
+    // PERF: the shadow map is the most expensive pass. It is re-baked only every
+    // SHADOW_STEP-th frame while things grow, then frozen for good.
+    if (!shadowsPrimed || forceShadow) {
       renderer.shadowMap.needsUpdate = true;
       shadowsPrimed = true;
+      forceShadow = false;
       if (t >= SHADOW_FREEZE_T) shadowsFrozen = true;
     } else if (t >= 0 && t < SHADOW_FREEZE_T) {
-      renderer.shadowMap.needsUpdate = true;
+      if (++shadowFrame % SHADOW_STEP === 0)
+        renderer.shadowMap.needsUpdate = true;
     } else if (t >= SHADOW_FREEZE_T && !shadowsFrozen) {
       renderer.shadowMap.needsUpdate = true;
       shadowsFrozen = true;
     }
   };
 
-  let raf = 0;
-  let running = false;
   let inView = false;
   let lastFrame = 0;
-  const FRAME_MS = 1000 / TARGET_FPS;
+  let frameMs = 1000 / TARGET_FPS;
 
+  // automatic quality: lower the resolution step by step, and as a last resort
+  // run at a steady 30 fps instead of stuttering
   let perfSum = 0;
   let perfN = 0;
   let slowWindows = 0;
@@ -462,12 +558,14 @@ function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
     perfSum = 0;
     perfN = 0;
     if (avg > SLOW_FRAME_MS) {
-      if (++slowWindows >= 2) {
+      if (avg > 30 || ++slowWindows >= 2) {
         slowWindows = 0;
         const current = Math.min(window.devicePixelRatio || 1, dprCap);
         if (current > dprFloor + 0.01) {
-          dprCap = Math.max(dprFloor, current * 0.8);
+          dprCap = Math.max(dprFloor, current * 0.85);
           applySize(lastW, lastH);
+        } else if (frameMs < 30) {
+          frameMs = 1000 / 30;
         }
       }
     } else {
@@ -484,11 +582,11 @@ function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
     if (!running) return;
     raf = requestAnimationFrame(frame);
     const elapsed = now - lastFrame;
-    if (elapsed < FRAME_MS - 0.75) return;
+    if (elapsed < frameMs - 0.75) return;
     lastFrame =
-      lastFrame === 0 || elapsed > FRAME_MS * 4
+      lastFrame === 0 || elapsed > frameMs * 4
         ? now
-        : now - (elapsed % FRAME_MS);
+        : now - (elapsed % frameMs);
     adapt(elapsed, getT(now));
     update(now);
     renderer.render(scene, camera);
@@ -505,6 +603,24 @@ function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
     cancelAnimationFrame(raf);
   };
 
+  // survive a GPU context loss (low memory, driver reset) instead of going black
+  const canvasEl = renderer.domElement;
+  const onLost = (e: Event) => {
+    e.preventDefault();
+    stopLoop();
+  };
+  const onRestored = () => {
+    forceShadow = true;
+    if (inView && revealed) startLoop();
+    else renderOnce();
+  };
+  canvasEl.addEventListener("webglcontextlost", onLost);
+  canvasEl.addEventListener("webglcontextrestored", onRestored);
+  cleanups.push(() => {
+    canvasEl.removeEventListener("webglcontextlost", onLost);
+    canvasEl.removeEventListener("webglcontextrestored", onRestored);
+  });
+
   const onMove = (e: PointerEvent) => {
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
     pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
@@ -512,23 +628,27 @@ function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
 
   const ro = new ResizeObserver(resize);
   ro.observe(host);
+  // PERF: the loop only runs while a real part of the section is on screen
+  // (a thin sliver under the hero does not count) and only after the reveal started.
   const io = new IntersectionObserver(
     ([entry]) => {
-      inView = entry.isIntersecting;
-      if (inView) {
-        startLoop();
-        if (!revealed && entry.intersectionRatio >= 0.2) {
-          revealed = true;
-          revealStart = performance.now();
-        }
-      } else {
-        stopLoop();
+      inView = entry.isIntersecting && entry.intersectionRatio >= VISIBLE_RATIO;
+      if (inView && !revealed && entry.intersectionRatio >= 0.2) {
+        revealed = true;
+        revealStart = performance.now();
       }
+      if (inView && revealed) startLoop();
+      else stopLoop();
       ctl.onLive(revealed && inView);
     },
-    { threshold: [0, 0.2] },
+    { threshold: [0, VISIBLE_RATIO, 0.2] },
   );
   io.observe(host);
+  cleanups.push(() => {
+    ro.disconnect();
+    io.disconnect();
+    window.removeEventListener("pointermove", onMove);
+  });
 
   if (finePointer && !reduced) {
     window.addEventListener("pointermove", onMove, { passive: true });
@@ -537,22 +657,7 @@ function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
   resize();
   pollFont();
 
-  return {
-    refresh: () => renderOnce(),
-    dispose: () => {
-      disposed = true;
-      stopLoop();
-      ro.disconnect();
-      io.disconnect();
-      window.removeEventListener("pointermove", onMove);
-      disposeObject(scene);
-      envTexture.dispose();
-      pmrem.dispose();
-      renderer.dispose();
-      renderer.forceContextLoss();
-      renderer.domElement.remove();
-    },
-  };
+  return { refresh: () => renderOnce(), dispose: teardown };
 }
 
 interface AboutSceneProps {
@@ -613,7 +718,7 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
             start();
           }
         },
-        { rootMargin: "800px 0px" },
+        { rootMargin: "0px 0px -15% 0px" },
       );
       lazy.observe(host);
     }
