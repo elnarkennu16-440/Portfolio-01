@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTheme } from "./hooks/useTheme";
 import { IntroLoader } from "./components/IntroLoader/IntroLoader";
 import { Navbar } from "./components/Navbar/Navbar";
@@ -31,6 +31,103 @@ export default function App() {
   const [activeSubpage, setActiveSubpage] = useState<
     "experience" | "workflows" | "services" | "resume" | null
   >(null);
+
+  // Hero -> About -> Works "folder" stack (see the wrapper in the JSX below)
+  const stackRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const wrapper = stackRef.current;
+    const track = document.getElementById("about");
+    const works = document.getElementById("works");
+    const hero = document.getElementById("hero");
+    const about = track ? track.querySelector("section") : null;
+    if (!wrapper || !track || !works || !hero || !about) return;
+
+    const DIM = 0.75; // how dark a section gets once the next one has covered it
+    const PAUSE_AT = -0.5; // pause when the cover edge is 0.5 screen above the top...
+    const RESUME_AT = -0.3; // ...wake up again 0.3 screen BEFORE it is uncovered (still hidden)
+    const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
+
+    let raf = 0;
+    let lastHeroDim = "";
+    let lastAboutDim = "";
+    let lastRound = "";
+    let heroCovered = false;
+    let aboutCovered = false;
+
+    const setCovered = (el: Element, name: string, covered: boolean) => {
+      if (covered) el.setAttribute("data-covered", "true");
+      else el.removeAttribute("data-covered");
+      // hook for the 3D scenes: window.addEventListener("stack:covered", ...)
+      window.dispatchEvent(
+        new CustomEvent("stack:covered", {
+          detail: { section: name, covered },
+        }),
+      );
+    };
+
+    const update = () => {
+      raf = 0;
+      const vh = window.innerHeight || 1;
+      const heroH = hero.offsetHeight || vh;
+      const trackTop = track.getBoundingClientRect().top;
+      const worksTop = works.getBoundingClientRect().top;
+
+      // 0 -> 1 while About rises over Hero / Works rises over About
+      const aboutP = clamp01(1 - trackTop / heroH);
+      const worksP = clamp01(1 - worksTop / vh);
+
+      const heroDim = (aboutP * DIM).toFixed(3);
+      const aboutDim = (worksP * DIM).toFixed(3);
+      // About's rounded corners flatten out as it settles at the top of the screen
+      const round = clamp01((1 - aboutP) / 0.3).toFixed(3);
+
+      if (heroDim !== lastHeroDim) {
+        lastHeroDim = heroDim;
+        wrapper.style.setProperty("--hero-dim", heroDim);
+      }
+      if (aboutDim !== lastAboutDim) {
+        lastAboutDim = aboutDim;
+        wrapper.style.setProperty("--about-dim", aboutDim);
+      }
+      if (round !== lastRound) {
+        lastRound = round;
+        wrapper.style.setProperty("--about-round", round);
+      }
+
+      // Fully covered sections stop rendering (nothing moves behind the cover);
+      // they wake up again slightly before they come back into view.
+      const nextHero = heroCovered
+        ? trackTop / vh < RESUME_AT
+        : trackTop / vh <= PAUSE_AT;
+      const nextAbout = aboutCovered
+        ? worksTop / vh < RESUME_AT
+        : worksTop / vh <= PAUSE_AT;
+      if (nextHero !== heroCovered) {
+        heroCovered = nextHero;
+        setCovered(hero, "hero", heroCovered);
+      }
+      if (nextAbout !== aboutCovered) {
+        aboutCovered = nextAbout;
+        setCovered(about, "about", aboutCovered);
+      }
+    };
+
+    const schedule = () => {
+      if (!raf) raf = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      if (raf) window.cancelAnimationFrame(raf);
+      hero.removeAttribute("data-covered");
+      about.removeAttribute("data-covered");
+    };
+  }, []);
 
   const handleOpenContact = () => {
     setIsContactModalOpen(true);
@@ -91,16 +188,32 @@ export default function App() {
         />
 
         <main id="main-content" tabIndex={-1}>
-          {/* Eksklusibong Wrapper para sa Hero at About sticky/folder transition lang */}
+          {/* Wrapper para sa Hero -> About -> Works "folder" stacking:
+              - Hero is sticky (stays behind)
+              - About is sticky inside its own track (stays steady while Works rises over it)
+              - the track gives About 100vh of extra "hold" scroll; marginBottom pulls the
+                sections below back up by that same 100vh, so Works starts exactly where
+                About's hold begins and NOTHING after Works is shifted or lengthened. */}
           <div
+            ref={stackRef}
             className="heroAboutWrapper"
-            style={{ position: "relative", width: "100%" }}
+            style={{
+              position: "relative",
+              width: "100%",
+              marginBottom: "-100vh",
+            }}
           >
             {/* Hero Section */}
             <Hero isIntroDone={!showIntro} />
 
-            {/* About Section */}
-            <About />
+            {/* About Section: the track (NOT sticky) owns the #about anchor so nav links
+                still scroll to the right place even while About is stuck */}
+            <div
+              id="about"
+              style={{ position: "relative", width: "100%", height: "200vh" }}
+            >
+              <About />
+            </div>
           </div>
 
           {/* Works Section with VIEW ALL PROJECTS button */}

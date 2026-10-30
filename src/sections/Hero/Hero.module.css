@@ -66,6 +66,24 @@
   width: 100%;
 }
 
+/* Dims while About rises over it (--hero-dim is set in App.tsx) */
+.heroSection::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+  background: #000;
+  opacity: var(--hero-dim, 0);
+  will-change: opacity;
+}
+
+/* Fully covered by About: nothing is rendered / animated behind it. Removed again just
+   before it comes back into view. */
+.heroSection[data-covered="true"] {
+  content-visibility: hidden;
+}
+
 .scene {
   z-index: 0;
 }

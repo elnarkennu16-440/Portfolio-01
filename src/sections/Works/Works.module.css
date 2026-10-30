@@ -1,10 +1,21 @@
 .worksSection {
   position: relative;
+  /* Rises OVER the sticky About (About is z-index 2). */
+  z-index: 3;
+  /* Solid page background (synced from <body> in Works.tsx) so About never shows through. */
+  background-color: var(--works-bg, var(--bg-primary, #0b0b0d));
   padding-top: clamp(4.5rem, 8vh, 8.5rem);
   padding-bottom: clamp(var(--space-10), 5vh, var(--space-20));
-  border-top: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  /* rounded top corners (same shape as About) */
+  --stack-radius: clamp(18px, 3.2vw, 44px);
+  border-radius: var(--stack-radius) var(--stack-radius) 0 0;
   overflow: hidden;
   width: 100%;
+}
+
+[data-theme="light"] .worksSection {
+  border-top-color: rgba(0, 0, 0, 0.08);
 }
 
 .watermark {

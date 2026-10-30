@@ -306,6 +306,47 @@ export const Works: React.FC<WorksProps> = ({ onOpenAllProjects }) => {
     };
   }, []);
 
+  // Works rises OVER the sticky About, so it needs a solid background that always matches
+  // the page (dark / light). Copy it from <body>/<html> and re-sync when the theme changes.
+  useLayoutEffect(() => {
+    const section = document.getElementById("works");
+    if (!section) return;
+
+    const sync = () => {
+      for (const el of [document.body, document.documentElement]) {
+        const c = window.getComputedStyle(el).backgroundColor;
+        if (
+          c &&
+          c !== "transparent" &&
+          !/^rgba\(\s*0,\s*0,\s*0,\s*0\s*\)$/.test(c)
+        ) {
+          section.style.setProperty("--works-bg", c);
+          return;
+        }
+      }
+    };
+
+    const timers: number[] = [];
+    const resync = () => {
+      sync();
+      // theme switches may animate the body colour: re-check once it has settled
+      timers.push(window.setTimeout(sync, 120), window.setTimeout(sync, 800));
+    };
+
+    sync();
+    const mo = new MutationObserver(resync);
+    [document.documentElement, document.body].forEach((el) =>
+      mo.observe(el, {
+        attributes: true,
+        attributeFilter: ["data-theme", "class"],
+      }),
+    );
+    return () => {
+      mo.disconnect();
+      timers.forEach((t) => window.clearTimeout(t));
+    };
+  }, []);
+
   // BACK from "View All Projects": land instantly on the divider line right under the
   // "View All Projects" button (so CAPABILITIES is never visible) — no smooth scroll, no replay.
   useLayoutEffect(() => {
