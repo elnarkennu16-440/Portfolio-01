@@ -180,7 +180,9 @@ const makeCanvas = (w: number, h: number) => {
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
-  const ctx = canvas.getContext("2d");
+  // PERF: these canvases get thousands of tiny 1-2px rects (noise) and are read back
+  // (getImageData). A CPU-backed canvas is much faster for that than a GPU one.
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) throw new Error("2D canvas is not available");
   return { canvas, ctx };
 };

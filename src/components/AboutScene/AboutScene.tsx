@@ -46,12 +46,19 @@ const REDUCED_T = 100;
 
 const TOUR_MS = 5200;
 const TOUR_TAN_V = Math.tan(THREE.MathUtils.degToRad(23));
-const SHOTS = ["GitHub activity", "This platform", "The cat"] as const;
+// Phone tour order: the cat + comment sign FIRST (it needs the longest time), then the
+// GitHub board, then "this platform". The index of a shot = its position in this list.
+const SHOTS = ["The cat", "GitHub activity", "This platform"] as const;
 const SHOT_COUNT = SHOTS.length;
+const CAT_SHOT = 0; // index of "The cat" in SHOTS
+const BOARD_A_SHOT = 1; // index of "GitHub activity" in SHOTS
 const CAT_SHOT_MS = 16000; // phone tour: the cat shot stays longer so the sign can be read
 const SIGN_SHOW_T = 3.7; // seconds after the reveal starts: the sign pops out of the cat
 const TYPE_STEP = 0.03; // seconds per typed letter (desktop)
 const TYPE_STEP_TOUR = 0.016; // phone tour: a bit faster
+// PERF: the scene is built quietly in the background this long after the page has
+// loaded (instead of while the visitor scrolls into About). Set to -1 to turn off.
+const PREBUILD_AFTER_LOAD_MS = 3000;
 
 const MAX_DPR_DESKTOP = 1.5;
 const MAX_DPR_MOBILE = 1.25;
@@ -150,7 +157,7 @@ function poseForShot(
   pos: THREE.Vector3,
   target: THREE.Vector3,
 ) {
-  if (shot === 2) {
+  if (shot === CAT_SHOT) {
     // frame the cat AND the 3D comment sign above it (sign ≈ 90 % of the screen width)
     const dist = THREE.MathUtils.clamp(
       SIGN_LAYOUTS.tall.bodyW / (0.9 * 2 * TOUR_TAN_V * aspect),
@@ -161,7 +168,7 @@ function poseForShot(
     target.set(CAT.x, 1.65, CAT.z);
     return;
   }
-  const b = shot === 0 ? BOARD_A : BOARD_B;
+  const b = shot === BOARD_A_SHOT ? BOARD_A : BOARD_B;
   const cy = b.postH + b.h / 2;
   const nx = Math.sin(b.yaw);
   const nz = Math.cos(b.yaw);
@@ -193,6 +200,18 @@ const nextFrame = () =>
   new Promise<void>((resolve) =>
     requestAnimationFrame(() => window.setTimeout(resolve, 0)),
   );
+
+/** resolves in an idle moment of the browser (or after `ms` at the latest) */
+const idleSlot = (ms: number) =>
+  new Promise<void>((resolve) => {
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(() => resolve(), { timeout: ms });
+    } else {
+      window.setTimeout(resolve, 16);
+    }
+  });
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => window.setTimeout(resolve, ms));
 
 type CompilingRenderer = THREE.WebGLRenderer & {
   compileAsync?: (
@@ -293,6 +312,38 @@ async function bootSceneAsync(
   let raf = 0;
   let running = false;
   const cleanups: Array<() => void> = [];
+
+  /* PERF: while the scene is built in the background, never compete with the visitor.
+     `breathe()` is the pause between build steps: while the visitor is scrolling or
+     touching and About is not on screen yet, it waits (max ~0.6 s), then waits for an
+     idle moment. As soon as About IS on screen it only yields one frame (fast path). */
+  let lastInput = 0;
+  const markInput = () => {
+    lastInput = performance.now();
+  };
+  const inputEvents = ["scroll", "wheel", "touchmove", "keydown"] as const;
+  inputEvents.forEach((ev) =>
+    window.addEventListener(ev, markInput, { passive: true }),
+  );
+  cleanups.push(() =>
+    inputEvents.forEach((ev) => window.removeEventListener(ev, markInput)),
+  );
+  const hostVisible = () => {
+    const r = host.getBoundingClientRect();
+    return r.top < window.innerHeight * 0.9 && r.bottom > 0;
+  };
+  const breathe = async () => {
+    await nextFrame();
+    if (hostVisible()) return;
+    const t0 = performance.now();
+    while (
+      performance.now() - lastInput < 160 &&
+      performance.now() - t0 < 600
+    ) {
+      await sleep(60);
+    }
+    await idleSlot(250);
+  };
   const teardown = () => {
     if (disposed) return;
     disposed = true;
@@ -357,7 +408,7 @@ async function bootSceneAsync(
   };
   applyLook();
 
-  await nextFrame();
+  await breathe();
   if (aborted()) return NOOP_HANDLE;
 
   /* ── step 2: road ──────────────────────────────────────────────────────── */
@@ -368,14 +419,14 @@ async function bootSceneAsync(
   scene.add(roadParts.group, crossing.mesh);
   roadParts.dashes.geometry.setDrawRange(0, 0);
 
-  await nextFrame();
+  await breathe();
   if (aborted()) return NOOP_HANDLE;
 
   /* ── step 3: buildings ─────────────────────────────────────────────────── */
   const city = buildCity(curve, rand, isBlocked);
   scene.add(city.group);
 
-  await nextFrame();
+  await breathe();
   if (aborted()) return NOOP_HANDLE;
 
   /* ── step 4: billboards ────────────────────────────────────────────────── */
@@ -383,7 +434,7 @@ async function bootSceneAsync(
   const boardB = buildBoardB();
   scene.add(boardA.group, boardB.group);
 
-  await nextFrame();
+  await breathe();
   if (aborted()) return NOOP_HANDLE;
 
   /* ── step 5: lamps, cat, traffic, dust ─────────────────────────────────── */
@@ -395,7 +446,7 @@ async function bootSceneAsync(
   traffic.group.visible = false;
   scene.add(lamps.group, goose.group, cat.group, traffic.group, dust.points);
 
-  await nextFrame();
+  await breathe();
   if (aborted()) return NOOP_HANDLE;
 
   /* ── step 5b: the 3D comment sign above the cat + the theme switch ─────── */
@@ -417,14 +468,14 @@ async function bootSceneAsync(
     sign.setTheme(theme);
   };
 
-  await nextFrame();
+  await breathe();
   if (aborted()) return NOOP_HANDLE;
 
   if (theme === "light") {
     // started in light mode: swap part by part (one per frame, no freeze)
     for (const part of themed) {
       part.set(true);
-      await nextFrame();
+      await breathe();
       if (aborted()) return NOOP_HANDLE;
     }
     sign.setTheme("light");
@@ -489,9 +540,33 @@ async function bootSceneAsync(
   }
   if (aborted()) return NOOP_HANDLE;
 
-  // upload the sign's texture now (not during the reveal)
-  const signTex = sign.texture();
-  if (signTex) renderer.initTexture(signTex);
+  // PERF: upload every texture to the GPU now, two per step, instead of all at once
+  // inside the very first render (that was one long freeze when arriving at About).
+  const toUpload = new Set<THREE.Texture>();
+  const collect = (m: THREE.Material) => {
+    const mm = m as THREE.Material & {
+      map?: THREE.Texture | null;
+      emissiveMap?: THREE.Texture | null;
+    };
+    if (mm.map) toUpload.add(mm.map);
+    if (mm.emissiveMap) toUpload.add(mm.emissiveMap);
+  };
+  scene.traverse((o) => {
+    const mat = (o as THREE.Mesh).material as
+      | THREE.Material
+      | THREE.Material[]
+      | undefined;
+    if (Array.isArray(mat)) mat.forEach(collect);
+    else if (mat) collect(mat);
+  });
+  let uploaded = 0;
+  for (const tx of toUpload) {
+    renderer.initTexture(tx);
+    if (++uploaded % 2 === 0) {
+      await breathe();
+      if (aborted()) return NOOP_HANDLE;
+    }
+  }
 
   // how big the sign may be on this screen (landscape): readable, but never off-screen
   const probeCam = new THREE.PerspectiveCamera();
@@ -619,7 +694,7 @@ async function bootSceneAsync(
     // 3D comment sign: pops out of the cat, then types itself in. The clock only
     // advances while the loop runs, so nobody misses the typing.
     if (signClock < 0) {
-      if (t >= SIGN_SHOW_T && (!tour || ctl.getShot() === 2)) {
+      if (t >= SIGN_SHOW_T && (!tour || ctl.getShot() === CAT_SHOT)) {
         signClock = reduced ? 99 : 0;
       }
     } else if (running && !reduced) {
@@ -941,9 +1016,36 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
     };
 
     let lazy: IntersectionObserver | null = null;
+    let warmTimer = 0;
+    let onLoad: (() => void) | null = null;
     if (typeof IntersectionObserver === "undefined") {
       start();
     } else {
+      // PERF: build the scene in the background shortly after the page has loaded, so
+      // that scrolling into About never has to wait for it. (The observer below stays
+      // as the fallback: if the visitor gets here first, it starts immediately.)
+      const nav = navigator as Navigator & {
+        deviceMemory?: number;
+        connection?: { saveData?: boolean };
+      };
+      const canPrebuild =
+        PREBUILD_AFTER_LOAD_MS >= 0 &&
+        !nav.connection?.saveData &&
+        (nav.deviceMemory === undefined || nav.deviceMemory >= 4);
+      if (canPrebuild) {
+        const arm = () => {
+          warmTimer = window.setTimeout(() => {
+            lazy?.disconnect();
+            start();
+          }, PREBUILD_AFTER_LOAD_MS);
+        };
+        if (document.readyState === "complete") {
+          arm();
+        } else {
+          onLoad = arm;
+          window.addEventListener("load", arm, { once: true });
+        }
+      }
       lazy = new IntersectionObserver(
         (entries) => {
           if (entries.some((en) => en.isIntersecting)) {
@@ -958,6 +1060,8 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
 
     return () => {
       gone = true;
+      window.clearTimeout(warmTimer);
+      if (onLoad) window.removeEventListener("load", onLoad);
       lazy?.disconnect();
       handleRef.current?.dispose();
       handleRef.current = null;
@@ -968,7 +1072,7 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
     if (!tour || !live || reduced) return;
     const timer = window.setTimeout(
       () => setShot((s) => (s + 1) % SHOT_COUNT),
-      shot === 2 ? CAT_SHOT_MS : TOUR_MS,
+      shot === CAT_SHOT ? CAT_SHOT_MS : TOUR_MS,
     );
     return () => window.clearTimeout(timer);
   }, [tour, live, reduced, shot]);
@@ -998,7 +1102,7 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
                       !live || reduced ? styles.dashFillHeld : ""
                     }`}
                     style={{
-                      animationDuration: `${shot === 2 ? CAT_SHOT_MS : TOUR_MS}ms`,
+                      animationDuration: `${shot === CAT_SHOT ? CAT_SHOT_MS : TOUR_MS}ms`,
                     }}
                   />
                 )}
