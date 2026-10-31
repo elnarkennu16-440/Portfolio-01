@@ -136,12 +136,12 @@ export function disposeObject(root: THREE.Object3D) {
 
 /* ═══════════════════════════ TEXTURES ═════════════════════════════════════ */
 
-function makeAsphalt(store: TexStore, rand: Rand) {
+function makeAsphalt(store: TexStore, rand: Rand, k = 1) {
   const S = 512;
   const { canvas, ctx } = makeCanvas(S, S);
   ctx.fillStyle = "#18181b";
   ctx.fillRect(0, 0, S, S);
-  for (let i = 0; i < 22000; i++) {
+  for (let i = 0; i < Math.round(22000 * k); i++) {
     const v = 30 + Math.floor(rand() * 70);
     ctx.fillStyle = `rgba(${v},${v},${v + 3},${0.18 + rand() * 0.4})`;
     const size = rand() < 0.08 ? 2 : 1;
@@ -160,12 +160,12 @@ function makeAsphalt(store: TexStore, rand: Rand) {
   return toTexture(store, canvas, true);
 }
 
-function makeHillTexture(store: TexStore, rand: Rand) {
+function makeHillTexture(store: TexStore, rand: Rand, k = 1) {
   const S = 512;
   const { canvas, ctx } = makeCanvas(S, S);
   ctx.fillStyle = "#2f3034";
   ctx.fillRect(0, 0, S, S);
-  for (let i = 0; i < 16000; i++) {
+  for (let i = 0; i < Math.round(16000 * k); i++) {
     const v = 55 + Math.floor(rand() * 70);
     ctx.fillStyle = `rgba(${v},${v},${v + 4},${0.15 + rand() * 0.3})`;
     ctx.fillRect(rand() * S, rand() * S, 1 + rand() * 2, 1 + rand() * 2);
@@ -183,10 +183,12 @@ function makeHillTexture(store: TexStore, rand: Rand) {
   return toTexture(store, canvas, true);
 }
 
-function makePanelTexture(store: TexStore) {
+function makePanelTexture(store: TexStore, small = false) {
   const W = 2048;
   const H = Math.round((W * PANEL.h) / PANEL.w);
-  const { canvas, ctx } = makeCanvas(W, H);
+  const sc = small ? 0.5 : 1; // phones get a half-size board texture (drawn scaled)
+  const { canvas, ctx } = makeCanvas(Math.round(W * sc), Math.round(H * sc));
+  ctx.scale(sc, sc);
   const g = ctx.createLinearGradient(0, 0, 0, H);
   g.addColorStop(0, "#151517");
   g.addColorStop(1, "#0a0a0c");
@@ -345,10 +347,10 @@ export const hillH = (x: number, z: number) => {
   return s * 30 + noise * s;
 };
 
-export function buildGround(store: TexStore, rand: Rand) {
+export function buildGround(store: TexStore, rand: Rand, small = false) {
   const group = new THREE.Group();
 
-  const groundTex = makeAsphalt(store, rand);
+  const groundTex = makeAsphalt(store, rand, small ? 0.55 : 1);
   groundTex.repeat.set(70, 70);
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(700, 700),
@@ -366,7 +368,7 @@ export function buildGround(store: TexStore, rand: Rand) {
   ground.renderOrder = 10;
   group.add(ground);
 
-  const hillTex = makeHillTexture(store, rand);
+  const hillTex = makeHillTexture(store, rand, small ? 0.55 : 1);
   hillTex.repeat.set(26, 10);
   const hillGeo = new THREE.PlaneGeometry(190, 80, 76, 32);
   hillGeo.rotateX(-Math.PI / 2);
@@ -415,7 +417,7 @@ export function buildGround(store: TexStore, rand: Rand) {
 
 /* ═══════════════════════════ BILLBOARD ════════════════════════════════════ */
 
-export function buildBillboard(store: TexStore) {
+export function buildBillboard(store: TexStore, small = false) {
   const group = new THREE.Group();
   const metal = new THREE.MeshStandardMaterial({
     color: 0x1b1b1e,
@@ -429,7 +431,7 @@ export function buildBillboard(store: TexStore) {
   });
 
   // board: frame + printed face
-  const panelTex = makePanelTexture(store);
+  const panelTex = makePanelTexture(store, small);
   const frame = box(
     PANEL.w + 0.3,
     PANEL.h + 0.3,

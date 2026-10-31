@@ -16,6 +16,8 @@ import {
   mulberry32,
 } from "./preFooterParts";
 import type { EnvUser, TexStore } from "./preFooterParts";
+import { buildCallouts } from "./preFooterCallouts";
+import type { Callouts } from "./preFooterCallouts";
 
 /* ═══════════════════════════ TUNING ═══════════════════════════════════════ */
 const BG = 0x0b0b0d; // same as the banner section background
@@ -37,20 +39,25 @@ const PARALLAX_X = 0.9;
 const PARALLAX_Y = 0.35;
 const REDUCED_T = 100;
 
-/* quality / performance (same policy as HeroScene: native pixels, 30 fps fallback) */
+/* quality / performance */
 const MAX_DPR_DESKTOP = 1.5;
-const MAX_DPR_MOBILE = 1.25;
+const MAX_DPR_MOBILE = 1.2;
 const NO_MSAA_MIN_DPR = 1.25;
 const DPR_STEP = 0.85;
 const TARGET_FPS = 60;
 const SHADOW_FREEZE_T = 1.9;
 const SHADOW_EVERY = 3;
 const ADAPT_AFTER_T = 3.4;
+const SCROLL_THROTTLE_AFTER_T = 3.0; // while scrolling (after the reveal) draw at 30 fps
 const GOV_WINDOW = 45;
 const GOV_SETTLE = 8;
 const SLOW_FACTOR = 1.45;
 const MAX_ANISOTROPY = 16;
-const COMPILE_TIMEOUT_MS = 2500;
+const COMPILE_TIMEOUT_MS = 12000; // only a safety net: we really wait for the compile
+
+/* boot / teardown distances (in screen heights from the banner) */
+const BOOT_MARGIN = "250%";
+const RETIRE_MARGIN = "600%";
 
 const TAN_HALF = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
 const TARGET = new THREE.Vector3(SCENE.cx, SCENE.cy, 1);
@@ -78,29 +85,66 @@ const flicker = (t: number, start: number) => {
   ];
 };
 
+interface IdleWindow {
+  requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+  cancelIdleCallback?: (id: number) => void;
+}
+
+/** Waits for a quiet moment, so building the scene never competes with scrolling. */
+const idle = () =>
+  new Promise<void>((resolve) => {
+    const w = window as unknown as IdleWindow;
+    if (w.requestIdleCallback)
+      w.requestIdleCallback(() => resolve(), { timeout: 250 });
+    else window.setTimeout(resolve, 24);
+  });
+
 /** True when WebGL runs on the CPU (SwiftShader / llvmpipe): hardware acceleration is off. */
+let softwareGLCache: boolean | null = null;
 const isSoftwareGL = () => {
+  if (softwareGLCache !== null) return softwareGLCache;
+  let result = false;
   try {
     const c = document.createElement("canvas");
     const gl = (c.getContext("webgl2") ||
       c.getContext("webgl")) as WebGLRenderingContext | null;
-    if (!gl) return false;
-    const info = gl.getExtension("WEBGL_debug_renderer_info");
-    const name = info
-      ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL))
-      : "";
-    gl.getExtension("WEBGL_lose_context")?.loseContext();
-    return /swiftshader|llvmpipe|softpipe|swrast|software rasterizer|basic render/i.test(
-      name,
-    );
+    if (gl) {
+      const info = gl.getExtension("WEBGL_debug_renderer_info");
+      const name = info
+        ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL))
+        : "";
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
+      result =
+        /swiftshader|llvmpipe|softpipe|swrast|software rasterizer|basic render/i.test(
+          name,
+        );
+    }
   } catch {
-    return false;
+    result = false;
   }
+  softwareGLCache = result;
+  return result;
 };
 
-/* ═══════════════════════════ THE SCENE ════════════════════════════════════ */
+interface Parts {
+  billboard: ReturnType<typeof buildBillboard>;
+  bottle: ReturnType<typeof buildBottle>;
+  truck: ReturnType<typeof buildTruck>;
+  stream: ReturnType<typeof buildStream>;
+  splash: ReturnType<typeof buildSplash>;
+  callouts: Callouts;
+  envUsers: EnvUser[];
+}
+
+/* ═══════════════════════════ THE SCENE ════════════════════════════════════
+ * Returns a dispose function immediately; the scene itself is built in small
+ * slices (each one waits for an idle moment) and only becomes "ready" once
+ * every shader is compiled and every texture is on the GPU. Until then nothing
+ * is drawn and nothing blocks the page. */
 
 function createScene(host: HTMLDivElement): () => void {
+  let disposed = false;
+
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const small =
     window.innerWidth < 768 || window.matchMedia("(pointer: coarse)").matches;
@@ -129,6 +173,9 @@ function createScene(host: HTMLDivElement): () => void {
   renderer.shadowMap.autoUpdate = false;
   renderer.setClearColor(BG, 1);
   renderer.domElement.className = styles.canvas;
+  // the canvas fades in when the reveal starts (no pop, no blank flash)
+  renderer.domElement.style.opacity = "0";
+  renderer.domElement.style.transition = "opacity 0.6s ease";
   host.appendChild(renderer.domElement);
 
   /* MSAA check: if the browser silently refuses it, render denser instead */
@@ -159,16 +206,11 @@ function createScene(host: HTMLDivElement): () => void {
     if (!ready) renderer.clear();
   };
 
-  /* ── scene, fog, lights ── */
+  /* ── scene, fog, lights (cheap: nothing touches the GPU until the first render) ── */
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(BG);
   const fog = new THREE.FogExp2(BG, FOG_START_DENSITY);
   scene.fog = fog;
-
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const room = new RoomEnvironment();
-  let envTexture = pmrem.fromScene(room, 0.04).texture;
-  scene.environment = envTexture;
   scene.environmentIntensity = 0.3;
 
   scene.add(new THREE.HemisphereLight(0x59606c, 0x0a0a0b, 0.55));
@@ -193,57 +235,11 @@ function createScene(host: HTMLDivElement): () => void {
   rim.position.set(30, 14, -40);
   scene.add(rim);
 
-  /* ── objects ── */
-  const rand = mulberry32(20261031);
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  let room: RoomEnvironment | null = null;
+  let envTexture: THREE.Texture | null = null;
   const store: TexStore = [];
-  const ground = buildGround(store, rand);
-  const props = buildProps(store, rand);
-  const billboard = buildBillboard(store);
-  const bottle = buildBottle(store);
-  const truck = buildTruck();
-  const stream = buildStream(store);
-  const splash = buildSplash();
-  scene.add(
-    ground.group,
-    props.group,
-    billboard.group,
-    bottle.rig,
-    truck.group,
-    stream.mesh,
-    splash.group,
-  );
-
-  /* glossy materials get the soft studio reflections */
-  const envUsers: EnvUser[] = [...truck.envMats, ...bottle.envMats];
-  const applyEnv = () =>
-    envUsers.forEach(([m, intensity]) => {
-      m.envMap = envTexture;
-      m.envMapIntensity = intensity;
-      m.needsUpdate = true;
-    });
-  applyEnv();
-
-  /* sharpness that costs nothing per frame: anisotropy + dithering (no banding) */
-  const maxAniso = softwareGL
-    ? 2
-    : Math.min(
-        small ? 8 : MAX_ANISOTROPY,
-        renderer.capabilities.getMaxAnisotropy(),
-      );
-  store.forEach((t) => {
-    if (t.anisotropy > 1) t.anisotropy = Math.min(t.anisotropy, maxAniso);
-  });
-  scene.traverse((o) => {
-    const mat = (o as THREE.Mesh).material as
-      | THREE.Material
-      | THREE.Material[]
-      | undefined;
-    if (!mat) return;
-    (Array.isArray(mat) ? mat : [mat]).forEach((m) => {
-      if ((m as THREE.MeshStandardMaterial).isMeshStandardMaterial)
-        m.dithering = true;
-    });
-  });
+  let parts: Parts | null = null;
 
   /* ── camera: fits the scene into the free part of the banner ── */
   const camera = new THREE.PerspectiveCamera(FOV, 16 / 9, 1, 260);
@@ -253,6 +249,7 @@ function createScene(host: HTMLDivElement): () => void {
   let fitDist = 34;
 
   const resize = () => {
+    if (disposed) return;
     const w = Math.max(1, host.clientWidth);
     const h = Math.max(1, host.clientHeight);
     applySize(w, h);
@@ -279,6 +276,22 @@ function createScene(host: HTMLDivElement): () => void {
       h,
     );
     camera.updateProjectionMatrix();
+
+    // callouts: lay them out from the camera's final pose, so they never overlap
+    // each other and never leave the screen (update() restores the live pose)
+    if (parts) {
+      camPos.copy(VIEW_DIR).multiplyScalar(fitDist).add(TARGET);
+      camera.position.copy(camPos);
+      camera.lookAt(TARGET);
+      camera.updateMatrixWorld(true);
+      parts.callouts.layout({
+        camera,
+        w,
+        h,
+        mobile,
+        fontPx: mobile ? 11 : clamp(w / 105, 12, 14),
+      });
+    }
     renderOnce();
   };
 
@@ -299,6 +312,8 @@ function createScene(host: HTMLDivElement): () => void {
         : (now - revealStart) / 1000;
 
   const update = (now: number) => {
+    const P = parts;
+    if (!P) return;
     const t = getT(now);
     const time = now * 0.001;
     const dt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 0.016;
@@ -329,7 +344,7 @@ function createScene(host: HTMLDivElement): () => void {
     camera.lookAt(camTarget);
 
     // the bottle tips over and starts pouring
-    bottle.pivot.rotation.z = THREE.MathUtils.lerp(
+    P.bottle.pivot.rotation.z = THREE.MathUtils.lerp(
       BOTTLE.startAngle,
       BOTTLE.angle,
       easeOutBack(seg(t, 0.15, 1.15), 1.2),
@@ -337,15 +352,18 @@ function createScene(host: HTMLDivElement): () => void {
 
     // billboard lights flicker on
     const f = flicker(t, 0.45);
-    billboard.panelMat.emissiveIntensity = f * 0.9;
-    billboard.spot.intensity = f * 180;
-    billboard.glowMat.opacity = 0.5 * seg(t, 0.5, 0.9);
-    truck.headMat.color.setScalar(0.12 + 0.88 * flicker(t, 0.9));
+    P.billboard.panelMat.emissiveIntensity = f * 0.9;
+    P.billboard.spot.intensity = f * 180;
+    P.billboard.glowMat.opacity = 0.5 * seg(t, 0.5, 0.9);
+    P.truck.headMat.color.setScalar(0.12 + 0.88 * flicker(t, 0.9));
 
     // liquid: grows down to the hatch, then splashes
-    stream.setGrowth(easeOutQuad(seg(t, 1.3, 0.6)));
-    stream.flow(dt);
-    splash.update(time, easeOutBack(seg(t, 1.85, 0.5)));
+    P.stream.setGrowth(easeOutQuad(seg(t, 1.3, 0.6)));
+    P.stream.flow(dt);
+    P.splash.update(time, easeOutBack(seg(t, 1.85, 0.5)));
+
+    // labels (2D overlay, anchored to the 3D bottle with the live camera)
+    P.callouts.update(camera, t, time);
 
     // shadow map: refreshed every few frames while the bottle moves, then frozen
     if (!shadowsPrimed) {
@@ -370,8 +388,10 @@ function createScene(host: HTMLDivElement): () => void {
   let lastTick = 0;
   let vsyncMs = 1000 / 60;
   let frameMs = 1000 / TARGET_FPS;
+  let lastScrollAt = 0;
 
-  /* adaptive quality governor: 1) even 30 fps, 2) lower resolution, never below native */
+  /* adaptive quality governor: 1) even 30 fps, 2) lower resolution, never below native.
+     On phones the steady state (after the reveal) is 30 fps from the start. */
   let govSum = 0;
   let govN = 0;
   let govSkip = GOV_SETTLE;
@@ -394,6 +414,11 @@ function createScene(host: HTMLDivElement): () => void {
     if (t < ADAPT_AFTER_T) {
       govSum = 0;
       govN = 0;
+      return;
+    }
+    if (small && frameMs < 30) {
+      frameMs = 1000 / 30;
+      govSkip = GOV_SETTLE;
       return;
     }
     if (govSkip > 0) {
@@ -437,10 +462,15 @@ function createScene(host: HTMLDivElement): () => void {
     const tick = now - lastTick;
     lastTick = now;
     if (tick > 5 && tick < vsyncMs) vsyncMs = tick;
+    const t = getT(now);
+    // while the page is being scrolled (after the reveal) draw at 30 fps, so the
+    // scroll and the other sections' reveals always get the main thread first
+    const scrolling = t > SCROLL_THROTTLE_AFTER_T && now - lastScrollAt < 160;
+    const minMs = scrolling ? Math.max(frameMs, 1000 / 30) : frameMs;
     const elapsed = now - lastFrame;
-    if (elapsed < frameMs - Math.max(0.75, vsyncMs * 0.5)) return;
+    if (elapsed < minMs - Math.max(0.75, vsyncMs * 0.5)) return;
     lastFrame = now;
-    govern(elapsed, getT(now));
+    govern(elapsed, t);
     update(now);
     renderer.render(scene, camera);
   };
@@ -465,10 +495,9 @@ function createScene(host: HTMLDivElement): () => void {
   const beginReveal = () => {
     if (reduced || revealStart !== null) return;
     revealStart = performance.now();
+    renderer.domElement.style.opacity = "1";
     sync();
   };
-
-  let disposed = false;
 
   /* ── GPU context loss ── */
   const onContextLost = (e: Event) => {
@@ -479,10 +508,16 @@ function createScene(host: HTMLDivElement): () => void {
   const onContextRestored = () => {
     contextLost = false;
     try {
-      envTexture.dispose();
-      envTexture = pmrem.fromScene(room, 0.04).texture;
-      scene.environment = envTexture;
-      applyEnv();
+      if (room) {
+        envTexture?.dispose();
+        envTexture = pmrem.fromScene(room, 0.04).texture;
+        scene.environment = envTexture;
+        parts?.envUsers.forEach(([m, intensity]) => {
+          m.envMap = envTexture;
+          m.envMapIntensity = intensity;
+          m.needsUpdate = true;
+        });
+      }
     } catch {
       /* the scene still renders without the soft reflections */
     }
@@ -502,9 +537,13 @@ function createScene(host: HTMLDivElement): () => void {
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
     pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
   };
+  const onScroll = () => {
+    lastScrollAt = performance.now();
+  };
   if (finePointer && !reduced) {
     window.addEventListener("pointermove", onMove, { passive: true });
   }
+  window.addEventListener("scroll", onScroll, { passive: true });
 
   const ro = new ResizeObserver(resize);
   ro.observe(host);
@@ -526,9 +565,94 @@ function createScene(host: HTMLDivElement): () => void {
   );
   io.observe(host);
 
-  /* ── warm-up: compile shaders off the main thread, upload everything once ── */
-  const prewarm = async () => {
-    splash.group.visible = true; // so its material is compiled too
+  /* ── boot: build in small slices, compile without blocking, upload early ── */
+  const boot = async () => {
+    await idle();
+    if (disposed) return;
+
+    // soft studio reflections for the chrome tank / glass
+    room = new RoomEnvironment();
+    envTexture = pmrem.fromScene(room, 0.04).texture;
+    scene.environment = envTexture;
+    await idle();
+    if (disposed) return;
+
+    const rand = mulberry32(20261031);
+    const ground = buildGround(store, rand, small);
+    scene.add(ground.group);
+    await idle();
+    if (disposed) return;
+
+    const props = buildProps(store, rand);
+    scene.add(props.group);
+    const billboard = buildBillboard(store, small);
+    scene.add(billboard.group);
+    await idle();
+    if (disposed) return;
+
+    const bottle = buildBottle(store);
+    const truck = buildTruck();
+    const stream = buildStream(store);
+    const splash = buildSplash();
+    scene.add(bottle.rig, truck.group, stream.mesh, splash.group);
+    await idle();
+    if (disposed) return;
+
+    const envUsers: EnvUser[] = [...truck.envMats, ...bottle.envMats];
+    envUsers.forEach(([m, intensity]) => {
+      m.envMap = envTexture;
+      m.envMapIntensity = intensity;
+    });
+
+    /* sharpness that costs nothing per frame: anisotropy + dithering (no banding) */
+    const maxAniso = softwareGL
+      ? 2
+      : Math.min(
+          small ? 8 : MAX_ANISOTROPY,
+          renderer.capabilities.getMaxAnisotropy(),
+        );
+    store.forEach((t) => {
+      if (t.anisotropy > 1) t.anisotropy = Math.min(t.anisotropy, maxAniso);
+    });
+    scene.traverse((o) => {
+      const mat = (o as THREE.Mesh).material as
+        | THREE.Material
+        | THREE.Material[]
+        | undefined;
+      if (!mat) return;
+      (Array.isArray(mat) ? mat : [mat]).forEach((m) => {
+        if ((m as THREE.MeshStandardMaterial).isMeshStandardMaterial)
+          m.dithering = true;
+      });
+    });
+
+    parts = {
+      billboard,
+      bottle,
+      truck,
+      stream,
+      splash,
+      callouts: buildCallouts(host),
+      envUsers,
+    };
+    resize(); // lays out the callouts too
+
+    // upload the textures a couple at a time (one big upload would freeze a frame)
+    const initTexture = (
+      renderer as unknown as { initTexture?: (t: THREE.Texture) => void }
+    ).initTexture?.bind(renderer);
+    if (initTexture) {
+      for (let i = 0; i < store.length; i++) {
+        initTexture(store[i]);
+        if (i % 2 === 1) {
+          await idle();
+          if (disposed) return;
+        }
+      }
+    }
+
+    // compile every shader off the main thread and WAIT for it (no forced sync compile)
+    parts.splash.group.visible = true; // so its material is compiled too
     try {
       const c = renderer as unknown as {
         compileAsync?: (
@@ -548,17 +672,20 @@ function createScene(host: HTMLDivElement): () => void {
       /* not critical: the first frame compiles whatever is missing */
     }
     if (disposed) return;
+    await idle();
+    if (disposed) return;
 
     ready = true;
     try {
-      update(performance.now()); // hides the splash again (not revealed yet)
-      splash.group.visible = true;
-      renderer.render(scene, camera);
-      splash.group.visible = false;
+      update(performance.now()); // not revealed yet: hides the splash again
+      parts.splash.group.visible = true;
+      renderer.render(scene, camera); // first real frame (invisible: the canvas is at opacity 0)
+      parts.splash.group.visible = false;
     } catch {
       /* not critical */
     }
     if (reduced) {
+      renderer.domElement.style.opacity = "1";
       renderOnce();
       return;
     }
@@ -567,7 +694,7 @@ function createScene(host: HTMLDivElement): () => void {
   };
 
   resize();
-  void prewarm();
+  void boot();
 
   return () => {
     disposed = true;
@@ -575,15 +702,17 @@ function createScene(host: HTMLDivElement): () => void {
     ro.disconnect();
     io.disconnect();
     window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("scroll", onScroll);
     renderer.domElement.removeEventListener("webglcontextlost", onContextLost);
     renderer.domElement.removeEventListener(
       "webglcontextrestored",
       onContextRestored,
     );
+    parts?.callouts.dispose();
     disposeObject(scene);
     store.forEach((t) => t.dispose());
-    (room as unknown as { dispose?: () => void }).dispose?.();
-    envTexture.dispose();
+    (room as unknown as { dispose?: () => void } | null)?.dispose?.();
+    envTexture?.dispose();
     pmrem.dispose();
     renderer.dispose();
     renderer.forceContextLoss();
@@ -593,13 +722,10 @@ function createScene(host: HTMLDivElement): () => void {
 
 /* ═══════════════════════════ REACT WRAPPER ════════════════════════════════
  * The WebGL scene is NOT created at page load (that would compete with the hero
- * intro). It is built shortly before the banner scrolls into view, in an idle
- * moment, and torn down again when the component unmounts. */
-
-interface IdleWindow {
-  requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
-  cancelIdleCallback?: (id: number) => void;
-}
+ * intro). It starts building a few screens before the banner scrolls into view
+ * (in idle slices, see above), and it is torn down again — the GPU context is
+ * released — when the banner is far away, so the hero / about scenes and the
+ * other sections never share memory with it for long. */
 
 interface PreFooterSceneProps {
   className?: string;
@@ -621,29 +747,43 @@ export const PreFooterScene: React.FC<PreFooterSceneProps> = ({
     let timerId = 0;
 
     const start = () => {
+      idleId = 0;
+      timerId = 0;
       if (cancelled || dispose) return;
       dispose = createScene(host);
+    };
+    const stop = () => {
+      if (idleId && w.cancelIdleCallback) w.cancelIdleCallback(idleId);
+      if (timerId) window.clearTimeout(timerId);
+      idleId = 0;
+      timerId = 0;
+      dispose?.();
+      dispose = null;
     };
 
     const nearIO = new IntersectionObserver(
       ([entry]) => {
-        if (!entry.isIntersecting) return;
-        nearIO.disconnect();
+        if (!entry.isIntersecting || dispose || idleId || timerId) return;
         if (w.requestIdleCallback)
           idleId = w.requestIdleCallback(start, { timeout: 800 });
         else timerId = window.setTimeout(start, 60);
       },
-      { rootMargin: "120% 0px 120% 0px" },
+      { rootMargin: `${BOOT_MARGIN} 0px ${BOOT_MARGIN} 0px` },
+    );
+    const farIO = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) stop();
+      },
+      { rootMargin: `${RETIRE_MARGIN} 0px ${RETIRE_MARGIN} 0px` },
     );
     nearIO.observe(host);
+    farIO.observe(host);
 
     return () => {
       cancelled = true;
       nearIO.disconnect();
-      if (idleId && w.cancelIdleCallback) w.cancelIdleCallback(idleId);
-      if (timerId) window.clearTimeout(timerId);
-      dispose?.();
-      dispose = null;
+      farIO.disconnect();
+      stop();
     };
   }, []);
 
