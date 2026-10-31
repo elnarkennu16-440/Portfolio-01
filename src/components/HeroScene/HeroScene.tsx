@@ -67,7 +67,23 @@ const DPR_STEP = 0.85; // each governor step lowers the render scale by 15 %
 const TARGET_FPS = 60;
 const SHADOW_FREEZE_T = 3.4;
 const SHADOW_EVERY = 3; // during the intro, refresh the shadow map every Nth frame
-const ADAPT_AFTER_T = 4.4; // the governor stays out of the way until the intro is over
+const ADAPT_AFTER_T = 3.0; // (real seconds) the governor stays out of the way until the intro is over
+// REVEAL: how fast the fly-in plays (1 = the old speed). Only the intro ramps are
+// sped up; traffic etc. keep their normal speed. Keep in sync with REVEAL_SPEED in
+// Hero.tsx (the text wave) — Hero.tsx passes it to the CSS, this one drives the 3D.
+const REVEAL_SPEED = 1.6;
+
+/* ── extra sharpness (one safe upgrade AFTER the intro) ──
+   At native pixels (typical 1x / 1.25x screens, or phones capped at 1.25) edges and
+   thin details can still look soft or stair-stepped. Once the intro is over and the
+   machine has proven it holds a full frame rate, the picture is rendered 1.4x
+   denser (super-sampling). If the very next windows are not smooth, it goes
+   straight back to the old resolution and never tries again. The intro itself is
+   untouched, so the reveal stays smooth. */
+const SS_FACTOR = 1.4;
+const SS_MAX_DPR = 2;
+const SS_SKIP_ABOVE_DPR = 1.75; // already dense enough: no upgrade
+const SS_PROBE_SLOW = 1.3; // a window slower than this x expected = revert
 const GOV_WINDOW = 45; // frames averaged per governor decision
 const GOV_SETTLE = 8; // frames ignored after start / after a change
 const SLOW_FACTOR = 1.45; // a window is "slow" above this x the expected frame time
@@ -188,8 +204,12 @@ export const HeroScene: React.FC<HeroSceneProps> = ({
       : msaa
         ? Math.min(1, deviceDpr)
         : Math.min(aaMinDpr, dprMax);
+    let supersample = 1; // 1 = the old behaviour; SS_FACTOR after the sharpness upgrade
     const effDpr = () =>
-      Math.min(Math.max(window.devicePixelRatio || 1, aaMinDpr), dprCap);
+      Math.min(
+        Math.max(window.devicePixelRatio || 1, aaMinDpr) * supersample,
+        dprCap,
+      );
     let lastW = 0;
     let lastH = 0;
     let lastDpr = 0;
@@ -406,7 +426,8 @@ export const HeroScene: React.FC<HeroSceneProps> = ({
           : (now - revealStart) / 1000;
 
     const update = (now: number) => {
-      const t = getT(now);
+      const real = getT(now); // real seconds since the reveal started
+      const t = real < 0 || reduced ? real : real * REVEAL_SPEED; // intro timeline
 
       fog.density = THREE.MathUtils.lerp(
         FOG_START_DENSITY,
@@ -463,7 +484,7 @@ export const HeroScene: React.FC<HeroSceneProps> = ({
       lamps.glowMat.opacity = 0.55 * seg(t, 1.4, 1.4);
 
       traffic.group.visible = t > 2.2;
-      if (traffic.group.visible) traffic.update(reduced ? 0 : t);
+      if (traffic.group.visible) traffic.update(reduced ? 0 : real);
 
       // PERF: the shadow map used to be re-rendered EVERY frame of the intro
       // (2048² + every caster, twice the work per frame). The only moving
@@ -517,6 +538,28 @@ export const HeroScene: React.FC<HeroSceneProps> = ({
       govSkip = GOV_SETTLE;
       applySize(lastW, lastH);
     };
+    // one-time sharpness upgrade (see SS_FACTOR) and its safety net
+    let ssDone = softwareGL || reduced; // never on a CPU renderer / reduced motion
+    let ssProbe = 0; // windows left in which a slowdown reverts the upgrade
+    let ssBaseCap = dprCap;
+    const upgradeSharpness = () => {
+      ssDone = true;
+      const base = effDpr();
+      if (base >= SS_SKIP_ABOVE_DPR) return;
+      ssBaseCap = dprCap;
+      supersample = SS_FACTOR;
+      dprCap = Math.min(SS_MAX_DPR, Math.max(dprCap, base * SS_FACTOR));
+      ssProbe = 2;
+      govSkip = GOV_SETTLE;
+      applySize(lastW, lastH);
+    };
+    const revertSharpness = () => {
+      supersample = 1;
+      dprCap = ssBaseCap;
+      ssProbe = 0;
+      govSkip = GOV_SETTLE;
+      applySize(lastW, lastH);
+    };
     const govReset = () => {
       govSum = 0;
       govN = 0;
@@ -549,6 +592,22 @@ export const HeroScene: React.FC<HeroSceneProps> = ({
       govN = 0;
 
       const expected = Math.max(frameMs, vsyncMs);
+      if (ssProbe > 0) {
+        ssProbe--;
+        if (mean > expected * SS_PROBE_SLOW) {
+          revertSharpness(); // too heavy for this machine: back to the old picture
+          return;
+        }
+      } else if (
+        !ssDone &&
+        frameMs < 30 &&
+        slowWindows === 0 &&
+        mean <= expected * 1.12 &&
+        document.visibilityState === "visible"
+      ) {
+        upgradeSharpness(); // it holds a full frame rate: spend the headroom on sharpness
+        return;
+      }
       if (mean <= expected * SLOW_FACTOR) {
         slowWindows = 0;
         return;

@@ -8,8 +8,11 @@ interface HeroProps {
   isIntroDone?: boolean;
 }
 
-/** The longest wave-reveal is 3s delay + 2s animation; after this nothing animates any more. */
-const REVEAL_TOTAL_MS = 5600;
+/** How much faster the text wave plays than before (1 = old speed). The 3D fly-in uses
+ *  the same number: REVEAL_SPEED in HeroScene.tsx — keep the two equal. */
+const REVEAL_SPEED = 1.6;
+/** The longest wave-reveal is 3s delay + 2s animation (÷ speed); after this nothing animates. */
+const REVEAL_TOTAL_MS = Math.round(5000 / REVEAL_SPEED) + 600;
 
 /**
  * Same "line + arrow" connector as the VIEW ALL PROJECTS button in Works.tsx:
@@ -59,6 +62,9 @@ export const Hero: React.FC<HeroProps> = ({ isIntroDone = true }) => {
         revealDone ? styles.revealDone : ""
       }`}
       aria-label="Introduction"
+      style={{ "--reveal-speed": REVEAL_SPEED } as React.CSSProperties}
+      // read by AboutScene: it builds its 3D scene only after the hero has settled
+      data-reveal-done={revealDone ? "true" : "false"}
     >
       <HeroScene isIntroDone={isIntroDone} className={styles.scene} />
       <div className={styles.atmosphere} aria-hidden="true" />

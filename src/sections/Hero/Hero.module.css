@@ -351,8 +351,10 @@
 }
 
 .introReady .reveal {
-  animation: waveReveal 2s var(--ease-editorial, cubic-bezier(0.16, 1, 0.3, 1))
-    var(--d, 0s) forwards;
+  /* --reveal-speed is set by Hero.tsx (1.6 = 60 % faster than the first version) */
+  animation: waveReveal calc(2s / var(--reveal-speed, 1))
+    var(--ease-editorial, cubic-bezier(0.16, 1, 0.3, 1))
+    calc(var(--d, 0s) / var(--reveal-speed, 1)) forwards;
 }
 
 /* PERF: when the wave has finished (Hero.tsx adds .revealDone) the last frame is

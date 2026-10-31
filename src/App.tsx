@@ -23,6 +23,18 @@ import { ContactModal } from "./components/ContactModal/ContactModal";
 import { Chatbot } from "./components/Chatbot/Chatbot";
 import { LiveViewTracker } from "./components/LiveViewTracker/LiveViewTracker";
 
+/* ── Hero → About → Works scroll feel ───────────────────────────────────────
+ * Before: About was fully visible at ONE scroll position only (Works started to
+ * cover it the very next pixel), so with trackpad / finger momentum it flew past.
+ * ABOUT_HOLD_VH adds a real resting zone (in screens of scroll) in which About is
+ * completely uncovered and centred. Everything after Works simply starts that much
+ * further down the page. Raise it for a longer rest, lower it for a shorter one.
+ * SETTLE_ASSIST gently catches you when you stop just before / after that zone. */
+const ABOUT_HOLD_VH = 80;
+const SETTLE_ASSIST = true;
+const SETTLE_IDLE_MS = 170; // how long the scroll must be still before the catch
+const SETTLE_REACH = 0.22; // how close (in screens) to the zone the catch works
+
 export default function App() {
   const { theme, toggleTheme } = useTheme();
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
@@ -129,6 +141,66 @@ export default function App() {
     };
   }, []);
 
+  // Gentle "catch": if you stop scrolling just short of About's resting zone (coming
+  // from Hero) or just below it (coming back from Works), ease into the zone.
+  // Never fights you when you are leaving About, never while a finger is on screen.
+  useEffect(() => {
+    if (!SETTLE_ASSIST) return;
+    const track = document.getElementById("about");
+    const works = document.getElementById("works");
+    if (!track || !works) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let timer = 0;
+    let lastY = window.scrollY;
+    let dir = 0; // 1 = scrolling down, -1 = up
+    let touching = false;
+
+    const settle = () => {
+      if (touching) {
+        timer = window.setTimeout(settle, SETTLE_IDLE_MS);
+        return;
+      }
+      const y = window.scrollY;
+      const vh = window.innerHeight || 1;
+      const start = track.getBoundingClientRect().top + y; // About has just settled
+      const end = works.getBoundingClientRect().top + y - vh; // Works starts to cover it
+      const span = end - start;
+      if (span < vh * 0.2) return;
+      const inset = Math.min(span * 0.15, vh * 0.12);
+      const reach = vh * SETTLE_REACH;
+      let target: number | null = null;
+      if (dir > 0 && y > start - reach && y < start) target = start + inset;
+      else if (dir < 0 && y > end && y < end + reach) target = end - inset;
+      if (target !== null) window.scrollTo({ top: target, behavior: "smooth" });
+    };
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y !== lastY) dir = y > lastY ? 1 : -1;
+      lastY = y;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(settle, SETTLE_IDLE_MS);
+    };
+    const down = () => {
+      touching = true;
+    };
+    const up = () => {
+      touching = false;
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("touchstart", down, { passive: true });
+    window.addEventListener("touchend", up, { passive: true });
+    window.addEventListener("touchcancel", up, { passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("touchstart", down);
+      window.removeEventListener("touchend", up);
+      window.removeEventListener("touchcancel", up);
+    };
+  }, []);
+
   const handleOpenContact = () => {
     setIsContactModalOpen(true);
   };
@@ -191,7 +263,8 @@ export default function App() {
           {/* Wrapper para sa Hero -> About -> Works "folder" stacking:
               - Hero is sticky (stays behind)
               - About is sticky inside its own track (stays steady while Works rises over it)
-              - the track gives About 100vh of extra "hold" scroll; marginBottom pulls the
+              - the track gives About 100vh of extra "hold" scroll (+ ABOUT_HOLD_VH of
+                resting zone, see the constant on top); marginBottom pulls the
                 sections below back up by that same 100vh, so Works starts exactly where
                 About's hold begins and NOTHING after Works is shifted or lengthened. */}
           <div
@@ -210,7 +283,11 @@ export default function App() {
                 still scroll to the right place even while About is stuck */}
             <div
               id="about"
-              style={{ position: "relative", width: "100%", height: "200vh" }}
+              style={{
+                position: "relative",
+                width: "100%",
+                height: `calc(200vh + ${ABOUT_HOLD_VH}vh)`,
+              }}
             >
               <About />
             </div>

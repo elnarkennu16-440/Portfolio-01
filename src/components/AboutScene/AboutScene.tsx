@@ -58,7 +58,16 @@ const TYPE_STEP = 0.03; // seconds per typed letter (desktop)
 const TYPE_STEP_TOUR = 0.016; // phone tour: a bit faster
 // PERF: the scene is built quietly in the background this long after the page has
 // loaded (instead of while the visitor scrolls into About). Set to -1 to turn off.
-const PREBUILD_AFTER_LOAD_MS = 3000;
+const PREBUILD_AFTER_LOAD_MS = 2500;
+// REVEAL: how fast the intro plays (1 = the old speed). Only the reveal ramps are
+// sped up; traffic, cat idle, lamps etc. keep their normal speed afterwards.
+const REVEAL_SPEED = 1.6;
+// REVEAL: it starts as soon as this much of the section is on screen (was 20 %), so
+// the first (almost empty) moments happen while the section is still scrolling in.
+const REVEAL_RATIO = 0.1;
+// phone tour: the cat is the FIRST shot, so it (and its sign) come out much earlier
+const TOUR_CAT_POP_T = 1.0;
+const SIGN_SHOW_TOUR_T = 2.3;
 
 const MAX_DPR_DESKTOP = 1.5;
 const MAX_DPR_MOBILE = 1.25;
@@ -342,7 +351,7 @@ async function bootSceneAsync(
     ) {
       await sleep(60);
     }
-    await idleSlot(250);
+    await idleSlot(80);
   };
   const teardown = () => {
     if (disposed) return;
@@ -653,7 +662,8 @@ async function bootSceneAsync(
         : (now - revealStart) / 1000;
 
   const update = (now: number) => {
-    const t = getT(now);
+    const real = getT(now); // real seconds since the reveal started
+    const t = real < 0 || reduced ? real : real * REVEAL_SPEED; // reveal timeline
     const dt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 0.016;
     lastNow = now;
 
@@ -694,7 +704,10 @@ async function bootSceneAsync(
     // 3D comment sign: pops out of the cat, then types itself in. The clock only
     // advances while the loop runs, so nobody misses the typing.
     if (signClock < 0) {
-      if (t >= SIGN_SHOW_T && (!tour || ctl.getShot() === CAT_SHOT)) {
+      if (
+        t >= (tour ? SIGN_SHOW_TOUR_T : SIGN_SHOW_T) &&
+        (!tour || ctl.getShot() === CAT_SHOT)
+      ) {
         signClock = reduced ? 99 : 0;
       }
     } else if (running && !reduced) {
@@ -759,13 +772,13 @@ async function bootSceneAsync(
     goose.poolMat.opacity = 0.35 * lg * glowK;
 
     traffic.group.visible = t > 2.4;
-    if (traffic.group.visible) traffic.update(reduced ? 0 : t);
+    if (traffic.group.visible) traffic.update(reduced ? 0 : real);
 
     cat.update(
       reduced ? 0 : now / 1000,
       pointer.cx,
       pointer.cy,
-      easeOutBack(seg(t, 3.0, 0.9)),
+      easeOutBack(seg(t, tour ? TOUR_CAT_POP_T : 3.0, 0.9)),
     );
 
     dust.material.opacity = 0.55 * seg(t, 2.5, 2) * glowK;
@@ -884,7 +897,7 @@ async function bootSceneAsync(
   const io = new IntersectionObserver(
     ([entry]) => {
       inView = entry.isIntersecting && entry.intersectionRatio >= VISIBLE_RATIO;
-      if (inView && !revealed && entry.intersectionRatio >= 0.2) {
+      if (inView && !revealed && entry.intersectionRatio >= REVEAL_RATIO) {
         revealed = true;
         revealStart = performance.now();
       }
@@ -892,7 +905,7 @@ async function bootSceneAsync(
       else stopLoop();
       ctl.onLive(revealed && inView);
     },
-    { threshold: [0, VISIBLE_RATIO, 0.2] },
+    { threshold: [0, VISIBLE_RATIO, REVEAL_RATIO] },
   );
   io.observe(host);
   cleanups.push(() => {
@@ -1033,11 +1046,29 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
         !nav.connection?.saveData &&
         (nav.deviceMemory === undefined || nav.deviceMemory >= 4);
       if (canPrebuild) {
+        // never build while the hero is still revealing: wait until Hero.tsx says it
+        // has settled (data-reveal-done), with a safety limit so we never wait forever
+        const go = () => {
+          lazy?.disconnect();
+          start();
+        };
+        const waitForHero = (since: number) => {
+          const hero = document.getElementById("hero");
+          if (
+            !hero ||
+            hero.dataset.revealDone === "true" ||
+            performance.now() - since > 15000
+          ) {
+            go();
+            return;
+          }
+          warmTimer = window.setTimeout(() => waitForHero(since), 400);
+        };
         const arm = () => {
-          warmTimer = window.setTimeout(() => {
-            lazy?.disconnect();
-            start();
-          }, PREBUILD_AFTER_LOAD_MS);
+          warmTimer = window.setTimeout(
+            () => waitForHero(performance.now()),
+            PREBUILD_AFTER_LOAD_MS,
+          );
         };
         if (document.readyState === "complete") {
           arm();
