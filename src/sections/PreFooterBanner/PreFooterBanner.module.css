@@ -12,40 +12,15 @@
   box-sizing: border-box;
 }
 
-/* Background Photo Container with Cinematic Grayscale & Vignette */
-.imageContainer {
+/* 3D scene container (replaces the old background photo).
+   The WebGL canvas lives inside; overlays below stay exactly as before. */
+.sceneContainer {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   z-index: 1;
   overflow: hidden;
-}
-
-.bannerImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  /* keeps the head + shoulders in frame (subject sits right of the text) */
-  object-position: 58% 38%;
-  filter: grayscale(100%) contrast(1.08) brightness(1);
-  transform: scale(1.06);
-  transition:
-    transform 2.2s var(--ease-slowmo, var(--ease-editorial)),
-    filter 0.6s ease;
-  will-change: transform;
-}
-
-.isRevealed .bannerImage {
-  transform: scale(1.02);
-}
-
-.bannerSection:hover .bannerImage {
-  transform: scale(1.04);
-}
-
-[data-theme="light"] .bannerImage {
-  filter: grayscale(100%) contrast(1.06) brightness(1);
 }
 
 /* Lighter filmic vignette: the left side is darkened for the text only,
@@ -312,10 +287,6 @@
     min-height: clamp(36rem, 92svh, 46rem);
   }
 
-  .bannerImage {
-    object-position: 60% 30%;
-  }
-
   .vignetteOverlay {
     background:
       radial-gradient(
@@ -371,14 +342,6 @@
 
   .rightMeta {
     display: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bannerImage,
-  .isRevealed .bannerImage {
-    transform: none;
-    transition: none;
   }
 }
 

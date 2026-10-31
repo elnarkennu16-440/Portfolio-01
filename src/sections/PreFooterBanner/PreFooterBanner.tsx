@@ -1,7 +1,7 @@
 import React from "react";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { siteContent } from "../../content/siteContent";
-import preFooterImage from "../../assets/images/Background-Image-Above-Footer.jpg";
+import { PreFooterScene } from "../../components/PreFooterScene/PreFooterScene";
 import styles from "./PreFooterBanner.module.css";
 
 type SubpageId = "experience" | "workflows" | "services";
@@ -126,14 +126,9 @@ export const PreFooterBanner: React.FC<PreFooterBannerProps> = ({
       className={`${styles.bannerSection} ${isRevealed ? styles.isRevealed : ""}`}
       aria-label="Profile and Work Inquiries"
     >
-      {/* Background Image with Cinematic Grayscale and Vignette */}
-      <div className={styles.imageContainer} aria-hidden="true">
-        <img
-          src={preFooterImage}
-          alt="Kennu Elnar Portrait in Mountain Landscape"
-          className={styles.bannerImage}
-          loading="lazy"
-        />
+      {/* 3D billboard scene (Three.js) replaces the old background photo */}
+      <div className={styles.sceneContainer} aria-hidden="true">
+        <PreFooterScene />
         {/* 1972 film look: soft-focus edges, split tone, light leak */}
         <div className={styles.blurLayer} />
         <div className={styles.toneLayer} />

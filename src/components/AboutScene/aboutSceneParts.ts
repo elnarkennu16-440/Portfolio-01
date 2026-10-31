@@ -106,6 +106,59 @@ export const BOARD_B_COPY: {
   ],
 };
 
+/** The paragraph on the 3D comment sign above the cat (moved here from About.tsx). */
+export const ABOUT_TEXT =
+  "I maintain this platform as an open repository to document my background, practical work, and technical development. Instead of leaving projects confined to private directories, this space serves as an accessible record of my hands-on exploration and steady learning curve. I place high value on structural clarity and consistent routines. Much of my time involves refining interface behavior, addressing edge cases deliberately, and building applications with longevity and clean organization in mind.";
+
+/**
+ * 3D COMMENT SIGN — size / position tuning (metres, same world as the scene).
+ *  wide = desktop + landscape    tall = phone tour (portrait)
+ *  tailAt   where the tail sits along the bottom edge (0 = left, 1 = right)
+ *  padX/padY  text padding inside the sign (metres)
+ *  maxFont/minFont  text size range in texture pixels (it auto-shrinks to FIT)
+ */
+export type SignLayoutName = "wide" | "tall";
+export interface SignLayout {
+  bodyW: number;
+  bodyH: number;
+  tailH: number;
+  tailW: number;
+  tailAt: number;
+  radius: number;
+  padX: number;
+  padY: number;
+  maxFont: number;
+  minFont: number;
+}
+export const SIGN_LAYOUTS: Record<SignLayoutName, SignLayout> = {
+  wide: {
+    bodyW: 4.0,
+    bodyH: 1.6,
+    tailH: 0.55,
+    tailW: 0.34,
+    tailAt: 0.62,
+    radius: 0.17,
+    padX: 0.19,
+    padY: 0.14,
+    maxFont: 56,
+    minFont: 34,
+  },
+  tall: {
+    bodyW: 2.6,
+    bodyH: 1.56,
+    tailH: 0.42,
+    tailW: 0.28,
+    tailAt: 0.5,
+    radius: 0.14,
+    padX: 0.12,
+    padY: 0.1,
+    maxFont: 50,
+    minFont: 28,
+  },
+};
+/** The tip of the sign's tail: just above the cat's head. */
+export const SIGN_TIP = { x: CAT.x, y: 1.4, z: CAT.z };
+
 const SANS = `"Helvetica Neue", Helvetica, Arial, sans-serif`;
 const HEAVY = `"Arial Black", "Helvetica Neue", Arial, sans-serif`;
 const MONO = `ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
@@ -153,6 +206,100 @@ const inset = (r: Rect, n: number): Rect => ({
   w: r.w - n * 2,
   h: r.h - n * 2,
 });
+
+/* ═══════════════════════ THEME HELPERS (light mode) ═══════════════════════ */
+
+/** One half of the theme switch of a part: build light assets lazily, then swap. */
+export interface ThemeSwap {
+  /** builds (once) the light textures; returns the new ones so they can be pre-uploaded */
+  prepare: () => THREE.Texture[];
+  set: (light: boolean) => void;
+}
+
+function makeLut(points: ReadonlyArray<readonly [number, number]>) {
+  const lut = new Uint8ClampedArray(256);
+  let k = 0;
+  for (let v = 0; v < 256; v++) {
+    while (k < points.length - 2 && v > points[k + 1][0]) k++;
+    const [x0, y0] = points[k];
+    const [x1, y1] = points[k + 1];
+    const f = x1 === x0 ? 0 : Math.min(1, Math.max(0, (v - x0) / (x1 - x0)));
+    lut[v] = y0 + (y1 - y0) * f;
+  }
+  return lut;
+}
+
+/** dark texel value → light texel value. Same pattern, light palette. */
+const LUT_GROUND = makeLut([
+  [0, 120],
+  [10, 140],
+  [27, 176],
+  [38, 206],
+  [60, 222],
+  [96, 236],
+  [255, 255],
+]);
+const LUT_FACADE = makeLut([
+  [0, 150],
+  [8, 165],
+  [24, 195],
+  [42, 236],
+  [80, 246],
+  [214, 255],
+  [255, 255],
+]);
+
+/** A light copy of a dark canvas texture (same layout, noise, windows, joints...). */
+function lightCopy(src: THREE.Texture, lut: Uint8ClampedArray) {
+  try {
+    const img = src.image as HTMLCanvasElement;
+    const { canvas, ctx } = makeCanvas(img.width, img.height);
+    ctx.drawImage(img, 0, 0);
+    const data = ctx.getImageData(0, 0, img.width, img.height);
+    const px = data.data;
+    for (let i = 0; i < px.length; i += 4) {
+      px[i] = lut[px[i]];
+      px[i + 1] = lut[px[i + 1]];
+      px[i + 2] = lut[px[i + 2]];
+    }
+    ctx.putImageData(data, 0, 0);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = src.colorSpace;
+    tex.anisotropy = src.anisotropy;
+    tex.wrapS = src.wrapS;
+    tex.wrapT = src.wrapT;
+    return tex;
+  } catch {
+    return null;
+  }
+}
+
+/** swaps material.map (+ tint) between the dark texture and a lazily built light one */
+function textureSwap(
+  mat: THREE.MeshStandardMaterial,
+  lut: Uint8ClampedArray,
+  lightColor: number,
+) {
+  const darkMap = mat.map as THREE.Texture;
+  const darkColor = mat.color.getHex();
+  let lightMap: THREE.Texture | null | undefined;
+  const prepare = (): THREE.Texture[] => {
+    if (lightMap !== undefined) return [];
+    lightMap = lightCopy(darkMap, lut);
+    return lightMap ? [lightMap] : [];
+  };
+  const set = (light: boolean) => {
+    if (light) {
+      prepare();
+      mat.map = lightMap ?? darkMap;
+      mat.color.setHex(lightColor);
+    } else {
+      mat.map = darkMap;
+      mat.color.setHex(darkColor);
+    }
+  };
+  return { prepare, set };
+}
 
 export function createRoadCurve() {
   const curve = new THREE.CatmullRomCurve3(
@@ -423,8 +570,17 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
   road.receiveShadow = true;
   group.add(road);
 
-  const flat = (color: number, opacity: number) =>
-    new THREE.MeshBasicMaterial({
+  const groundMat = ground.material as THREE.MeshStandardMaterial;
+  const sidewalkMat = sidewalk.material as THREE.MeshStandardMaterial;
+  const roadMat = road.material as THREE.MeshStandardMaterial;
+  const themedFlats: Array<{
+    mat: THREE.MeshBasicMaterial;
+    dark: number;
+    light: number;
+  }> = [];
+
+  const flat = (color: number, opacity: number, lightColor: number = color) => {
+    const mat = new THREE.MeshBasicMaterial({
       color,
       transparent: opacity < 1,
       opacity,
@@ -433,6 +589,9 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
       polygonOffsetFactor: -2,
       polygonOffsetUnits: -2,
     });
+    themedFlats.push({ mat, dark: color, light: lightColor });
+    return mat;
+  };
 
   // curbs + solid edge lines
   for (const side of [1, -1]) {
@@ -447,7 +606,7 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
           uTile: 1,
           vTile: 1,
         }).geo,
-        flat(0x303034, 1),
+        flat(0x303034, 1, 0x8e8e94),
       ),
     );
     group.add(
@@ -461,7 +620,7 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
           uTile: 1,
           vTile: 1,
         }).geo,
-        flat(0x9b9ba2, 0.7),
+        flat(0x9b9ba2, 0.7, 0xf2f2f4),
       ),
     );
   }
@@ -478,10 +637,23 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
     dash: 2.6,
     gap: 4.2,
   });
-  const dashes = new THREE.Mesh(dashed.geo, flat(0xd4d4d8, 0.9));
+  const dashes = new THREE.Mesh(dashed.geo, flat(0xd4d4d8, 0.9, 0xf7f7f9));
   group.add(dashes);
 
-  return { group, dashes, dashCount: dashed.count };
+  const swaps = [
+    textureSwap(sidewalkMat, LUT_GROUND, 0xffffff),
+    textureSwap(roadMat, LUT_GROUND, 0xffffff),
+  ];
+  const theme: ThemeSwap = {
+    prepare: () => swaps.flatMap((sw) => sw.prepare()),
+    set: (light) => {
+      groundMat.color.setHex(light ? 0xcdcdd1 : 0x0d0d0f);
+      swaps.forEach((sw) => sw.set(light));
+      for (const f of themedFlats) f.mat.color.setHex(light ? f.light : f.dark);
+    },
+  };
+
+  return { group, dashes, dashCount: dashed.count, theme };
 }
 
 /** Zebra crossing + two stop lines. Bars are drawn one by one (drawRange). */
@@ -542,7 +714,11 @@ export function buildCrossing(curve: THREE.CatmullRomCurve3, rand: Rand) {
     polygonOffsetUnits: -3,
   });
   const mesh = new THREE.Mesh(geo, material);
-  return { mesh, barCount: bars };
+  const theme: ThemeSwap = {
+    prepare: () => [],
+    set: (light) => material.color.setHex(light ? 0xf5f5f7 : 0xd6d6db),
+  };
+  return { mesh, barCount: bars, theme };
 }
 
 /* ═══════════════════════════ BILLBOARDS ═══════════════════════════════════ */
@@ -935,6 +1111,11 @@ function buildBoard(
     setGlow,
     redraw,
     toLocal,
+    theme: {
+      prepare: () => [],
+      set: (light: boolean) =>
+        concrete.color.setHex(light ? 0xb4b4b9 : 0x2b2b2f),
+    } as ThemeSwap,
   };
 }
 
@@ -1234,7 +1415,28 @@ export function buildCity(
   group.add(beacon);
   beacons.push(beacon);
 
-  return { group, facadeMats: facades.map((f) => f.material), beacons };
+  const swaps = facades.map((f) =>
+    textureSwap(f.material, LUT_FACADE, 0xffffff),
+  );
+  const theme: ThemeSwap = {
+    prepare: () => swaps.flatMap((sw) => sw.prepare()),
+    set: (light) => {
+      swaps.forEach((sw) => sw.set(light));
+      roofMat.color.setHex(light ? 0xc4c4c8 : 0x18181b);
+      concrete.color.setHex(light ? 0xb4b4b9 : 0x2a2a2e);
+      for (const b of beacons) {
+        (b.material as THREE.MeshBasicMaterial).color.setHex(
+          light ? 0x4a4a50 : 0xffffff,
+        );
+      }
+    },
+  };
+  return {
+    group,
+    facadeMats: facades.map((f) => f.material),
+    beacons,
+    theme,
+  };
 }
 
 /* ═══════════════════════════ STREET LIGHTS ════════════════════════════════ */
@@ -1299,7 +1501,11 @@ export function buildStreetLights(
     glow.scale.setScalar(6);
     group.add(glow);
   }
-  return { group, glowMat };
+  const theme: ThemeSwap = {
+    prepare: () => [],
+    set: (light) => headMat.color.setHex(light ? 0xc9c9ce : 0xf5f5f8),
+  };
+  return { group, glowMat, theme };
 }
 
 /** The tall gooseneck lamp from the sketch, with a faint light beam. */
@@ -1331,9 +1537,10 @@ export function buildGooseLamp() {
   base.position.y = 0.35;
   group.add(base);
 
+  const gooseHeadMat = new THREE.MeshBasicMaterial({ color: 0xf5f5f8 });
   const head = new THREE.Mesh(
     new THREE.BoxGeometry(0.95, 0.14, 0.5),
-    new THREE.MeshBasicMaterial({ color: 0xf5f5f8 }),
+    gooseHeadMat,
   );
   head.position.set(0, LAMP.h - 0.12, LAMP.reach);
   group.add(head);
@@ -1381,7 +1588,11 @@ export function buildGooseLamp() {
   pool.position.set(0, 0.09, LAMP.reach);
   group.add(pool);
 
-  return { group, glowMat, coneMat, poolMat };
+  const theme: ThemeSwap = {
+    prepare: () => [],
+    set: (light) => gooseHeadMat.color.setHex(light ? 0xc9c9ce : 0xf5f5f8),
+  };
+  return { group, glowMat, coneMat, poolMat, theme };
 }
 
 /* ═══════════════════════════ TRAFFIC ══════════════════════════════════════ */
@@ -1659,6 +1870,406 @@ export function buildDust(rand: Rand, count: number) {
   };
   update(0);
   return { points, material, update };
+}
+
+/* ═══════════════════════════ 3D COMMENT SIGN ══════════════════════════════ */
+
+/**
+ * A real 3D speech bubble (extruded, bevelled) that floats above the cat. Its tail
+ * tip is the pivot, so the bubble swings gently while the tip stays on the cat.
+ * The paragraph is drawn once on a canvas texture; the "typing" reveals it with two
+ * flat cover planes (no texture re-upload per letter → no FPS cost).
+ */
+export type SignTheme = "dark" | "light";
+
+const SIGN_PX = 512; // texture pixels per metre of sign
+const SIGN_DEPTH = 0.07;
+const SIGN_BEVEL = 0.014;
+const SIGN_FACE_Z = SIGN_DEPTH / 2 + SIGN_BEVEL + 0.0025;
+const SIGN_LINE_H = 1.42;
+const SIGN_FONT_WEIGHT = 400;
+const SIGN_TYPE_DELAY = 0.9; // seconds after the pop-out before typing starts
+
+const SIGN_COLORS: Record<
+  SignTheme,
+  { fill: string; text: string; edge: number; caret: string }
+> = {
+  dark: { fill: "#2c2c30", text: "#c6c6cc", edge: 0x3a3a3f, caret: "#d6d6dc" },
+  light: { fill: "#f6f6f8", text: "#26262a", edge: 0xd9d9de, caret: "#2a2a2e" },
+};
+
+interface SignLine {
+  start: number; // index of the line's first letter in ABOUT_TEXT
+  top: number; // canvas px
+  xs: number[]; // right edge (canvas px) of every letter of the line
+}
+interface SignText {
+  left: number;
+  right: number;
+  blockBottom: number;
+  lineH: number;
+  lines: SignLine[];
+}
+
+const easeBack = (x: number) => {
+  const c1 = 1.70158;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+};
+
+/** outline numbers of a layout; the tail TIP is the origin (0, 0) */
+function signFrame(c: SignLayout) {
+  const bx0 = -0.28 * c.tailW;
+  const bx1 = 0.72 * c.tailW;
+  const xL = bx0 - c.tailAt * c.bodyW;
+  return {
+    xL,
+    xR: xL + c.bodyW,
+    y0: c.tailH,
+    y1: c.tailH + c.bodyH,
+    bx0,
+    bx1,
+  };
+}
+
+function signShape(c: SignLayout) {
+  const f = signFrame(c);
+  const r = c.radius;
+  const s = new THREE.Shape();
+  s.moveTo(f.xL + r, f.y0);
+  s.lineTo(f.bx0, f.y0);
+  s.lineTo(0, 0);
+  s.lineTo(f.bx1, f.y0);
+  s.lineTo(f.xR - r, f.y0);
+  s.quadraticCurveTo(f.xR, f.y0, f.xR, f.y0 + r);
+  s.lineTo(f.xR, f.y1 - r);
+  s.quadraticCurveTo(f.xR, f.y1, f.xR - r, f.y1);
+  s.lineTo(f.xL + r, f.y1);
+  s.quadraticCurveTo(f.xL, f.y1, f.xL, f.y1 - r);
+  s.lineTo(f.xL, f.y0 + r);
+  s.quadraticCurveTo(f.xL, f.y0, f.xL + r, f.y0);
+  return s;
+}
+
+/** paints panel + paragraph; shrinks the font until everything FITS; returns the line map */
+function drawSignFace(
+  ctx: CanvasRenderingContext2D,
+  W: number,
+  H: number,
+  c: SignLayout,
+  colors: { fill: string; text: string },
+  family: string,
+): SignText {
+  const left = c.padX * SIGN_PX;
+  const right = W - left;
+  const top = c.padY * SIGN_PX;
+  const bottom = H - top;
+  const maxW = right - left;
+  const words = ABOUT_TEXT.split(" ");
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = colors.fill;
+  ctx.fillRect(0, 0, W, H);
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+
+  const setSize = (px: number) => {
+    ctx.font = `${SIGN_FONT_WEIGHT} ${px}px ${family}`;
+    // an unusable font-family string is ignored by the canvas → use the safe stack
+    if (!ctx.font.includes(`${px}px`)) {
+      ctx.font = `${SIGN_FONT_WEIGHT} ${px}px ${SANS}`;
+    }
+  };
+  const wrap = (): string[][] => {
+    const out: string[][] = [];
+    let cur: string[] = [];
+    for (const w of words) {
+      const test = cur.length ? `${cur.join(" ")} ${w}` : w;
+      if (cur.length && ctx.measureText(test).width > maxW) {
+        out.push(cur);
+        cur = [w];
+      } else {
+        cur.push(w);
+      }
+    }
+    if (cur.length) out.push(cur);
+    return out;
+  };
+
+  let size = c.maxFont;
+  let rows: string[][] = [];
+  for (; size >= c.minFont; size -= 2) {
+    setSize(size);
+    rows = wrap();
+    if (rows.length * size * SIGN_LINE_H <= bottom - top) break;
+  }
+  size = Math.max(size, c.minFont);
+  setSize(size);
+  rows = wrap();
+
+  const lineH = size * SIGN_LINE_H;
+  const block = rows.length * lineH;
+  const y0 = top + Math.max(0, (bottom - top - block) / 2);
+  const space = ctx.measureText(" ").width;
+  ctx.fillStyle = colors.text;
+
+  const lines: SignLine[] = [];
+  let start = 0;
+  rows.forEach((row, i) => {
+    const text = row.join(" ");
+    const lineTop = y0 + i * lineH;
+    const base = lineTop + lineH / 2 + size * 0.35;
+    let gap = space;
+    if (i < rows.length - 1 && row.length > 1) {
+      // justified like the old paragraph (unless the gaps would get ugly)
+      const wide =
+        space + (maxW - ctx.measureText(text).width) / (row.length - 1);
+      if (wide <= space * 2.4) gap = wide;
+    }
+    const xs: number[] = [];
+    let x = left;
+    row.forEach((word, j) => {
+      ctx.fillText(word, x, base);
+      for (let k = 1; k <= word.length; k++) {
+        xs.push(x + ctx.measureText(word.slice(0, k)).width);
+      }
+      x += ctx.measureText(word).width + gap;
+      if (j < row.length - 1) xs.push(x); // the space after the word
+    });
+    lines.push({ start, top: lineTop, xs });
+    start += text.length + 1;
+  });
+
+  return { left, right, blockBottom: y0 + block, lineH, lines };
+}
+
+export function buildCommentSign(initialFamily: string = SANS) {
+  const group = new THREE.Group();
+  group.position.set(SIGN_TIP.x, SIGN_TIP.y, SIGN_TIP.z);
+  group.rotation.order = "YXZ";
+  group.scale.setScalar(0.001);
+  group.visible = false;
+
+  let family = initialFamily;
+  let theme: SignTheme = "dark";
+  let cfg: SignLayout = SIGN_LAYOUTS.wide;
+  let frame = signFrame(cfg);
+  let W = 0;
+  let H = 0;
+  let ctx2d: CanvasRenderingContext2D | null = null;
+  let tex: THREE.CanvasTexture | null = null;
+  let layout: SignText | null = null;
+  let body: THREE.Mesh | null = null;
+  let face: THREE.Mesh | null = null;
+  let typedShown = -2;
+  let blinkShown = false;
+
+  const edgeMat = new THREE.MeshStandardMaterial({
+    color: SIGN_COLORS.dark.edge,
+    roughness: 0.55,
+    metalness: 0.12,
+  });
+  const faceMat = new THREE.MeshBasicMaterial({
+    toneMapped: false,
+    fog: false,
+  });
+  const coverMat = new THREE.MeshBasicMaterial({
+    color: SIGN_COLORS.dark.fill,
+    toneMapped: false,
+    fog: false,
+  });
+  const caretMat = new THREE.MeshBasicMaterial({
+    color: SIGN_COLORS.dark.caret,
+    toneMapped: false,
+    fog: false,
+  });
+  const unit = new THREE.PlaneGeometry(1, 1);
+  const cover1 = new THREE.Mesh(unit, coverMat); // hides the lines not typed yet
+  const cover2 = new THREE.Mesh(unit, coverMat); // hides the rest of the current line
+  const caret = new THREE.Mesh(unit, caretMat);
+  group.add(cover1, cover2, caret);
+
+  /** canvas-pixel rectangle → position / scale of a flat plane on the sign face */
+  const place = (
+    m: THREE.Mesh,
+    x0: number,
+    y0: number,
+    x1: number,
+    y1: number,
+    z: number,
+  ) => {
+    const X0 = frame.xL + x0 / SIGN_PX;
+    const X1 = frame.xL + x1 / SIGN_PX;
+    const Y0 = frame.y1 - y0 / SIGN_PX;
+    const Y1 = frame.y1 - y1 / SIGN_PX;
+    m.position.set((X0 + X1) / 2, (Y0 + Y1) / 2, z);
+    m.scale.set(Math.max(1e-4, X1 - X0), Math.max(1e-4, Y0 - Y1), 1);
+  };
+
+  const paint = () => {
+    if (!ctx2d || !tex) return;
+    layout = drawSignFace(ctx2d, W, H, cfg, SIGN_COLORS[theme], family);
+    tex.needsUpdate = true;
+    typedShown = -2; // force the covers to be placed again
+  };
+
+  const rebuild = () => {
+    frame = signFrame(cfg);
+    const shape = signShape(cfg);
+    if (body) {
+      group.remove(body);
+      body.geometry.dispose();
+    }
+    if (face) {
+      group.remove(face);
+      face.geometry.dispose();
+    }
+    tex?.dispose();
+
+    const bodyGeo = new THREE.ExtrudeGeometry(shape, {
+      depth: SIGN_DEPTH,
+      bevelEnabled: true,
+      bevelThickness: SIGN_BEVEL,
+      bevelSize: SIGN_BEVEL,
+      bevelSegments: 2,
+      curveSegments: 10,
+    });
+    bodyGeo.translate(0, 0, -SIGN_DEPTH / 2);
+    body = new THREE.Mesh(bodyGeo, edgeMat);
+    group.add(body);
+
+    // front plate: same outline, its UVs map the BODY rectangle onto the texture
+    const faceGeo = new THREE.ShapeGeometry(shape, 10);
+    const pos = faceGeo.attributes.position as THREE.BufferAttribute;
+    const uv = faceGeo.attributes.uv as THREE.BufferAttribute;
+    for (let i = 0; i < pos.count; i++) {
+      uv.setXY(
+        i,
+        (pos.getX(i) - frame.xL) / cfg.bodyW,
+        (pos.getY(i) - frame.y0) / cfg.bodyH,
+      );
+    }
+    face = new THREE.Mesh(faceGeo, faceMat);
+    face.position.z = SIGN_FACE_Z;
+    group.add(face);
+
+    W = Math.round(cfg.bodyW * SIGN_PX);
+    H = Math.round(cfg.bodyH * SIGN_PX);
+    const made = makeCanvas(W, H);
+    ctx2d = made.ctx;
+    tex = toTexture(made.canvas, false);
+    faceMat.map = tex;
+    faceMat.needsUpdate = true;
+    paint();
+  };
+
+  const setTyped = (n: number, blink: boolean) => {
+    if (!layout) return;
+    if (n === typedShown && blink === blinkShown) return;
+    typedShown = n;
+    blinkShown = blink;
+    if (n >= ABOUT_TEXT.length) {
+      cover1.visible = false;
+      cover2.visible = false;
+      caret.visible = false;
+      return;
+    }
+    let li = 0;
+    for (let i = 0; i < layout.lines.length; i++) {
+      if (layout.lines[i].start <= n) li = i;
+    }
+    const line = layout.lines[li];
+    const k = Math.min(n - line.start, line.xs.length);
+    const cx = k <= 0 ? layout.left : line.xs[k - 1];
+    const lineBottom = line.top + layout.lineH;
+    const zc = SIGN_FACE_Z + 0.0025;
+
+    place(cover2, cx, line.top - 1, layout.right + 4, lineBottom, zc);
+    cover2.visible = true;
+    if (li < layout.lines.length - 1) {
+      place(
+        cover1,
+        layout.left - 4,
+        lineBottom,
+        layout.right + 4,
+        layout.blockBottom + 2,
+        zc,
+      );
+      cover1.visible = true;
+    } else {
+      cover1.visible = false;
+    }
+    place(
+      caret,
+      cx + 1,
+      line.top + layout.lineH * 0.14,
+      cx + 5,
+      lineBottom - layout.lineH * 0.14,
+      zc + 0.0025,
+    );
+    caret.visible = blink;
+  };
+
+  /**
+   * clock: seconds since the sign appeared (< 0 = hidden). cam: camera position,
+   * the sign turns (mostly) toward it. step: seconds per typed letter.
+   */
+  const update = (
+    clock: number,
+    now: number,
+    cam: THREE.Vector3,
+    step: number,
+    scaleK: number,
+    reduced: boolean,
+  ) => {
+    if (clock < 0) {
+      group.visible = false;
+      return;
+    }
+    group.visible = true;
+    const pop = reduced ? 1 : easeBack(Math.min(1, clock / 0.8));
+    group.scale.setScalar(Math.max(0.001, pop * scaleK));
+    const faceYaw = Math.atan2(cam.x - SIGN_TIP.x, cam.z - SIGN_TIP.z);
+    group.rotation.set(
+      0,
+      faceYaw * 0.9 + (reduced ? 0 : Math.sin(now * 0.0007) * 0.035),
+      reduced ? 0 : Math.sin(now * 0.0009 + 1) * 0.012,
+    );
+    group.position.y =
+      SIGN_TIP.y + (reduced ? 0 : Math.sin(now * 0.0011) * 0.035);
+    const typed = reduced
+      ? ABOUT_TEXT.length
+      : Math.floor(Math.max(0, clock - SIGN_TYPE_DELAY) / step);
+    setTyped(Math.min(typed, ABOUT_TEXT.length), !reduced && now % 1000 < 520);
+  };
+
+  const setTheme = (t: SignTheme) => {
+    theme = t;
+    edgeMat.color.setHex(SIGN_COLORS[t].edge);
+    coverMat.color.set(SIGN_COLORS[t].fill);
+    caretMat.color.set(SIGN_COLORS[t].caret);
+    paint();
+  };
+  const setLayout = (name: SignLayoutName) => {
+    cfg = SIGN_LAYOUTS[name];
+    rebuild();
+  };
+  const setFont = (next: string) => {
+    family = next;
+    paint();
+  };
+
+  rebuild();
+
+  return {
+    group,
+    update,
+    setTheme,
+    setLayout,
+    setFont,
+    redraw: paint,
+    texture: () => tex,
+  };
 }
 
 /* ═══════════════════════════ CLEAN-UP ═════════════════════════════════════ */

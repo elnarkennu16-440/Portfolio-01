@@ -7,10 +7,13 @@ import {
   BOARD_B,
   CAT,
   CONTRIBUTIONS,
+  SIGN_LAYOUTS,
+  SIGN_TIP,
   buildBoardA,
   buildBoardB,
   buildCat,
   buildCity,
+  buildCommentSign,
   buildCrossing,
   buildDust,
   buildGooseLamp,
@@ -45,6 +48,10 @@ const TOUR_MS = 5200;
 const TOUR_TAN_V = Math.tan(THREE.MathUtils.degToRad(23));
 const SHOTS = ["GitHub activity", "This platform", "The cat"] as const;
 const SHOT_COUNT = SHOTS.length;
+const CAT_SHOT_MS = 16000; // phone tour: the cat shot stays longer so the sign can be read
+const SIGN_SHOW_T = 3.7; // seconds after the reveal starts: the sign pops out of the cat
+const TYPE_STEP = 0.03; // seconds per typed letter (desktop)
+const TYPE_STEP_TOUR = 0.016; // phone tour: a bit faster
 
 const MAX_DPR_DESKTOP = 1.5;
 const MAX_DPR_MOBILE = 1.25;
@@ -82,6 +89,61 @@ const flicker = (t: number, start: number) => {
   ];
 };
 
+/* ═══════════════════════════ THEME (light / dark) ═════════════════════════
+ * The scene used to be hard-coded dark. It now follows the site theme: the
+ * "dark" look below is EXACTLY the old one; "light" matches the Hero's light mode
+ * (cars, cat and billboards stay dark). Tune the light look here.
+ * IMPORTANT: LOOKS.light.bg must equal --about-bg (light) in About.module.css. */
+type ThemeName = "dark" | "light";
+interface Look {
+  bg: number; // sky + fog colour
+  hemiSky: number;
+  hemiGround: number;
+  hemiI: number;
+  keyColor: number;
+  keyI: number;
+  rimColor: number;
+  rimI: number;
+  exposure: number;
+  glow: number; // 1 = lamp glow / lit windows / dust on, 0 = off (invisible on light)
+}
+const LOOKS: Record<ThemeName, Look> = {
+  dark: {
+    bg: FOG_COLOR,
+    hemiSky: 0x59606c,
+    hemiGround: 0x0a0a0b,
+    hemiI: 0.55,
+    keyColor: 0xcfd5df,
+    keyI: 2.4,
+    rimColor: 0x8e95a3,
+    rimI: 1.1,
+    exposure: 0.95,
+    glow: 1,
+  },
+  light: {
+    bg: 0xe6e6e9,
+    hemiSky: 0xffffff,
+    hemiGround: 0xb4b4ba,
+    hemiI: 1.5,
+    keyColor: 0xffffff,
+    keyI: 2.6,
+    rimColor: 0xffffff,
+    rimI: 0.6,
+    exposure: 1.0,
+    glow: 0,
+  },
+};
+
+/** Same string as in ThemeToggle.tsx (it announces every theme change). */
+const THEME_EVENT = "kennu:themechange";
+
+/** The site theme = the nearest data-theme attribute (the toggle's own contract).
+ *  No attribute (or "light") = light mode, exactly like ThemeToggle.module.css. */
+const readTheme = (from: Element | null): ThemeName => {
+  const holder = from?.closest("[data-theme]") ?? document.documentElement;
+  return holder.getAttribute("data-theme") === "dark" ? "dark" : "light";
+};
+
 function poseForShot(
   shot: number,
   aspect: number,
@@ -89,10 +151,14 @@ function poseForShot(
   target: THREE.Vector3,
 ) {
   if (shot === 2) {
-    const px = CAT.x + 0.5;
-    const pz = CAT.z + 3.4;
-    pos.set(px, 0.9, pz);
-    target.set(CAT.x + (CAT.x - px) * 1.8, 0.25, CAT.z + (CAT.z - pz) * 1.8);
+    // frame the cat AND the 3D comment sign above it (sign ≈ 90 % of the screen width)
+    const dist = THREE.MathUtils.clamp(
+      SIGN_LAYOUTS.tall.bodyW / (0.9 * 2 * TOUR_TAN_V * aspect),
+      4.6,
+      10.5,
+    );
+    pos.set(CAT.x + dist * 0.147, 1.15, CAT.z + dist);
+    target.set(CAT.x, 1.65, CAT.z);
     return;
   }
   const b = shot === 0 ? BOARD_A : BOARD_B;
@@ -213,10 +279,12 @@ async function bootSceneAsync(
     renderer.setSize(w, h, false);
   };
 
+  let theme: ThemeName = readTheme(host);
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(FOG_COLOR);
-  const fog = new THREE.FogExp2(FOG_COLOR, FOG_START_DENSITY);
+  scene.background = new THREE.Color(LOOKS[theme].bg);
+  const fog = new THREE.FogExp2(LOOKS[theme].bg, FOG_START_DENSITY);
   scene.fog = fog;
+  let glowK = LOOKS[theme].glow;
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   let envTexture: THREE.Texture | null = null;
@@ -250,7 +318,8 @@ async function bootSceneAsync(
   scene.environment = envTexture;
   scene.environmentIntensity = 0.3;
 
-  scene.add(new THREE.HemisphereLight(0x59606c, 0x0a0a0b, 0.55));
+  const hemi = new THREE.HemisphereLight(0x59606c, 0x0a0a0b, 0.55);
+  scene.add(hemi);
 
   const key = new THREE.DirectionalLight(0xcfd5df, 2.4);
   key.position.set(-30, 36, 24);
@@ -270,6 +339,23 @@ async function bootSceneAsync(
   const rim = new THREE.DirectionalLight(0x8e95a3, 1.1);
   rim.position.set(34, 16, -44);
   scene.add(rim);
+
+  /** applies the lights / sky / exposure of the current theme */
+  const applyLook = () => {
+    const look = LOOKS[theme];
+    (scene.background as THREE.Color).setHex(look.bg);
+    fog.color.setHex(look.bg);
+    hemi.color.setHex(look.hemiSky);
+    hemi.groundColor.setHex(look.hemiGround);
+    hemi.intensity = look.hemiI;
+    key.color.setHex(look.keyColor);
+    key.intensity = look.keyI;
+    rim.color.setHex(look.rimColor);
+    rim.intensity = look.rimI;
+    renderer.toneMappingExposure = look.exposure;
+    glowK = look.glow;
+  };
+  applyLook();
 
   await nextFrame();
   if (aborted()) return NOOP_HANDLE;
@@ -311,6 +397,38 @@ async function bootSceneAsync(
 
   await nextFrame();
   if (aborted()) return NOOP_HANDLE;
+
+  /* ── step 5b: the 3D comment sign above the cat + the theme switch ─────── */
+  const sign = buildCommentSign(getComputedStyle(host).fontFamily || undefined);
+  scene.add(sign.group);
+
+  const themed = [
+    roadParts.theme,
+    crossing.theme,
+    city.theme,
+    boardA.theme,
+    boardB.theme,
+    lamps.theme,
+    goose.theme,
+  ];
+  const applyParts = () => {
+    const light = theme === "light";
+    for (const part of themed) part.set(light);
+    sign.setTheme(theme);
+  };
+
+  await nextFrame();
+  if (aborted()) return NOOP_HANDLE;
+
+  if (theme === "light") {
+    // started in light mode: swap part by part (one per frame, no freeze)
+    for (const part of themed) {
+      part.set(true);
+      await nextFrame();
+      if (aborted()) return NOOP_HANDLE;
+    }
+    sign.setTheme("light");
+  }
 
   const brushLoaded = () => {
     let ok = false;
@@ -358,6 +476,7 @@ async function bootSceneAsync(
 
   /* ── step 6: compile every shader WITHOUT blocking the page ────────────── */
   traffic.group.visible = true;
+  sign.group.visible = true;
   try {
     const r = renderer as CompilingRenderer;
     if (r.compileAsync) await r.compileAsync(scene, camera);
@@ -366,8 +485,45 @@ async function bootSceneAsync(
     /* not critical: three compiles on first use instead */
   } finally {
     traffic.group.visible = false;
+    sign.group.visible = false;
   }
   if (aborted()) return NOOP_HANDLE;
+
+  // upload the sign's texture now (not during the reveal)
+  const signTex = sign.texture();
+  if (signTex) renderer.initTexture(signTex);
+
+  // how big the sign may be on this screen (landscape): readable, but never off-screen
+  const probeCam = new THREE.PerspectiveCamera();
+  const probe = new THREE.Vector3();
+  const signTip = new THREE.Vector3(SIGN_TIP.x, SIGN_TIP.y, SIGN_TIP.z);
+  const fitSign = (w: number) => {
+    probeCam.fov = camera.fov;
+    probeCam.aspect = camera.aspect;
+    probeCam.near = camera.near;
+    probeCam.far = camera.far;
+    probeCam.updateProjectionMatrix();
+    probeCam.position.copy(endPos);
+    probeCam.lookAt(END_TARGET);
+    probeCam.updateMatrixWorld(true);
+    const depth = Math.max(
+      0.5,
+      -probe.copy(signTip).applyMatrix4(probeCam.matrixWorldInverse).z,
+    );
+    const ppm = w / 2 / (tanV * aspect * depth); // screen px per metre at the sign
+    const cx = (probe.copy(signTip).project(probeCam).x * 0.5 + 0.5) * w;
+    const L = SIGN_LAYOUTS.wide;
+    const natural = L.bodyW * ppm * 0.94; // px at scale 1 (slightly turned)
+    const wanted = Math.min(600, Math.max(380, 0.44 * w));
+    const roomR = (w - cx - 24) / ((1 - L.tailAt) * natural);
+    const roomL = (cx - 24) / (L.tailAt * natural);
+    return Math.min(
+      1.6,
+      Math.max(0.55, Math.min(wanted / natural, roomR, roomL)),
+    );
+  };
+  let signClock = -1; // seconds since the sign popped out (-1 = not shown yet)
+  let signScale = 1;
 
   const resize = () => {
     const w = Math.max(1, host.clientWidth);
@@ -392,6 +548,7 @@ async function bootSceneAsync(
     if (nextTour !== tour) {
       tour = nextTour;
       ctl.onTour(tour);
+      sign.setLayout(tour ? "tall" : "wide");
     }
     if (tour) {
       shotApplied = ctl.getShot();
@@ -402,6 +559,7 @@ async function bootSceneAsync(
     }
     curPos.copy(goalPos);
     curTarget.copy(goalTarget);
+    signScale = tour ? 1 : fitSign(w);
     renderOnce();
   };
 
@@ -458,6 +616,24 @@ async function bootSceneAsync(
     camera.position.copy(camPos);
     camera.lookAt(camTarget);
 
+    // 3D comment sign: pops out of the cat, then types itself in. The clock only
+    // advances while the loop runs, so nobody misses the typing.
+    if (signClock < 0) {
+      if (t >= SIGN_SHOW_T && (!tour || ctl.getShot() === 2)) {
+        signClock = reduced ? 99 : 0;
+      }
+    } else if (running && !reduced) {
+      signClock += dt;
+    }
+    sign.update(
+      signClock,
+      now,
+      camPos,
+      tour ? TYPE_STEP_TOUR : TYPE_STEP,
+      signScale,
+      reduced,
+    );
+
     const dashes = Math.floor(
       easeOutCubic(seg(t, 0.3, 2.4)) * roadParts.dashCount,
     );
@@ -492,7 +668,7 @@ async function bootSceneAsync(
     city.facadeMats.forEach((m, i) => {
       const wFlick =
         wBase < 1 ? 0.6 + 0.4 * Math.abs(Math.sin(t * 37 + i * 5)) : 1;
-      m.emissiveIntensity = wBase * 1.05 * wFlick;
+      m.emissiveIntensity = wBase * 1.05 * wFlick * glowK;
     });
     city.beacons.forEach((b, i) => {
       (b.material as THREE.MeshBasicMaterial).opacity =
@@ -501,11 +677,11 @@ async function bootSceneAsync(
           : 0;
     });
 
-    lamps.glowMat.opacity = 0.55 * seg(t, 1.8, 1.4);
+    lamps.glowMat.opacity = 0.55 * seg(t, 1.8, 1.4) * glowK;
     const lg = seg(t, 2.2, 1.3);
-    goose.glowMat.opacity = 0.8 * lg;
-    goose.coneMat.opacity = 0.05 * lg;
-    goose.poolMat.opacity = 0.35 * lg;
+    goose.glowMat.opacity = 0.8 * lg * glowK;
+    goose.coneMat.opacity = 0.05 * lg * glowK;
+    goose.poolMat.opacity = 0.35 * lg * glowK;
 
     traffic.group.visible = t > 2.4;
     if (traffic.group.visible) traffic.update(reduced ? 0 : t);
@@ -517,7 +693,7 @@ async function bootSceneAsync(
       easeOutBack(seg(t, 3.0, 0.9)),
     );
 
-    dust.material.opacity = 0.55 * seg(t, 2.5, 2);
+    dust.material.opacity = 0.55 * seg(t, 2.5, 2) * glowK;
     if (t > 2.4) dust.update(reduced ? 0 : now / 1000);
 
     // PERF: the shadow map is the most expensive pass. It is re-baked only every
@@ -657,6 +833,63 @@ async function bootSceneAsync(
   resize();
   pollFont();
 
+  /* ── theme: follow the site's light / dark toggle ──────────────────────── */
+  const forceRender = () => {
+    if (disposed) return;
+    update(performance.now());
+    renderer.render(scene, camera);
+  };
+  const setTheme = (next: ThemeName) => {
+    if (next === theme || disposed) return;
+    theme = next;
+    applyLook();
+    applyParts();
+    forceRender(); // draw right now, so the view-transition sees the new theme
+  };
+  // 1) the attribute the toggle sets (data-theme), wherever it lives
+  const mo = new MutationObserver(() => setTheme(readTheme(host)));
+  mo.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+    subtree: true,
+  });
+  // 2) the event ThemeToggle announces (the theme arrives in event.detail)
+  const onThemeEvent = (e: Event) => {
+    const d = (e as CustomEvent<unknown>).detail;
+    if (d === "dark" || d === "light") setTheme(d);
+  };
+  window.addEventListener(THEME_EVENT, onThemeEvent);
+  cleanups.push(() => {
+    mo.disconnect();
+    window.removeEventListener(THEME_EVENT, onThemeEvent);
+  });
+  setTheme(readTheme(host)); // it may have changed while the scene was being built
+
+  // the page font may finish loading after the first draw of the sign's text
+  document.fonts.ready
+    .then(() => {
+      if (disposed) return;
+      sign.redraw();
+      renderOnce();
+    })
+    .catch(() => undefined);
+
+  // quietly prepare the light textures after the intro, so the first toggle is instant
+  if (theme === "dark") {
+    const idle = (fn: () => void) =>
+      typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback(fn, { timeout: 4000 })
+        : window.setTimeout(fn, 300);
+    let next = 0;
+    const warm = () => {
+      if (disposed || next >= themed.length) return;
+      for (const tx of themed[next++].prepare()) renderer.initTexture(tx);
+      idle(warm);
+    };
+    const warmTimer = window.setTimeout(() => idle(warm), 6500);
+    cleanups.push(() => window.clearTimeout(warmTimer));
+  }
+
   return { refresh: () => renderOnce(), dispose: teardown };
 }
 
@@ -735,7 +968,7 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
     if (!tour || !live || reduced) return;
     const timer = window.setTimeout(
       () => setShot((s) => (s + 1) % SHOT_COUNT),
-      TOUR_MS,
+      shot === 2 ? CAT_SHOT_MS : TOUR_MS,
     );
     return () => window.clearTimeout(timer);
   }, [tour, live, reduced, shot]);
@@ -764,7 +997,9 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
                     className={`${styles.dashFill} ${
                       !live || reduced ? styles.dashFillHeld : ""
                     }`}
-                    style={{ animationDuration: `${TOUR_MS}ms` }}
+                    style={{
+                      animationDuration: `${shot === 2 ? CAT_SHOT_MS : TOUR_MS}ms`,
+                    }}
                   />
                 )}
               </span>

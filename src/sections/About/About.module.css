@@ -2,9 +2,17 @@
  * ABOUT — clean paragraph typography style matching the portfolio design
  * ──────────────────────────────────────────────────────────────────────────── */
 
+/* LIGHT is the default (same rule as ThemeToggle.module.css: no data-theme="dark"
+   = light mode). --about-bg must equal LOOKS.light.bg in AboutScene.tsx (0xe6e6e9)
+   and the dark one must equal FOG_COLOR (0x121214), so canvas and section blend. */
 .aboutSection {
-  --about-bg: #121214;
-  --about-fg: #d1d1d6;
+  --about-bg: #e6e6e9;
+  --about-fg: #2a2a2e;
+  --about-line: rgba(42, 42, 46, 0.4);
+  --about-sub: rgba(42, 42, 46, 0.65);
+  --about-edge: rgba(0, 0, 0, 0.08);
+  --about-vignette: rgba(40, 40, 48, 0.16);
+  --about-grain: 0.03;
 
   /* STICKY: stays pinned (steady) at the top while the Works section rises over it.
      Its track (the #about wrapper in App.tsx) gives it 100vh of extra hold scroll. */
@@ -26,13 +34,23 @@
     calc(var(--stack-radius) * var(--about-round, 1)) 0 0;
   overflow: hidden; /* fallback */
   overflow: clip; /* clips the 3D scene to the rounded corners */
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--about-edge);
   border-bottom: none; /* Tinanggal ang border sa ibaba para maging seamless ang dugtong */
 }
 
 .heroAboutWrapper {
   position: relative;
   width: 100%;
+}
+
+:global([data-theme="dark"]) .aboutSection {
+  --about-bg: #121214;
+  --about-fg: #d1d1d6;
+  --about-line: rgba(209, 209, 214, 0.4);
+  --about-sub: rgba(209, 209, 214, 0.6);
+  --about-edge: rgba(255, 255, 255, 0.08);
+  --about-vignette: rgba(0, 0, 0, 0.55);
+  --about-grain: 0.07;
 }
 
 /* Dims while Works rises over it (--about-dim is set in App.tsx) */
@@ -66,7 +84,7 @@
   background: radial-gradient(
     120% 90% at 55% 45%,
     rgba(0, 0, 0, 0) 42%,
-    rgba(0, 0, 0, 0.55) 100%
+    var(--about-vignette) 100%
   );
 }
 
@@ -74,7 +92,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  opacity: 0.07;
+  opacity: var(--about-grain);
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
 
@@ -121,7 +139,7 @@
   display: inline-block;
   width: 2.5rem;
   height: 1px;
-  background-color: rgba(209, 209, 214, 0.4);
+  background-color: var(--about-line);
 }
 
 .subtitleText {
@@ -129,113 +147,7 @@
   font-size: 0.7rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: rgba(209, 209, 214, 0.6);
-}
-
-/* ────────────────────────────────────────────────────────────────────────────
- * SPEECH BUBBLE ("comment sign") — nakaturo sa pusa
- * Gray → light-gray, translucent, walang glow / blur / shadow para kita pa rin
- * ang background scene.
- *
- * Easy tuning (kung gusto mong i-adjust ang pwesto):
- *   --tip-y       distance ng dulo ng tail mula sa ilalim ng screen (desktop)
- *   --tail-h      haba ng tail
- *   --tail-left   horizontal na pwesto ng tail sa loob ng bubble (0% = kaliwa)
- *   right / width pwesto at lapad ng bubble
- * ──────────────────────────────────────────────────────────────────────────── */
-.bubble {
-  --bubble-bg-top: rgba(58, 58, 62, 0.88); /* dark gray */
-  --bubble-bg-bottom: rgba(44, 44, 48, 0.9); /* darker gray */
-  --bubble-radius: clamp(14px, 1.5vw, 22px);
-  --tip-y: 27vh;
-  --tail-h: clamp(2.6rem, 15vh, 7rem);
-  --tail-w: clamp(1.8rem, 3.2vw, 3rem);
-  --tail-left: 60%;
-
-  position: absolute;
-  z-index: 3;
-  right: clamp(1.25rem, 4vw, 4rem);
-  bottom: calc(var(--tip-y) + var(--tail-h));
-  width: clamp(19rem, 44vw, 36rem);
-  pointer-events: none;
-
-  /* simpleng fade lang, walang ibang effect */
-  opacity: 0;
-  transition: opacity 0.9s ease;
-}
-
-.bubbleIn {
-  opacity: 1;
-}
-
-.bubbleBody {
-  padding: clamp(0.9rem, 1.5vw, 1.35rem) clamp(1rem, 1.8vw, 1.6rem);
-  border-radius: var(--bubble-radius);
-  background: linear-gradient(
-    180deg,
-    var(--bubble-bg-top),
-    var(--bubble-bg-bottom)
-  );
-}
-
-/* Tail: same color as the bottom of the bubble para tuloy-tuloy ang dugtong */
-.bubbleTail {
-  position: absolute;
-  top: calc(100% - 1px);
-  left: var(--tail-left);
-  width: var(--tail-w);
-  height: var(--tail-h);
-  background: var(--bubble-bg-bottom);
-  clip-path: polygon(0 0, 100% 0, 28% 100%);
-}
-
-/* Mini paragraph, bahagyang pinalaki, justified pa rin */
-.lead {
-  margin: 0;
-  font-family: inherit;
-  font-size: clamp(0.85rem, min(1.2vw, 2.45vh), 1.05rem);
-  font-weight: 400;
-  line-height: 1.55;
-  color: #c2c2c8; /* mahinang puti, hindi nakakasilaw */
-  text-shadow: none;
-  text-align: justify;
-  text-justify: inter-word;
-  -webkit-hyphens: auto;
-  hyphens: auto;
-  word-break: normal;
-  overflow-wrap: break-word;
-}
-
-/* Hindi pa natatype na parte: nasa flow pa rin (para hindi gumalaw ang bubble)
-   pero hindi nakikita */
-.untyped {
-  visibility: hidden;
-}
-
-/* Typing caret (zero-width, hindi nakakaapekto sa layout ng text) */
-.caret {
-  display: inline-block;
-  position: relative;
-  width: 0;
-  height: 1em;
-  vertical-align: text-bottom;
-}
-
-.caret::after {
-  content: "";
-  position: absolute;
-  left: 1px;
-  top: 0.05em;
-  width: 2px;
-  height: 1.05em;
-  background: rgba(194, 194, 200, 0.8);
-  animation: caretBlink 1s steps(1) infinite;
-}
-
-@keyframes caretBlink {
-  50% {
-    opacity: 0;
-  }
+  color: var(--about-sub);
 }
 
 /* ── Responsive adjustments ─── */
@@ -259,60 +171,10 @@
   }
 }
 
-/* Mobile / portrait: nasa itaas ang bubble, ang tail pababa sa pusa */
-@media (max-width: 600px), (max-aspect-ratio: 1/1) {
-  .bubble {
-    --tail-h: clamp(1.6rem, 4.5vh, 2.8rem);
-    --tail-w: 2rem;
-    --tail-left: 56%;
-
-    top: 4.4rem; /* sa ilalim ng navbar */
-    bottom: auto;
-    left: 0.75rem;
-    right: 0.75rem;
-    width: auto;
-    max-width: 34rem;
-    margin-inline: auto;
-  }
-
-  .bubbleBody {
-    padding: 0.7rem 0.85rem;
-    border-radius: 14px;
-  }
-
-  .lead {
-    font-size: clamp(0.7rem, 3.1vw, 1rem);
-    line-height: 1.42;
-  }
-}
-
-/* Maiksing landscape (hal. phone nakahiga) */
-@media (max-height: 520px) and (min-aspect-ratio: 1/1) and (min-width: 601px) {
-  .bubble {
-    --tip-y: 18vh;
-    --tail-h: 2rem;
-    width: min(56vw, 36rem);
-  }
-
-  .lead {
-    font-size: 0.72rem;
-    line-height: 1.4;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .layer {
     opacity: 1 !important;
     transform: none !important;
     transition: none !important;
-  }
-
-  .bubble {
-    opacity: 1;
-    transition: none;
-  }
-
-  .caret::after {
-    animation: none;
   }
 }
