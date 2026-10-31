@@ -76,18 +76,18 @@ export const Hero: React.FC<HeroProps> = ({ isIntroDone = true }) => {
             <p className={`${styles.reveal} ${styles.statement}`}>
               Focusing on{" "}
               <span className={styles.underlinedEmphasis}>
-                software quality
+                Software Quality
               </span>
-              , user flows, and{" "}
+              , User Flows, and{" "}
               <span className={styles.underlinedEmphasis}>
-                dependable web applications
+                Dependable Web Applications
               </span>
               .
             </p>
 
             <p className={`${styles.reveal} ${styles.intro}`}>
-              Hi, I&apos;m Kennu. I build simple, dependable web apps with care
-              for quality and smooth user flows.
+              Hi, I&apos;m Kennu. I Build Dependable Web Applications. Open for
+              Commissions and Freelance work.
             </p>
 
             <div className={`${styles.reveal} ${styles.links}`}>
