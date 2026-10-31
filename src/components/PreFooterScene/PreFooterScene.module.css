@@ -1,5 +1,5 @@
-/* The WebGL canvas fills whatever box it is placed in (the banner's
-   scene container). Nothing here touches the rest of the page. */
+/* The WebGL canvas fills whatever box it is placed in (the PreFooterBanner
+   background layer). Nothing here touches the rest of the page. */
 
 .root {
   position: absolute;
@@ -8,10 +8,10 @@
   pointer-events: none;
   /* same colour as the banner, so there is never a flash before frame 1 */
   background: #0b0b0d;
-  /* PERF: the canvas is redrawn up to 60x/s. `contain` tells the browser that
+  /* PERF: the canvas is redrawn up to 60×/s. `contain` tells the browser that
      nothing inside can change layout/paint outside this box. */
   contain: strict;
-  transform: translateZ(0); /* no WebGL ghosting while scrolling */
+  transform: translateZ(0); /* stops WebGL ghosting/smearing while scrolling */
 }
 
 .canvas {

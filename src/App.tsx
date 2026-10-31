@@ -222,14 +222,14 @@ export default function App() {
           {/* Capabilities Section */}
           <Capabilities />
 
-          {/* PROFESIONAL OVERVIEW (Replaces Process) */}
-          <ProfessionalOverview onOpenSubpage={handleOpenSubpage} />
-
           {/* Philosophy / Scroll-Switching Statement Section */}
           <PreFooterBanner
             onOpenContact={handleOpenContact}
             onOpenSubpage={handleOpenSubpage}
           />
+
+          {/* PROFESIONAL OVERVIEW (Replaces Process) */}
+          <ProfessionalOverview onOpenSubpage={handleOpenSubpage} />
         </main>
 
         {/* Footer */}

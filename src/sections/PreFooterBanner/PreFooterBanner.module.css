@@ -1,7 +1,7 @@
 .bannerSection {
   position: relative;
   width: 100%;
-  /* taller than before so the photo is actually visible */
+  /* tall enough for the 3D scene to breathe */
   min-height: clamp(520px, 88vh, 860px);
   display: flex;
   flex-direction: column;
@@ -12,9 +12,8 @@
   box-sizing: border-box;
 }
 
-/* 3D scene container (replaces the old background photo).
-   The WebGL canvas lives inside; overlays below stay exactly as before. */
-.sceneContainer {
+/* Background layer: holds the 3D scene (canvas) + the vignette on top of it */
+.imageContainer {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -23,28 +22,22 @@
   overflow: hidden;
 }
 
-/* Lighter filmic vignette: the left side is darkened for the text only,
-   the subject on the right stays clear (strictly grayscale, no neon). */
+/* Only darkens the text side and the top / bottom seams. The scene itself
+   (right side) stays clear. Strictly grayscale, no neon. */
 .vignetteOverlay {
   position: absolute;
   inset: 0;
   z-index: 2;
   pointer-events: none;
   background:
-    /* soft edge shading around the subject */
-    radial-gradient(
-      ellipse 70% 85% at 60% 42%,
-      rgba(0, 0, 0, 0) 38%,
-      rgba(0, 0, 0, 0.5) 100%
-    ),
     /* text side */
     linear-gradient(
-        to right,
-        rgba(11, 11, 13, 0.92) 0%,
-        rgba(11, 11, 13, 0.7) 24%,
-        rgba(11, 11, 13, 0.15) 50%,
-        rgba(11, 11, 13, 0) 66%
-      ),
+      to right,
+      rgba(11, 11, 13, 0.9) 0%,
+      rgba(11, 11, 13, 0.62) 22%,
+      rgba(11, 11, 13, 0.12) 44%,
+      rgba(11, 11, 13, 0) 58%
+    ),
     /* top seamless fade from canvas */
     linear-gradient(
         to bottom,
@@ -63,17 +56,12 @@
 
 [data-theme="light"] .vignetteOverlay {
   background:
-    radial-gradient(
-      ellipse 70% 85% at 60% 42%,
-      rgba(0, 0, 0, 0) 40%,
-      rgba(0, 0, 0, 0.42) 100%
-    ),
     linear-gradient(
       to right,
-      rgba(11, 11, 13, 0.92) 0%,
-      rgba(11, 11, 13, 0.7) 24%,
-      rgba(11, 11, 13, 0.15) 50%,
-      rgba(11, 11, 13, 0) 66%
+      rgba(11, 11, 13, 0.9) 0%,
+      rgba(11, 11, 13, 0.62) 22%,
+      rgba(11, 11, 13, 0.12) 44%,
+      rgba(11, 11, 13, 0) 58%
     ),
     linear-gradient(
       to bottom,
@@ -89,21 +77,7 @@
     );
 }
 
-/* Subtle Film Grain Texture Overlay */
-.grainOverlay {
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  opacity: 0.1;
-  pointer-events: none;
-  background-image: radial-gradient(
-    rgba(255, 255, 255, 0.18) 1px,
-    transparent 0
-  );
-  background-size: 4px 4px;
-}
-
-/* Content Frame placed over image (matching bottom-left controls of reference) */
+/* Content Frame placed over the scene (bottom-left controls) */
 .contentFrame {
   position: relative;
   z-index: 4;
@@ -280,54 +254,30 @@
 }
 
 /* =========================================================================
-   MOBILE: portrait photo on top, text sits on the dark fade at the bottom
+   MOBILE: the 3D scene sits in the top part, text sits on the dark fade
+   at the bottom (the scene is positioned by PreFooterScene.tsx: see
+   MOBILE_CENTER_Y / MOBILE_FILL_Y at the top of that file)
    ========================================================================= */
 @media (max-width: 767px) {
   .bannerSection {
     min-height: clamp(36rem, 92svh, 46rem);
   }
 
-  .vignetteOverlay {
+  .vignetteOverlay,
+  [data-theme="light"] .vignetteOverlay {
     background:
-      radial-gradient(
-        ellipse 90% 60% at 60% 28%,
-        rgba(0, 0, 0, 0) 40%,
-        rgba(0, 0, 0, 0.45) 100%
-      ),
       linear-gradient(
         to top,
         #0b0b0d 0%,
-        rgba(11, 11, 13, 0.94) 38%,
-        rgba(11, 11, 13, 0.55) 55%,
-        rgba(11, 11, 13, 0) 76%
+        rgba(11, 11, 13, 0.94) 30%,
+        rgba(11, 11, 13, 0.55) 42%,
+        rgba(11, 11, 13, 0) 56%
       ),
       linear-gradient(
         to bottom,
         var(--bg-primary) 0%,
         rgba(14, 14, 16, 0.45) 8%,
         rgba(0, 0, 0, 0) 18%
-      );
-  }
-
-  [data-theme="light"] .vignetteOverlay {
-    background:
-      radial-gradient(
-        ellipse 90% 60% at 60% 28%,
-        rgba(0, 0, 0, 0) 40%,
-        rgba(0, 0, 0, 0.4) 100%
-      ),
-      linear-gradient(
-        to top,
-        #141416 0%,
-        rgba(20, 20, 22, 0.94) 38%,
-        rgba(20, 20, 22, 0.55) 55%,
-        rgba(0, 0, 0, 0) 76%
-      ),
-      linear-gradient(
-        to bottom,
-        var(--bg-primary) 0%,
-        rgba(249, 249, 247, 0.55) 6%,
-        rgba(0, 0, 0, 0) 16%
       );
   }
 
@@ -348,7 +298,7 @@
 /* =========================================================================
    WAVE REVEAL (texts only) — same mask + tilt + stagger idea as the
    Capabilities titles. Starts when the section gets .isRevealed.
-   Nothing here touches the image, overlays, film layers or layout.
+   Nothing here touches the 3D scene, the vignette or the layout.
    ========================================================================= */
 
 /* ---- headline: letters rise one by one ---- */

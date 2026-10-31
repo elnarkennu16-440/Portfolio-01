@@ -126,18 +126,13 @@ export const PreFooterBanner: React.FC<PreFooterBannerProps> = ({
       className={`${styles.bannerSection} ${isRevealed ? styles.isRevealed : ""}`}
       aria-label="Profile and Work Inquiries"
     >
-      {/* 3D billboard scene (Three.js) replaces the old background photo */}
-      <div className={styles.sceneContainer} aria-hidden="true">
+      {/* 3D background: billboard + giant bottle pouring into a tanker truck.
+          The scene builds itself just before the banner scrolls into view and
+          pauses whenever the banner is off screen. */}
+      <div className={styles.imageContainer} aria-hidden="true">
         <PreFooterScene />
-        {/* 1972 film look: soft-focus edges, split tone, light leak */}
-        <div className={styles.blurLayer} />
-        <div className={styles.toneLayer} />
-        <div className={styles.lightLeak} />
-        {/* Grayscale Vignette and Directional Lighting Gradients */}
+        {/* Dark side for the text + seamless fades into the page and the footer */}
         <div className={styles.vignetteOverlay} />
-        {/* Moving film grain + dust */}
-        <div className={styles.grainOverlay} />
-        <div className={styles.dustLayer} />
       </div>
 
       {/* Responsive Content & Action Controls */}

@@ -3,71 +3,67 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import styles from "./PreFooterScene.module.css";
 import {
+  BOTTLE,
+  SCENE,
   buildBillboard,
   buildBottle,
-  buildCallouts,
   buildGround,
+  buildProps,
   buildSplash,
   buildStream,
-  buildTanker,
-  buildWorker,
-  createLiquidMaterial,
+  buildTruck,
   disposeObject,
   mulberry32,
 } from "./preFooterParts";
+import type { EnvUser, TexStore } from "./preFooterParts";
 
 /* ═══════════════════════════ TUNING ═══════════════════════════════════════ */
-const BG = 0x0b0b0d; // same colour as .bannerSection → no seam, no flash
-const FOG_K = 0.5; // fog density = FOG_K / camera distance (same haze at any screen)
+const BG = 0x0b0b0d; // same as the banner section background
+const FOG_DENSITY = 0.011;
+const FOG_START_DENSITY = 0.05;
+const FOV = 30;
+const EXPOSURE = 0.95;
+const KEY_INTENSITY = 2.4;
+const RIM_INTENSITY = 1.1;
 
-const FOV_WIDE = 30;
-const FOV_TALL = 38; // phones: a little wider lens so the camera is not too far away
-const FIT_H = 23; // metres that must always fit vertically
-const FIT_W = 29.5; // metres that must always fit horizontally (tank → bottle)
-const TARGET_WIDE = new THREE.Vector3(0, 10.5, -3);
-const TARGET_TALL = new THREE.Vector3(1.5, 9.6, -3);
-const VIEW_DIR = new THREE.Vector3(-0.2, 0.1, 1).normalize(); // for the bottle label
-const SPOT_I = 1500;
+/* where the scene sits inside the banner (fractions of the banner box) */
+const DESKTOP_TEXT_PX = 560; // width kept free for the text on the left
+const DESKTOP_CENTER_Y = 0.5;
+const DESKTOP_FILL_Y = 0.84; // how much of the banner height the scene may use
+const MOBILE_CENTER_Y = 0.3; // portrait: the scene lives in the top part
+const MOBILE_FILL_Y = 0.44;
 
-/* ── floating callouts (labels around the bottle) ── */
-const CALLOUT_CAM = new THREE.Vector3(-11.18, 4.48, 38.28); // typical camera, used to pick the surface points
-const CALLOUT_MIN_ASPECT = 1.1; // phones / portrait: the bottle is too small for 7 readable labels
-const CALLOUT_PLANE_Z = -2.2; // depth the labels float at (used to measure the screen)
-const CALLOUT_PX = 17; // wanted font size in px (the cap height is ~0.72 of it)
-const CALLOUT_EM_MIN = 0.7;
-const CALLOUT_EM_MAX = 1.0;
-const CALLOUT_RIGHT_NDC = 0.94; // right column must end before this screen position
-const PARALLAX_X = 1.1;
-const PARALLAX_Y = 0.4;
+const PARALLAX_X = 0.9;
+const PARALLAX_Y = 0.35;
 const REDUCED_T = 100;
 
-/* ── performance policy (same as HeroScene) ──
-   Native resolution first, 60 fps first. A slow machine settles at an even
-   30 fps; only after that the resolution comes down, never below native. */
+/* quality / performance (same policy as HeroScene: native pixels, 30 fps fallback) */
 const MAX_DPR_DESKTOP = 1.5;
 const MAX_DPR_MOBILE = 1.25;
 const NO_MSAA_MIN_DPR = 1.25;
 const DPR_STEP = 0.85;
 const TARGET_FPS = 60;
-const SHADOW_FINAL_T = 3.0; // after this the shadow map is frozen for good
-const SHADOW_EVERY = 3; // during the intro: refresh the shadow every Nth frame
-const ADAPT_AFTER_T = 4.0;
+const SHADOW_FREEZE_T = 1.9;
+const SHADOW_EVERY = 3;
+const ADAPT_AFTER_T = 3.4;
 const GOV_WINDOW = 45;
 const GOV_SETTLE = 8;
 const SLOW_FACTOR = 1.45;
+const MAX_ANISOTROPY = 16;
 const COMPILE_TIMEOUT_MS = 2500;
-const MOUNT_MARGIN = "700px 0px"; // build the scene a bit BEFORE it scrolls in
-const REVEAL_RATIO = 0.2; // start the intro when 20 % of the banner is visible
 
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+const TAN_HALF = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
+const TARGET = new THREE.Vector3(SCENE.cx, SCENE.cy, 1);
+const VIEW_DIR = new THREE.Vector3(-0.14, -0.025, 1).normalize();
+
+const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
+const clamp01 = (v: number) => clamp(v, 0, 1);
 const seg = (t: number, start: number, dur: number) =>
   clamp01((t - start) / dur);
 const easeOutQuart = (x: number) => 1 - Math.pow(1 - x, 4);
 const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
-const easeInOut = (x: number) =>
-  x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
-const easeOutBack = (x: number) => {
-  const c1 = 1.70158;
+const easeOutQuad = (x: number) => 1 - (1 - x) * (1 - x);
+const easeOutBack = (x: number, c1 = 1.5) => {
   const c3 = c1 + 1;
   return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
 };
@@ -82,7 +78,7 @@ const flicker = (t: number, start: number) => {
   ];
 };
 
-/** True when WebGL runs on the CPU (hardware acceleration off) — the #1 cause of lag. */
+/** True when WebGL runs on the CPU (SwiftShader / llvmpipe): hardware acceleration is off. */
 const isSoftwareGL = () => {
   try {
     const c = document.createElement("canvas");
@@ -104,7 +100,7 @@ const isSoftwareGL = () => {
 
 /* ═══════════════════════════ THE SCENE ════════════════════════════════════ */
 
-function mountScene(host: HTMLDivElement): () => void {
+function createScene(host: HTMLDivElement): () => void {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const small =
     window.innerWidth < 768 || window.matchMedia("(pointer: coarse)").matches;
@@ -118,7 +114,7 @@ function mountScene(host: HTMLDivElement): () => void {
   try {
     renderer = new THREE.WebGLRenderer({
       antialias: !softwareGL,
-      alpha: false, // opaque canvas: the browser never blends it with the page
+      alpha: false,
       stencil: false,
       powerPreference: "high-performance",
     });
@@ -127,15 +123,15 @@ function mountScene(host: HTMLDivElement): () => void {
   }
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = EXPOSURE;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFShadowMap;
-  renderer.shadowMap.autoUpdate = false; // refreshed by hand (see update())
+  renderer.shadowMap.autoUpdate = false;
   renderer.setClearColor(BG, 1);
   renderer.domElement.className = styles.canvas;
   host.appendChild(renderer.domElement);
 
-  /* ── resolution ── */
+  /* MSAA check: if the browser silently refuses it, render denser instead */
   const msaa = !!renderer.getContext().getContextAttributes()?.antialias;
   const aaMinDpr = softwareGL || msaa ? 0 : NO_MSAA_MIN_DPR;
   const dprMax = small ? MAX_DPR_MOBILE : MAX_DPR_DESKTOP;
@@ -163,84 +159,80 @@ function mountScene(host: HTMLDivElement): () => void {
     if (!ready) renderer.clear();
   };
 
-  /* ── scene, light, environment ── */
+  /* ── scene, fog, lights ── */
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(BG);
-  const fog = new THREE.FogExp2(BG, 0.012);
+  const fog = new THREE.FogExp2(BG, FOG_START_DENSITY);
   scene.fog = fog;
 
   const pmrem = new THREE.PMREMGenerator(renderer);
   const room = new RoomEnvironment();
   let envTexture = pmrem.fromScene(room, 0.04).texture;
   scene.environment = envTexture;
-  scene.environmentIntensity = 0.28;
+  scene.environmentIntensity = 0.3;
 
-  scene.add(new THREE.HemisphereLight(0x6b6b70, 0x0a0a0b, 0.6));
+  scene.add(new THREE.HemisphereLight(0x59606c, 0x0a0a0b, 0.55));
 
-  const key = new THREE.DirectionalLight(0xe4e6ea, 2.6);
-  key.position.set(-24, 36, 30);
-  key.target.position.set(0, 6, -4);
+  const key = new THREE.DirectionalLight(0xcfd5df, KEY_INTENSITY);
+  key.position.set(-24, 32, 28);
+  key.target.position.set(1, 2, 1);
   key.castShadow = true;
   key.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
-  key.shadow.camera.left = -36;
-  key.shadow.camera.right = 36;
-  key.shadow.camera.top = 36;
-  key.shadow.camera.bottom = -36;
+  key.shadow.camera.left = -26;
+  key.shadow.camera.right = 26;
+  key.shadow.camera.top = 26;
+  key.shadow.camera.bottom = -26;
   key.shadow.camera.near = 1;
-  key.shadow.camera.far = 130;
-  key.shadow.bias = -0.0005;
-  key.shadow.normalBias = 0.04;
+  key.shadow.camera.far = 120;
+  key.shadow.bias = -0.0004;
+  key.shadow.normalBias = 0.03;
   key.shadow.radius = 1.5;
   scene.add(key, key.target);
 
-  const rim = new THREE.DirectionalLight(0x9a9aa2, 1.2);
-  rim.position.set(30, 18, -40);
+  const rim = new THREE.DirectionalLight(0x8e95a3, RIM_INTENSITY);
+  rim.position.set(30, 14, -40);
   scene.add(rim);
 
-  // one soft spotlight on the bottle / stream (no shadow = cheap)
-  const spot = new THREE.SpotLight(0xffffff, SPOT_I, 90, 0.34, 1, 2);
-  spot.position.set(-8, 22, 26);
-  spot.target.position.set(5, 11, -4);
-  scene.add(spot, spot.target);
-
   /* ── objects ── */
-  const rand = mulberry32(20261030);
-  const ground = buildGround(rand);
-  const billboard = buildBillboard();
-  const worker = buildWorker();
-  const callouts = buildCallouts(CALLOUT_CAM);
-  const bottle = buildBottle(VIEW_DIR);
-  const tanker = buildTanker();
-  const liquid = createLiquidMaterial();
-  const stream = buildStream(liquid);
-  const splash = buildSplash(liquid);
+  const rand = mulberry32(20261031);
+  const store: TexStore = [];
+  const ground = buildGround(store, rand);
+  const props = buildProps(store, rand);
+  const billboard = buildBillboard(store);
+  const bottle = buildBottle(store);
+  const truck = buildTruck();
+  const stream = buildStream(store);
+  const splash = buildSplash();
   scene.add(
     ground.group,
+    props.group,
     billboard.group,
-    worker.group,
-    bottle.pivot,
-    tanker.group,
+    bottle.rig,
+    truck.group,
     stream.mesh,
     splash.group,
-    callouts.group,
   );
 
-  // chrome / glass look: give those materials the environment directly
-  const reflective: THREE.MeshStandardMaterial[] = [
-    liquid,
-    ...bottle.reflective,
-    ...tanker.reflective,
-  ];
+  /* glossy materials get the soft studio reflections */
+  const envUsers: EnvUser[] = [...truck.envMats, ...bottle.envMats];
   const applyEnv = () =>
-    reflective.forEach((m) => {
+    envUsers.forEach(([m, intensity]) => {
       m.envMap = envTexture;
+      m.envMapIntensity = intensity;
+      m.needsUpdate = true;
     });
   applyEnv();
 
-  // anisotropic filtering + dithering (kills banding in the dark gradients)
+  /* sharpness that costs nothing per frame: anisotropy + dithering (no banding) */
   const maxAniso = softwareGL
     ? 2
-    : Math.min(small ? 8 : 16, renderer.capabilities.getMaxAnisotropy());
+    : Math.min(
+        small ? 8 : MAX_ANISOTROPY,
+        renderer.capabilities.getMaxAnisotropy(),
+      );
+  store.forEach((t) => {
+    if (t.anisotropy > 1) t.anisotropy = Math.min(t.anisotropy, maxAniso);
+  });
   scene.traverse((o) => {
     const mat = (o as THREE.Mesh).material as
       | THREE.Material
@@ -248,26 +240,17 @@ function mountScene(host: HTMLDivElement): () => void {
       | undefined;
     if (!mat) return;
     (Array.isArray(mat) ? mat : [mat]).forEach((m) => {
-      const std = m as THREE.MeshStandardMaterial;
-      if (std.isMeshStandardMaterial) {
+      if ((m as THREE.MeshStandardMaterial).isMeshStandardMaterial)
         m.dithering = true;
-        const maps = [std.map, std.emissiveMap];
-        maps.forEach((t) => {
-          if (t && t.anisotropy > 1) t.anisotropy = maxAniso;
-        });
-      }
     });
   });
 
-  /* ── camera: fits the screen, never crops the subject ── */
-  const camera = new THREE.PerspectiveCamera(FOV_WIDE, 16 / 9, 1, 500);
-  const target = TARGET_WIDE.clone();
+  /* ── camera: fits the scene into the free part of the banner ── */
+  const camera = new THREE.PerspectiveCamera(FOV, 16 / 9, 1, 260);
   const camPos = new THREE.Vector3();
-  const lookAt = new THREE.Vector3();
+  const camTarget = new THREE.Vector3();
   const pointer = { x: 0, y: 0, cx: 0, cy: 0 };
-  let fitDist = 42;
-  let fogBase = FOG_K / fitDist;
-  const probe = new THREE.Vector3();
+  let fitDist = 34;
 
   const resize = () => {
     const w = Math.max(1, host.clientWidth);
@@ -276,75 +259,37 @@ function mountScene(host: HTMLDivElement): () => void {
     const aspect = w / h;
     camera.aspect = aspect;
 
-    const fov =
-      aspect >= 1.2
-        ? FOV_WIDE
-        : THREE.MathUtils.lerp(
-            FOV_WIDE,
-            FOV_TALL,
-            clamp01((1.2 - aspect) / 0.7),
-          );
-    camera.fov = fov;
-    const tanHalf = Math.tan(THREE.MathUtils.degToRad(fov / 2));
-    fitDist = Math.max(FIT_H / 2 / tanHalf, FIT_W / 2 / (tanHalf * aspect));
-    fogBase = FOG_K / fitDist;
-    target.copy(aspect >= 1.1 ? TARGET_WIDE : TARGET_TALL);
-
-    // wide screens: push the scene to the right so the text on the left stays clear.
-    // tall screens (phones): lift the scene into the top part, text sits below.
-    const visW = 2 * fitDist * tanHalf * aspect;
-    const xShift =
-      aspect >= 1.1 ? Math.min(0.15, Math.max(0, 0.45 - 14.2 / visW)) : 0;
-    const yShift = 0.16 * clamp01((1.15 - aspect) / 0.4);
-    if (xShift > 0 || yShift > 0) {
-      camera.setViewOffset(
-        w,
-        h,
-        Math.round(-w * xShift),
-        Math.round(h * yShift),
-        w,
-        h,
-      );
-    } else {
-      camera.clearViewOffset();
-    }
-    camera.updateProjectionMatrix();
-
-    // measure the screen at the depth the labels float at → label size + right edge
-    camera.position.set(
-      target.x - fitDist * 0.26,
-      Math.max(2.6, target.y - fitDist * 0.14),
-      target.z + fitDist * 0.96,
+    const mobile = w < 768;
+    // fx / fy: the share of the banner width / height the scene may occupy
+    const fx = mobile ? 1 : clamp(1 - DESKTOP_TEXT_PX / w, 0.5, 0.7);
+    const fy = mobile ? MOBILE_FILL_Y : DESKTOP_FILL_Y;
+    fitDist = Math.max(
+      SCENE.w / (fx * aspect * 2 * TAN_HALF),
+      SCENE.h / (fy * 2 * TAN_HALF),
     );
-    camera.lookAt(target);
-    camera.updateMatrixWorld(true);
-    const worldX = (ndc: number) => {
-      probe.set(ndc, 0, 0.5).unproject(camera).sub(camera.position);
-      return (
-        camera.position.x +
-        probe.x * ((CALLOUT_PLANE_Z - camera.position.z) / probe.z)
-      );
-    };
-    const worldW = Math.max(1, worldX(1) - worldX(-1));
-    callouts.setLayout({
-      show: aspect >= CALLOUT_MIN_ASPECT,
-      em: THREE.MathUtils.clamp(
-        CALLOUT_PX / (w / worldW),
-        CALLOUT_EM_MIN,
-        CALLOUT_EM_MAX,
-      ),
-      rightLimit: worldX(CALLOUT_RIGHT_NDC),
-    });
+    // where its centre should land on screen: right side on desktop, top on mobile
+    const cx = mobile ? 0.5 : 1 - fx / 2;
+    const cy = mobile ? MOBILE_CENTER_Y : DESKTOP_CENTER_Y;
+    camera.setViewOffset(
+      w,
+      h,
+      Math.round((0.5 - cx) * w),
+      Math.round((0.5 - cy) * h),
+      w,
+      h,
+    );
+    camera.updateProjectionMatrix();
     renderOnce();
   };
 
-  /* ── timeline ── */
+  /* ── reveal timeline ── */
   let revealStart: number | null = reduced ? -1 : null;
   let wantReveal = false;
   let shadowsPrimed = false;
-  let shadowsFinal = false;
+  let shadowsFrozen = false;
   let shadowTick = 0;
   const shadowEvery = softwareGL ? SHADOW_EVERY * 2 : SHADOW_EVERY;
+  let lastNow = 0;
 
   const getT = (now: number) =>
     reduced
@@ -355,73 +300,78 @@ function mountScene(host: HTMLDivElement): () => void {
 
   const update = (now: number) => {
     const t = getT(now);
-    const time = reduced ? 0 : now / 1000;
+    const time = now * 0.001;
+    const dt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 0.016;
+    lastNow = now;
 
-    // camera: slow push-in, then a tiny idle drift + pointer parallax
-    const e = easeOutQuart(seg(t, 0, 3.2));
-    const d = fitDist * (1 + 0.16 * (1 - e));
-    const drift = reduced ? 0 : e;
+    fog.density = THREE.MathUtils.lerp(
+      FOG_START_DENSITY,
+      FOG_DENSITY,
+      easeOutCubic(seg(t, 0, 2.6)),
+    );
+
+    // camera: a short dolly-in with a small sideways swing, then parallax
+    const e = easeOutQuart(seg(t, 0, 3.0));
+    const dist = fitDist * (1 + 0.42 * (1 - e));
+    camTarget.copy(TARGET);
+    camPos.copy(VIEW_DIR).multiplyScalar(dist).add(TARGET);
+    camPos.x += (1 - e) * 5;
     if (!reduced) {
       pointer.cx += (pointer.x - pointer.cx) * 0.05;
       pointer.cy += (pointer.y - pointer.cy) * 0.05;
+      camPos.x +=
+        pointer.cx * PARALLAX_X * e + Math.sin(now * 0.00012) * 0.3 * e;
+      camPos.y +=
+        -pointer.cy * PARALLAX_Y * e + Math.sin(now * 0.00009) * 0.06 * e;
+      camTarget.x += pointer.cx * 0.5 * e;
     }
-    camPos.set(
-      target.x -
-        d * 0.26 +
-        pointer.cx * PARALLAX_X * drift +
-        Math.sin(now * 0.00011) * 0.5 * drift,
-      Math.max(2.6, target.y - d * 0.14) -
-        pointer.cy * PARALLAX_Y * drift +
-        Math.sin(now * 0.00008) * 0.12 * drift,
-      target.z + d * 0.96,
-    );
     camera.position.copy(camPos);
-    lookAt.set(target.x + pointer.cx * 0.5 * drift, target.y, target.z);
-    camera.lookAt(lookAt);
-    fog.density = fogBase * (1 + 1.1 * (1 - easeOutCubic(seg(t, 0, 3))));
+    camera.lookAt(camTarget);
 
-    // billboard + lamps flicker on, then the bottle tips in and the pour starts
-    const f = flicker(t, 0.3);
-    billboard.setGlow(f);
-    spot.intensity = SPOT_I * f;
-    bottle.pivot.rotation.z = 0.45 * (1 - easeInOut(seg(t, 0.2, 1.3)));
-    stream.setGrow(easeInOut(seg(t, 1.0, 1.5)));
-    splash.setScale(easeOutBack(seg(t, 2.2, 0.7)));
-    callouts.update(t, time, reduced);
+    // the bottle tips over and starts pouring
+    bottle.pivot.rotation.z = THREE.MathUtils.lerp(
+      BOTTLE.startAngle,
+      BOTTLE.angle,
+      easeOutBack(seg(t, 0.15, 1.15), 1.2),
+    );
 
-    // the only things that move while idle
-    stream.update(time);
-    splash.update(time);
+    // billboard lights flicker on
+    const f = flicker(t, 0.45);
+    billboard.panelMat.emissiveIntensity = f * 0.9;
+    billboard.spot.intensity = f * 180;
+    billboard.glowMat.opacity = 0.5 * seg(t, 0.5, 0.9);
+    truck.headMat.color.setScalar(0.12 + 0.88 * flicker(t, 0.9));
 
-    // PERF: the shadow map is NOT redrawn every frame. Refreshed during the
-    // intro (the bottle moves), then frozen — nothing else casts a moving shadow.
+    // liquid: grows down to the hatch, then splashes
+    stream.setGrowth(easeOutQuad(seg(t, 1.3, 0.6)));
+    stream.flow(dt);
+    splash.update(time, easeOutBack(seg(t, 1.85, 0.5)));
+
+    // shadow map: refreshed every few frames while the bottle moves, then frozen
     if (!shadowsPrimed) {
       renderer.shadowMap.needsUpdate = true;
       shadowsPrimed = true;
-      if (t >= SHADOW_FINAL_T) shadowsFinal = true;
-    } else if (!shadowsFinal) {
-      if (t >= SHADOW_FINAL_T) {
+      if (t >= SHADOW_FREEZE_T) shadowsFrozen = true;
+    } else if (t >= 0 && t < SHADOW_FREEZE_T) {
+      if (shadowTick++ % shadowEvery === 0)
         renderer.shadowMap.needsUpdate = true;
-        shadowsFinal = true;
-      } else if (t >= 0 && shadowTick++ % shadowEvery === 0) {
-        renderer.shadowMap.needsUpdate = true;
-      }
+    } else if (t >= SHADOW_FREEZE_T && !shadowsFrozen) {
+      renderer.shadowMap.needsUpdate = true;
+      shadowsFrozen = true;
     }
   };
 
-  /* ═════════════ run / pause logic ═════════════
-   * The loop only runs while the scene is warmed up, the banner is on screen,
-   * the tab is visible and the GPU context is alive. Otherwise: zero GPU work. */
+  /* ── run / pause logic: the loop only runs while the banner is on screen ── */
   let raf = 0;
   let running = false;
   let inView = false;
   let contextLost = false;
-  let disposed = false;
   let lastFrame = 0;
   let lastTick = 0;
   let vsyncMs = 1000 / 60;
   let frameMs = 1000 / TARGET_FPS;
 
+  /* adaptive quality governor: 1) even 30 fps, 2) lower resolution, never below native */
   let govSum = 0;
   let govN = 0;
   let govSkip = GOV_SETTLE;
@@ -439,7 +389,7 @@ function mountScene(host: HTMLDivElement): () => void {
     govSkip = GOV_SETTLE;
     slowWindows = 0;
   };
-  const govern = (dt: number, t: number) => {
+  const govern = (dtMs: number, t: number) => {
     if (reduced) return;
     if (t < ADAPT_AFTER_T) {
       govSum = 0;
@@ -450,12 +400,12 @@ function mountScene(host: HTMLDivElement): () => void {
       govSkip--;
       return;
     }
-    if (dt > 250) {
+    if (dtMs > 250) {
       govSum = 0;
       govN = 0;
       return;
     }
-    govSum += dt;
+    govSum += dtMs;
     govN++;
     if (govN < GOV_WINDOW) return;
     const mean = govSum / govN;
@@ -499,6 +449,7 @@ function mountScene(host: HTMLDivElement): () => void {
     running = true;
     lastFrame = 0;
     lastTick = 0;
+    lastNow = 0;
     govReset();
     raf = requestAnimationFrame(frame);
   };
@@ -507,8 +458,8 @@ function mountScene(host: HTMLDivElement): () => void {
     cancelAnimationFrame(raf);
   };
   const sync = () => {
-    const go = ready && inView && !document.hidden && !contextLost && !reduced;
-    if (go) startLoop();
+    if (ready && revealStart !== null && inView && !contextLost && !reduced)
+      startLoop();
     else stopLoop();
   };
   const beginReveal = () => {
@@ -517,7 +468,9 @@ function mountScene(host: HTMLDivElement): () => void {
     sync();
   };
 
-  /* ═════════════ GPU context loss ═════════════ */
+  let disposed = false;
+
+  /* ── GPU context loss ── */
   const onContextLost = (e: Event) => {
     e.preventDefault();
     contextLost = true;
@@ -531,10 +484,10 @@ function mountScene(host: HTMLDivElement): () => void {
       scene.environment = envTexture;
       applyEnv();
     } catch {
-      /* the scene still renders without the soft env light */
+      /* the scene still renders without the soft reflections */
     }
     shadowsPrimed = false;
-    shadowsFinal = false;
+    shadowsFrozen = false;
     renderer.shadowMap.needsUpdate = true;
     renderOnce();
     sync();
@@ -552,29 +505,30 @@ function mountScene(host: HTMLDivElement): () => void {
   if (finePointer && !reduced) {
     window.addEventListener("pointermove", onMove, { passive: true });
   }
-  document.addEventListener("visibilitychange", sync);
 
   const ro = new ResizeObserver(resize);
   ro.observe(host);
 
-  const section = host.parentElement?.parentElement ?? host;
+  /* visible → render; >= 12 % visible → start the reveal (same trigger as the text) */
   const io = new IntersectionObserver(
     ([entry]) => {
       inView = entry.isIntersecting;
-      if (entry.intersectionRatio >= REVEAL_RATIO) {
+      const seen =
+        entry.intersectionRatio >= 0.12 ||
+        entry.intersectionRect.height > window.innerHeight * 0.5;
+      if (seen && !wantReveal) {
         wantReveal = true;
         if (ready) beginReveal();
       }
       sync();
     },
-    { threshold: [0, REVEAL_RATIO] },
+    { threshold: [0, 0.12] },
   );
-  io.observe(section);
+  io.observe(host);
 
-  /* ═════════════ warm-up: no hitch when the banner scrolls in ═════════════
-   * compile the shaders off the main thread, draw one real frame (uploads all
-   * textures + geometry, builds the first shadow map), THEN allow the intro. */
+  /* ── warm-up: compile shaders off the main thread, upload everything once ── */
   const prewarm = async () => {
+    splash.group.visible = true; // so its material is compiled too
     try {
       const c = renderer as unknown as {
         compileAsync?: (
@@ -594,12 +548,19 @@ function mountScene(host: HTMLDivElement): () => void {
       /* not critical: the first frame compiles whatever is missing */
     }
     if (disposed) return;
+
     ready = true;
     try {
-      update(performance.now());
+      update(performance.now()); // hides the splash again (not revealed yet)
+      splash.group.visible = true;
       renderer.render(scene, camera);
+      splash.group.visible = false;
     } catch {
       /* not critical */
+    }
+    if (reduced) {
+      renderOnce();
+      return;
     }
     if (wantReveal) beginReveal();
     else sync();
@@ -613,7 +574,6 @@ function mountScene(host: HTMLDivElement): () => void {
     stopLoop();
     ro.disconnect();
     io.disconnect();
-    document.removeEventListener("visibilitychange", sync);
     window.removeEventListener("pointermove", onMove);
     renderer.domElement.removeEventListener("webglcontextlost", onContextLost);
     renderer.domElement.removeEventListener(
@@ -621,6 +581,7 @@ function mountScene(host: HTMLDivElement): () => void {
       onContextRestored,
     );
     disposeObject(scene);
+    store.forEach((t) => t.dispose());
     (room as unknown as { dispose?: () => void }).dispose?.();
     envTexture.dispose();
     pmrem.dispose();
@@ -630,7 +591,15 @@ function mountScene(host: HTMLDivElement): () => void {
   };
 }
 
-/* ═══════════════════════════ REACT WRAPPER ════════════════════════════════ */
+/* ═══════════════════════════ REACT WRAPPER ════════════════════════════════
+ * The WebGL scene is NOT created at page load (that would compete with the hero
+ * intro). It is built shortly before the banner scrolls into view, in an idle
+ * moment, and torn down again when the component unmounts. */
+
+interface IdleWindow {
+  requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+  cancelIdleCallback?: (id: number) => void;
+}
 
 interface PreFooterSceneProps {
   className?: string;
@@ -644,27 +613,37 @@ export const PreFooterScene: React.FC<PreFooterSceneProps> = ({
   useEffect(() => {
     const host = hostRef.current;
     if (!host) return;
-    let stop: (() => void) | null = null;
 
-    // Lazy: nothing is built (no WebGL context, no textures) until the banner
-    // is close to the viewport, so the hero / about scenes load first.
-    if (typeof IntersectionObserver === "undefined") {
-      stop = mountScene(host);
-      return () => stop?.();
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (stop || !entries.some((e) => e.isIntersecting)) return;
-        io.disconnect();
-        stop = mountScene(host);
+    const w = window as unknown as IdleWindow;
+    let cancelled = false;
+    let dispose: (() => void) | null = null;
+    let idleId = 0;
+    let timerId = 0;
+
+    const start = () => {
+      if (cancelled || dispose) return;
+      dispose = createScene(host);
+    };
+
+    const nearIO = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        nearIO.disconnect();
+        if (w.requestIdleCallback)
+          idleId = w.requestIdleCallback(start, { timeout: 800 });
+        else timerId = window.setTimeout(start, 60);
       },
-      { rootMargin: MOUNT_MARGIN },
+      { rootMargin: "120% 0px 120% 0px" },
     );
-    io.observe(host);
+    nearIO.observe(host);
+
     return () => {
-      io.disconnect();
-      stop?.();
-      stop = null;
+      cancelled = true;
+      nearIO.disconnect();
+      if (idleId && w.cancelIdleCallback) w.cancelIdleCallback(idleId);
+      if (timerId) window.clearTimeout(timerId);
+      dispose?.();
+      dispose = null;
     };
   }, []);
 
