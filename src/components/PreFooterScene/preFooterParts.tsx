@@ -270,53 +270,110 @@ function makeGlowTexture(store: TexStore) {
   return toTexture(store, canvas, false, 1);
 }
 
+/* The logo printed on the bottle label. Put the file in public/images/logo/.
+   The first name that exists is used; if none loads, the label keeps the word
+   "KENNU" (so the bottle never ends up with an empty label). */
+const LABEL_LOGO_SRCS = [
+  "/images/logo/KE-LOGO-.png",
+  "/images/logo/KE-LOGO.png",
+];
+
 function makeLabelTexture(store: TexStore) {
   const W = 640;
   const H = 512;
   const { canvas, ctx } = makeCanvas(W, H);
-  ctx.clearRect(0, 0, W, H);
-  // paper with a scalloped top edge (alpha-tested on the material)
-  ctx.fillStyle = "#dcdde1";
-  ctx.beginPath();
-  ctx.moveTo(0, H);
-  ctx.lineTo(0, 46);
-  const n = 14;
-  const sw = W / n;
-  for (let i = 0; i < n; i++)
-    ctx.arc(sw * i + sw / 2, 46, sw / 2, Math.PI, 0, false);
-  ctx.lineTo(W, H);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = "#2a2b2f";
-  ctx.lineWidth = 3;
-  ctx.strokeRect(26, 92, W - 52, H - 128);
 
-  ctx.textAlign = "center";
-  ctx.textBaseline = "alphabetic";
-  ctx.fillStyle = "#4a4c52";
-  ctx.font = `600 24px ${SANS}`;
-  setSpacing(ctx, 5);
-  ctx.fillText("ELNAR · EST. 2026", W / 2, 152);
-  ctx.fillStyle = "#15161a";
-  ctx.font = `800 128px Georgia, "Times New Roman", serif`;
-  setSpacing(ctx, 2);
-  ctx.fillText("KENNU", W / 2, 272);
-  ctx.fillStyle = "#2a2b2f";
-  ctx.fillRect(W / 2 - 150, 296, 300, 3);
-  ctx.fillStyle = "#4a4c52";
-  ctx.font = `600 25px ${SANS}`;
-  setSpacing(ctx, 4);
-  ctx.fillText("QUALITY ASSURANCE · WEB", W / 2, 340);
-  // wax seal
-  ctx.fillStyle = "#17181b";
-  ctx.beginPath();
-  ctx.arc(W / 2, 410, 36, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = "#d9dbe0";
-  ctx.font = `700 40px ${SANS}`;
-  setSpacing(ctx, 0);
-  ctx.fillText("★", W / 2, 424);
-  return toTexture(store, canvas);
+  /** Draws the whole label. `logo` = the loaded KE logo (null = fallback text). */
+  const paint = (logo: HTMLImageElement | null) => {
+    ctx.clearRect(0, 0, W, H);
+    // paper with a scalloped top edge (alpha-tested on the material)
+    ctx.fillStyle = "#dcdde1";
+    ctx.beginPath();
+    ctx.moveTo(0, H);
+    ctx.lineTo(0, 46);
+    const n = 14;
+    const sw = W / n;
+    for (let i = 0; i < n; i++)
+      ctx.arc(sw * i + sw / 2, 46, sw / 2, Math.PI, 0, false);
+    ctx.lineTo(W, H);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "#2a2b2f";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(26, 92, W - 52, H - 128);
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "#4a4c52";
+    ctx.font = `600 24px ${SANS}`;
+    setSpacing(ctx, 5);
+    ctx.fillText("ELNAR · EST. 2026", W / 2, 126);
+
+    // the print: a gray plate with the (white) logo on it, as big as the label allows
+    const PX = 140;
+    const PY = 138;
+    const PW = 360;
+    const PH = 254;
+    ctx.fillStyle = "#3f4147";
+    if (typeof ctx.roundRect === "function") {
+      ctx.beginPath();
+      ctx.roundRect(PX, PY, PW, PH, 18);
+      ctx.fill();
+    } else {
+      ctx.fillRect(PX, PY, PW, PH); // older browsers: square corners
+    }
+    if (logo && logo.naturalWidth > 0 && logo.naturalHeight > 0) {
+      const maxW = PW - 28;
+      const maxH = PH - 24;
+      const k = Math.min(maxW / logo.naturalWidth, maxH / logo.naturalHeight);
+      const lw = logo.naturalWidth * k;
+      const lh = logo.naturalHeight * k;
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(logo, PX + (PW - lw) / 2, PY + (PH - lh) / 2, lw, lh);
+    } else {
+      // fallback while the logo loads (or if it cannot be found)
+      ctx.fillStyle = "#ffffff";
+      ctx.textBaseline = "middle";
+      ctx.font = `800 84px Georgia, "Times New Roman", serif`;
+      setSpacing(ctx, 2);
+      ctx.fillText("KENNU", W / 2, PY + PH / 2 + 4);
+      ctx.textBaseline = "alphabetic";
+    }
+
+    ctx.fillStyle = "#4a4c52";
+    ctx.font = `600 23px ${SANS}`;
+    setSpacing(ctx, 4);
+    ctx.fillText("QUALITY ASSURANCE · WEB", W / 2, 420);
+    // wax seal
+    ctx.fillStyle = "#17181b";
+    ctx.beginPath();
+    ctx.arc(W / 2, 449, 19, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#d9dbe0";
+    ctx.font = `700 24px ${SANS}`;
+    setSpacing(ctx, 0);
+    ctx.fillText("★", W / 2, 457);
+  };
+
+  paint(null);
+  const tex = toTexture(store, canvas);
+
+  // load the logo and re-print the label once it is there
+  const tryLoad = (i: number) => {
+    if (i >= LABEL_LOGO_SRCS.length) return; // keeps the fallback text
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => {
+      paint(img);
+      tex.needsUpdate = true;
+    };
+    img.onerror = () => tryLoad(i + 1);
+    img.src = LABEL_LOGO_SRCS[i];
+  };
+  tryLoad(0);
+
+  return tex;
 }
 
 function makeFlowTexture(store: TexStore) {
