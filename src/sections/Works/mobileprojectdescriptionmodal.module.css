@@ -129,7 +129,7 @@
 
 /* Title now WRAPS (no more "Manufac…" cut-off) and uses a smaller mobile size */
 .dialogTitle {
-  font-family: var(--font-serif);
+  font-family: "Kaushan Script", "Caveat", cursive;
   font-size: clamp(0.98rem, 4.4vw, 1.15rem);
   font-weight: 400;
   color: var(--text-primary);

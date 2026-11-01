@@ -183,13 +183,29 @@ export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
   onBackRef.current = onBack;
 
   // Lock body scroll ONCE while this overlay is mounted (hindi na nagre-run kapag nagbukas ng modal)
+  // <html> AND <body> are both locked, so the page behind never scrolls (not even
+  // when this page is scrolled to its top / bottom limit).
   useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const html = document.documentElement;
+    const body = document.body;
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+      bodyOverscroll: body.style.overscrollBehavior,
+    };
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    body.style.overscrollBehavior = "none";
     return () => {
-      // safety: huwag kailanman ibalik ang "hidden" sa body
-      document.body.style.overflow =
-        prevOverflow === "hidden" ? "" : prevOverflow;
+      // safety: huwag kailanman ibalik ang "hidden" sa html / body
+      html.style.overflow =
+        prev.htmlOverflow === "hidden" ? "" : prev.htmlOverflow;
+      body.style.overflow =
+        prev.bodyOverflow === "hidden" ? "" : prev.bodyOverflow;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+      body.style.overscrollBehavior = prev.bodyOverscroll;
     };
   }, []);
 

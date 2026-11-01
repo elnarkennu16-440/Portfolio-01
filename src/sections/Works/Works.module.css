@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap");
+
 .worksSection {
   position: relative;
   /* Rises OVER the sticky About (About is z-index 2). */
@@ -85,16 +87,18 @@
 }
 
 .sectionTitle {
-  font-family: var(--font-serif);
+  font-family: "Kaushan Script", "Caveat", cursive;
   font-size: clamp(1.6rem, 5vw, var(--text-3xl));
-  font-weight: 300;
-  letter-spacing: var(--tracking-wide);
+  font-weight: 400;
+  letter-spacing: 0.01em;
   color: var(--text-primary);
-  text-transform: uppercase;
-  /* the "mask line": letters rise from under this box (wave reveal) */
+  text-transform: none;
+  /* the "mask line": letters rise from under this box (wave reveal).
+     Extra room right + bottom so the script letters are never clipped
+     (padding and negative margin cancel out, so the layout does not move). */
   overflow: hidden;
-  padding: 0.1em 0 0.24em;
-  margin: -0.1em 0 -0.24em;
+  padding: 0.1em 0.15em 0.3em 0;
+  margin: -0.1em -0.15em -0.3em 0;
 }
 
 /* =========================================================================
@@ -805,7 +809,7 @@
 }
 
 .projectTitle {
-  font-family: var(--font-serif);
+  font-family: "Kaushan Script", "Caveat", cursive;
   font-size: clamp(1rem, 2.2vw, 1.25rem);
   font-weight: 400;
   line-height: var(--leading-snug);

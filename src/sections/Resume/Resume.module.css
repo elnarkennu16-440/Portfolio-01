@@ -7,6 +7,12 @@
 .resumeOverlay {
   position: fixed;
   inset: 0;
+  /* always exactly the visible screen (follows the phone's browser bar), so the
+     page behind can never peek out at the bottom */
+  height: 100vh;
+  height: 100dvh;
+  /* scrolling inside never "chains" to the page behind */
+  overscroll-behavior: contain;
   z-index: 100000;
   background-color: var(--bg-primary, #09090b);
   color: var(--text-primary, #f4f4f5);
@@ -137,16 +143,14 @@
 /* Minimalist centered title */
 /* Minimalist centered title (serif, same family as site headings) */
 .mainTitle {
-  font-family:
-    var(--font-serif, var(--font-heading, var(--font-display))),
-    "Cormorant Garamond", "Cormorant", Georgia, "Times New Roman", serif;
+  font-family: "Kaushan Script", "Caveat", cursive;
   font-size: clamp(
     2.5rem,
     5vw,
     4rem
   ); /* mas malaki kaysa dati, kasi mas maliit tingnan ang serif */
-  font-weight: 500;
-  letter-spacing: 0.16em;
+  font-weight: 400;
+  letter-spacing: 0.02em;
   line-height: 1.1;
   text-align: center;
   color: var(--text-primary, #ffffff);
@@ -453,6 +457,7 @@
 .previewModalBody {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 1rem;
   background-color: var(--bg-primary, #09090b);
   display: flex;
@@ -531,7 +536,7 @@
 
   .mainTitle {
     font-size: 1.15rem;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.02em;
     margin: 0 0 0.5rem 0;
   }
 

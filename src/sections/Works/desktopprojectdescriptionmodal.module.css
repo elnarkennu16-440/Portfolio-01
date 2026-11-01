@@ -120,7 +120,7 @@
 
 /* Title now WRAPS instead of being cut with "…" */
 .dialogTitle {
-  font-family: var(--font-serif);
+  font-family: "Kaushan Script", "Caveat", cursive;
   font-size: clamp(1.45rem, 2.6vw, 1.85rem);
   font-weight: 400;
   color: var(--text-primary);

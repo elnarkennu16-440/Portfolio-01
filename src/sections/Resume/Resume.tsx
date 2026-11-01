@@ -74,10 +74,24 @@ export const Resume: React.FC<ResumeProps> = ({
   }, []);
 
   const isPaperScaled = paperFit.height !== null;
-  // Lock background scroll while Resume subpage is open
+  // Lock background scroll while Resume subpage is open.
+  // Both <html> and <body> are locked: if the site's global CSS sets overflow on
+  // <html> (e.g. overflow-x: hidden), locking only <body> does NOT stop the page
+  // behind from scrolling on phones. That scroll also collapses the browser bar,
+  // which made the fixed overlay come up short and exposed the page behind it.
   useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const html = document.documentElement;
+    const body = document.body;
+    const prev = {
+      htmlOverflow: html.style.overflow,
+      bodyOverflow: body.style.overflow,
+      htmlOverscroll: html.style.overscrollBehavior,
+      bodyOverscroll: body.style.overscrollBehavior,
+    };
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    body.style.overscrollBehavior = "none";
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -91,7 +105,10 @@ export const Resume: React.FC<ResumeProps> = ({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.body.style.overflow = originalOverflow;
+      html.style.overflow = prev.htmlOverflow;
+      body.style.overflow = prev.bodyOverflow;
+      html.style.overscrollBehavior = prev.htmlOverscroll;
+      body.style.overscrollBehavior = prev.bodyOverscroll;
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [onBack, isPreviewOpen]);
@@ -346,10 +363,7 @@ export const Resume: React.FC<ResumeProps> = ({
 
                 {/* PROJECTS */}
                 <section className={styles.docSection}>
-                  <div className={styles.sectionTitleRow}>
-                    <h3 className={styles.docSectionTitle}>Projects</h3>
-                    <span className={styles.sectionTitleMeta}>2024 - 2026</span>
-                  </div>
+                  <h3 className={styles.docSectionTitle}>Projects</h3>
 
                   <div className={styles.row}>
                     <span>
@@ -358,6 +372,7 @@ export const Resume: React.FC<ResumeProps> = ({
                       </span>{" "}
                       | React (Vite), PHP, Laravel, MySQL, Tailwind CSS
                     </span>
+                    <span>2024 - 2026</span>
                   </div>
                   <ul className={styles.bullets}>
                     <li>

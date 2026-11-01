@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap");
+
 .capabilitiesSection {
   position: relative;
   padding-top: clamp(var(--space-12), 6vh, var(--space-20));
@@ -97,12 +99,12 @@
 }
 
 .sectionTitle {
-  font-family: var(--font-serif);
+  font-family: "Kaushan Script", "Caveat", cursive;
   font-size: clamp(1.6rem, 5vw, var(--text-3xl));
-  font-weight: 300;
-  letter-spacing: var(--tracking-wide);
+  font-weight: 400;
+  letter-spacing: 0.01em;
   color: var(--text-primary);
-  text-transform: uppercase;
+  text-transform: none;
   clip-path: inset(0 100% 0 0);
   transition: clip-path 1.25s var(--ease-slowmo);
 }
@@ -390,12 +392,12 @@
   --t3d-1: #484b52;
   --t3d-2: #393b41;
 
-  font-family: var(--font-serif);
+  font-family: "Kaushan Script", "Caveat", cursive;
   font-size: clamp(1rem, 2.8vw, 1.2rem);
   font-weight: 400;
   line-height: 1.2;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: none;
   color: var(--text-primary);
   /* no shadow / glow on the title letters */
   text-shadow: none;

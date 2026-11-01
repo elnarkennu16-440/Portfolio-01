@@ -3,9 +3,12 @@
   inset: 0;
   width: 100%;
   height: 100vh;
+  height: 100dvh;
   z-index: 900;
   overflow-y: auto;
   overflow-x: hidden;
+  /* scrolling to the top / bottom limit never "chains" to the page behind */
+  overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   background-color: var(--bg-primary);
   color: var(--text-primary);
@@ -170,12 +173,12 @@
 }
 
 .pageTitle {
-  font-family: var(--font-serif);
+  font-family: "Kaushan Script", "Caveat", cursive;
   font-size: clamp(1.35rem, 2.6vw, 1.85rem);
-  font-weight: 300;
-  letter-spacing: var(--tracking-wide);
+  font-weight: 400;
+  letter-spacing: 0.01em;
   color: var(--text-primary);
-  text-transform: uppercase;
+  text-transform: none;
   line-height: 1.2;
   margin: 0;
   text-align: left;
@@ -565,9 +568,9 @@
 }
 
 .cardTitle {
-  font-family: var(--font-serif);
+  font-family: "Kaushan Script", "Caveat", cursive;
   font-size: 0.92rem;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 1.3;
   color: var(--text-primary);
   margin: 0;
@@ -685,12 +688,12 @@
 }
 
 .otherSectionTitle {
-  font-family: var(--font-serif);
+  font-family: "Kaushan Script", "Caveat", cursive;
   font-size: clamp(1.15rem, 2.2vw, 1.45rem);
-  font-weight: 300;
-  letter-spacing: var(--tracking-wide);
+  font-weight: 400;
+  letter-spacing: 0.01em;
   color: var(--text-primary);
-  text-transform: uppercase;
+  text-transform: none;
   line-height: 1.2;
   margin: 0;
 }
@@ -738,7 +741,7 @@
 }
 
 .otherItemTitle {
-  font-family: var(--font-serif);
+  font-family: "Kaushan Script", "Caveat", cursive;
   font-size: 1.05rem;
   font-weight: 400;
   color: var(--text-primary);
@@ -914,7 +917,7 @@
 
   .cardTitle {
     font-size: 0.76rem;
-    font-weight: 500;
+    font-weight: 400;
     line-height: 1.3;
     color: var(--text-primary);
     display: -webkit-box;

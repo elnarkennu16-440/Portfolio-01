@@ -142,6 +142,7 @@ export interface CalloutLayoutOptions {
 }
 
 export interface Callouts {
+  setTheme: (mode: "dark" | "light") => void;
   layout: (o: CalloutLayoutOptions) => void;
   /** t = seconds since the reveal started (−1 before it), time = clock in seconds. */
   update: (camera: THREE.Camera, t: number, time: number) => void;
@@ -153,6 +154,7 @@ export function buildCallouts(host: HTMLElement): Callouts {
   const ctx = canvas.getContext("2d");
   if (!ctx) {
     return {
+      setTheme: () => undefined,
       layout: () => undefined,
       update: () => undefined,
       dispose: () => undefined,
@@ -212,6 +214,7 @@ export function buildCallouts(host: HTMLElement): Callouts {
   let lh = 16;
   let lineW = 1.3;
   let drawn = false;
+  let light = false; // light theme: dark ink on the white street
   const v = new THREE.Vector3();
 
   const project = (
@@ -324,7 +327,7 @@ export function buildCallouts(host: HTMLElement): Callouts {
   const update = (camera: THREE.Camera, t: number, time: number) => {
     let any = false;
     for (let i = 0; i < items.length; i++) {
-      if (seg(t, 1.9 + i * 0.09, 0.65) > 0.001) {
+      if (seg(t, 2.2 + i * 0.08, 0.6) > 0.001) {
         any = true;
         break;
       }
@@ -341,11 +344,12 @@ export function buildCallouts(host: HTMLElement): Callouts {
     ctx.clearRect(0, 0, W, H);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
+    const ink = light ? "#16171a" : "#ffffff";
     ctx.font = `600 ${fontPx}px ${family}`;
     ctx.textBaseline = "middle";
 
     items.forEach((it, i) => {
-      const p = seg(t, 1.9 + i * 0.09, 0.65);
+      const p = seg(t, 2.2 + i * 0.08, 0.6);
       if (p <= 0.001) return;
       const e = easeOutCubic(p);
 
@@ -377,30 +381,41 @@ export function buildCallouts(host: HTMLElement): Callouts {
 
       // line (pure white, anti-aliased by the browser)
       ctx.globalAlpha = Math.min(1, p * 2);
-      ctx.strokeStyle = "#ffffff";
+      ctx.strokeStyle = ink;
       ctx.lineWidth = lineW;
       ctx.beginPath();
       ctx.moveTo(a0.x, a0.y);
       ctx.lineTo(cx, cy);
       ctx.stroke();
 
-      // dot on the glass
-      ctx.fillStyle = "#ffffff";
-      ctx.beginPath();
-      ctx.arc(a0.x, a0.y, 2.6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.lineWidth = 1;
-      ctx.globalAlpha = Math.min(1, p * 2) * 0.5;
-      ctx.beginPath();
-      ctx.arc(a0.x, a0.y, 5.5, 0, Math.PI * 2);
-      ctx.stroke();
+      // dot on the glass (light theme: white dot with a dark ring, visible on dark glass)
+      if (light) {
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(a0.x, a0.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.arc(a0.x, a0.y, 3.3, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(a0.x, a0.y, 2.6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = Math.min(1, p * 2) * 0.5;
+        ctx.beginPath();
+        ctx.arc(a0.x, a0.y, 5.5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
 
       // text (fades in once the line has almost arrived)
       const op = seg(p, 0.45, 0.55);
       if (op > 0.001) {
         ctx.globalAlpha = op;
-        ctx.fillStyle = "#ffffff";
-        ctx.shadowColor = "rgba(0,0,0,0.7)";
+        ctx.fillStyle = ink;
+        ctx.shadowColor = light ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.7)";
         ctx.shadowBlur = 5;
         ctx.shadowOffsetY = 1;
         const al = it.def.align;
@@ -419,9 +434,13 @@ export function buildCallouts(host: HTMLElement): Callouts {
     ctx.globalAlpha = 1;
   };
 
+  const setTheme = (mode: "dark" | "light") => {
+    light = mode === "light";
+  };
+
   const dispose = () => {
     canvas.remove();
   };
 
-  return { layout, update, dispose };
+  return { setTheme, layout, update, dispose };
 }

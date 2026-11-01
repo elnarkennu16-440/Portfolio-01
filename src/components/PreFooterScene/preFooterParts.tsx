@@ -24,6 +24,7 @@ export type Rand = () => number;
 export type TexStore = THREE.Texture[];
 /** [material, envMapIntensity] — the scene feeds these the PMREM environment. */
 export type EnvUser = [THREE.MeshStandardMaterial, number];
+export type ThemeMode = "dark" | "light";
 
 const SANS = `"Helvetica Neue", Helvetica, Arial, sans-serif`;
 const MONO = `ui-monospace, "SF Mono", Menlo, Consolas, monospace`;
@@ -136,13 +137,13 @@ export function disposeObject(root: THREE.Object3D) {
 
 /* ═══════════════════════════ TEXTURES ═════════════════════════════════════ */
 
-function makeAsphalt(store: TexStore, rand: Rand, k = 1) {
+function makeAsphalt(store: TexStore, rand: Rand, k = 1, light = false) {
   const S = 512;
   const { canvas, ctx } = makeCanvas(S, S);
-  ctx.fillStyle = "#18181b";
+  ctx.fillStyle = light ? "#d7d9de" : "#18181b";
   ctx.fillRect(0, 0, S, S);
   for (let i = 0; i < Math.round(22000 * k); i++) {
-    const v = 30 + Math.floor(rand() * 70);
+    const v = (light ? 150 : 30) + Math.floor(rand() * (light ? 60 : 70));
     ctx.fillStyle = `rgba(${v},${v},${v + 3},${0.18 + rand() * 0.4})`;
     const size = rand() < 0.08 ? 2 : 1;
     ctx.fillRect(Math.floor(rand() * S), Math.floor(rand() * S), size, size);
@@ -152,25 +153,30 @@ function makeAsphalt(store: TexStore, rand: Rand, k = 1) {
     const y = rand() * S;
     const r = 40 + rand() * 90;
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g.addColorStop(0, `rgba(0,0,0,${0.18 + rand() * 0.2})`);
-    g.addColorStop(1, "rgba(0,0,0,0)");
+    g.addColorStop(
+      0,
+      light
+        ? `rgba(110,114,122,${0.1 + rand() * 0.12})`
+        : `rgba(0,0,0,${0.18 + rand() * 0.2})`,
+    );
+    g.addColorStop(1, light ? "rgba(110,114,122,0)" : "rgba(0,0,0,0)");
     ctx.fillStyle = g;
     ctx.fillRect(x - r, y - r, r * 2, r * 2);
   }
   return toTexture(store, canvas, true);
 }
 
-function makeHillTexture(store: TexStore, rand: Rand, k = 1) {
+function makeHillTexture(store: TexStore, rand: Rand, k = 1, light = false) {
   const S = 512;
   const { canvas, ctx } = makeCanvas(S, S);
-  ctx.fillStyle = "#2f3034";
+  ctx.fillStyle = light ? "#b8bbc1" : "#2f3034";
   ctx.fillRect(0, 0, S, S);
   for (let i = 0; i < Math.round(16000 * k); i++) {
-    const v = 55 + Math.floor(rand() * 70);
+    const v = (light ? 130 : 55) + Math.floor(rand() * 70);
     ctx.fillStyle = `rgba(${v},${v},${v + 4},${0.15 + rand() * 0.3})`;
     ctx.fillRect(rand() * S, rand() * S, 1 + rand() * 2, 1 + rand() * 2);
   }
-  ctx.strokeStyle = "rgba(15,15,17,0.28)";
+  ctx.strokeStyle = light ? "rgba(70,74,82,0.22)" : "rgba(15,15,17,0.28)";
   for (let i = 0; i < 70; i++) {
     ctx.lineWidth = 1 + rand() * 2;
     ctx.beginPath();
@@ -183,26 +189,26 @@ function makeHillTexture(store: TexStore, rand: Rand, k = 1) {
   return toTexture(store, canvas, true);
 }
 
-function makePanelTexture(store: TexStore, small = false) {
+function makePanelTexture(store: TexStore, small = false, light = false) {
   const W = 2048;
   const H = Math.round((W * PANEL.h) / PANEL.w);
   const sc = small ? 0.5 : 1; // phones get a half-size board texture (drawn scaled)
   const { canvas, ctx } = makeCanvas(Math.round(W * sc), Math.round(H * sc));
   ctx.scale(sc, sc);
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, "#151517");
-  g.addColorStop(1, "#0a0a0c");
+  g.addColorStop(0, light ? "#eceef1" : "#151517");
+  g.addColorStop(1, light ? "#dcdee3" : "#0a0a0c");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = "rgba(255,255,255,0.02)";
+  ctx.fillStyle = light ? "rgba(0,0,0,0.03)" : "rgba(255,255,255,0.02)";
   for (let y = 0; y < H; y += 8) ctx.fillRect(0, y, W, 1);
-  ctx.strokeStyle = "rgba(255,255,255,0.09)";
+  ctx.strokeStyle = light ? "rgba(0,0,0,0.16)" : "rgba(255,255,255,0.09)";
   ctx.lineWidth = 3;
   ctx.strokeRect(34, 34, W - 68, H - 68);
 
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
-  ctx.fillStyle = "rgba(214,216,222,0.92)";
+  ctx.fillStyle = light ? "rgba(24,25,28,0.92)" : "rgba(214,216,222,0.92)";
   ctx.font = `700 36px ${SANS}`;
   setSpacing(ctx, 3);
   ctx.fillText(
@@ -210,7 +216,7 @@ function makePanelTexture(store: TexStore, small = false) {
     96,
     H - 124,
   );
-  ctx.fillStyle = "rgba(214,216,222,0.42)";
+  ctx.fillStyle = light ? "rgba(24,25,28,0.5)" : "rgba(214,216,222,0.42)";
   ctx.font = `500 21px ${MONO}`;
   setSpacing(ctx, 2);
   ctx.fillText("© 2026 KENNU ELNAR — QA ENGINEER & WEB DEVELOPER", 96, H - 82);
@@ -352,15 +358,13 @@ export function buildGround(store: TexStore, rand: Rand, small = false) {
 
   const groundTex = makeAsphalt(store, rand, small ? 0.55 : 1);
   groundTex.repeat.set(70, 70);
-  const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(700, 700),
-    new THREE.MeshStandardMaterial({
-      map: groundTex,
-      color: 0xb4b4ba,
-      roughness: 0.92,
-      metalness: 0,
-    }),
-  );
+  const groundMat = new THREE.MeshStandardMaterial({
+    map: groundTex,
+    color: 0xb4b4ba,
+    roughness: 0.92,
+    metalness: 0,
+  });
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(700, 700), groundMat);
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.02;
   ground.receiveShadow = true;
@@ -378,23 +382,25 @@ export function buildGround(store: TexStore, rand: Rand, small = false) {
     pos.setY(i, hillH(pos.getX(i), pos.getZ(i)));
   }
   hillGeo.computeVertexNormals();
-  const hill = new THREE.Mesh(
-    hillGeo,
-    new THREE.MeshStandardMaterial({
-      map: hillTex,
-      color: 0xb0b0b6,
-      roughness: 1,
-      metalness: 0,
-    }),
-  );
+  const hillMat = new THREE.MeshStandardMaterial({
+    map: hillTex,
+    color: 0xb0b0b6,
+    roughness: 1,
+    metalness: 0,
+  });
+  const hill = new THREE.Mesh(hillGeo, hillMat);
   hill.receiveShadow = true;
   group.add(hill);
 
   // dark tree clumps on the slope (one draw call)
   const COUNT = 90;
+  const treeMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1b1e,
+    roughness: 1,
+  });
   const trees = new THREE.InstancedMesh(
     new THREE.SphereGeometry(1, 7, 5),
-    new THREE.MeshStandardMaterial({ color: 0x1a1b1e, roughness: 1 }),
+    treeMat,
     COUNT,
   );
   const m = new THREE.Matrix4();
@@ -412,7 +418,27 @@ export function buildGround(store: TexStore, rand: Rand, small = false) {
   }
   group.add(trees);
 
-  return { group };
+  // light mode: pale concrete lot + pale hillside (drawn on first use, own seeds,
+  // so the dark layout above never changes)
+  let groundLight: THREE.Texture | null = null;
+  let hillLight: THREE.Texture | null = null;
+  const setTheme = (mode: ThemeMode) => {
+    const light = mode === "light";
+    if (light && !groundLight) {
+      const q = small ? 0.55 : 1;
+      groundLight = makeAsphalt(store, mulberry32(61001), q, true);
+      groundLight.repeat.set(70, 70);
+      hillLight = makeHillTexture(store, mulberry32(61002), q, true);
+      hillLight.repeat.set(26, 10);
+    }
+    groundMat.map = light ? groundLight : groundTex;
+    groundMat.color.setHex(light ? 0xdcdde1 : 0xb4b4ba);
+    hillMat.map = light ? hillLight : hillTex;
+    hillMat.color.setHex(light ? 0xe6e7ea : 0xb0b0b6);
+    treeMat.color.setHex(light ? 0x8d9097 : 0x1a1b1e);
+  };
+
+  return { group, setTheme };
 }
 
 /* ═══════════════════════════ BILLBOARD ════════════════════════════════════ */
@@ -563,7 +589,25 @@ export function buildBillboard(store: TexStore, small = false) {
   worker.add(armUp, head);
   group.add(worker);
 
-  return { group, panelMat, spot, glowMat };
+  // light mode: a pale board with dark print (dark frame, dark worker)
+  const look = { panelEmissive: 0.9, spot: 180, glow: 0.5 };
+  let panelLight: THREE.Texture | null = null;
+  const setTheme = (mode: ThemeMode) => {
+    const light = mode === "light";
+    if (light && !panelLight) panelLight = makePanelTexture(store, small, true);
+    const tex = light ? panelLight : panelTex;
+    panelMat.map = tex;
+    panelMat.emissiveMap = tex;
+    panelMat.color.setHex(light ? 0xdcdde1 : 0x8a8a8a);
+    look.panelEmissive = light ? 0.1 : 0.9;
+    look.spot = light ? 70 : 180;
+    look.glow = light ? 0.15 : 0.5;
+    vest.color.setHex(light ? 0x2a2b2f : 0xc9cbd0);
+    pants.color.setHex(light ? 0x121316 : 0x2c2d31);
+    skin.color.setHex(light ? 0x6a6c73 : 0x8d8f95);
+  };
+
+  return { group, panelMat, spot, glowMat, look, setTheme };
 }
 
 /* ═══════════════════════════ GIANT BOTTLE ═════════════════════════════════ */
@@ -729,7 +773,12 @@ export function buildBottle(store: TexStore) {
     [glassMat, 1.3],
     [capMat, 0.9],
   ];
-  return { rig, pivot, envMats };
+  const setTheme = (mode: ThemeMode) => {
+    const light = mode === "light";
+    liquidMat.color.setHex(light ? 0x6a6d75 : 0xc4c7cd);
+    liquidMat.emissive.setHex(light ? 0x1c1d20 : 0x4a4c52);
+  };
+  return { rig, pivot, envMats, setTheme };
 }
 
 /* ═══════════════════════════ TANKER TRUCK ═════════════════════════════════ */
@@ -899,7 +948,13 @@ export function buildTruck() {
   group.add(tyres, hubs);
 
   const envMats: EnvUser[] = [[chrome, 1.6]];
-  return { group, headMat, envMats };
+  // light mode: gray metal tank + dark cab (black / gray accents on the white street)
+  const setTheme = (mode: ThemeMode) => {
+    const light = mode === "light";
+    chrome.color.setHex(light ? 0x9a9ea6 : 0xc4c7ce);
+    cabMat.color.setHex(light ? 0x2a2b2f : 0xd2d4da);
+  };
+  return { group, headMat, envMats, setTheme };
 }
 
 /* ═══════════════════════════ STREAM + SPLASH ══════════════════════════════ */
@@ -948,7 +1003,12 @@ export function buildStream(store: TexStore) {
   const flow = (dt: number) => {
     tex.offset.x = (tex.offset.x - dt * 1.6) % 1;
   };
-  return { mesh, setGrowth, flow };
+  const setTheme = (mode: ThemeMode) => {
+    const light = mode === "light";
+    mat.color.setHex(light ? 0x555860 : 0xffffff);
+    mat.emissive.setHex(light ? 0x0c0c0e : 0x2c2e33);
+  };
+  return { mesh, setGrowth, flow, setTheme };
 }
 
 export function buildSplash() {
@@ -1035,7 +1095,12 @@ export function buildSplash() {
     tips.instanceMatrix.needsUpdate = true;
     drops.instanceMatrix.needsUpdate = true;
   };
-  return { group, update };
+  const setTheme = (m: ThemeMode) => {
+    const light = m === "light";
+    mat.color.setHex(light ? 0x4a4d54 : 0xd4d7dd);
+    mat.emissive.setHex(light ? 0x101012 : 0x30323a);
+  };
+  return { group, update, setTheme };
 }
 
 /* ═══════════════════════════ PROPS: fence, palms, wires ═══════════════════ */

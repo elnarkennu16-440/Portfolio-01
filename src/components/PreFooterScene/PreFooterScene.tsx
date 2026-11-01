@@ -15,18 +15,43 @@ import {
   disposeObject,
   mulberry32,
 } from "./preFooterParts";
-import type { EnvUser, TexStore } from "./preFooterParts";
+import type { EnvUser, TexStore, ThemeMode } from "./preFooterParts";
 import { buildCallouts } from "./preFooterCallouts";
 import type { Callouts } from "./preFooterCallouts";
 
 /* ═══════════════════════════ TUNING ═══════════════════════════════════════ */
 const BG = 0x0b0b0d; // same as the banner section background
 const FOG_DENSITY = 0.011;
-const FOG_START_DENSITY = 0.05;
+const FOG_START_DENSITY = 0.02; // light haze: the scene is visible from the very first frame
 const FOV = 30;
 const EXPOSURE = 0.95;
 const KEY_INTENSITY = 2.4;
 const RIM_INTENSITY = 1.1;
+
+/* dark = the original look. light = a white street (same camera, same objects),
+   same recipe as the hero scene's light mode. */
+const LOOK = {
+  dark: {
+    bg: 0x0b0b0d,
+    exposure: 0.95,
+    hemiSky: 0x59606c,
+    hemiGround: 0x0a0a0b,
+    hemi: 0.55,
+    env: 0.3,
+    key: 2.4,
+    rim: 1.1,
+  },
+  light: {
+    bg: 0xf3f4f6, // keep in sync with the light background in PreFooterScene.module.css
+    exposure: 1.0,
+    hemiSky: 0xffffff,
+    hemiGround: 0xc4c7ce,
+    hemi: 1.15,
+    env: 0.55,
+    key: 2.2,
+    rim: 0.7,
+  },
+} as const;
 
 /* where the scene sits inside the banner (fractions of the banner box) */
 const DESKTOP_TEXT_PX = 560; // width kept free for the text on the left
@@ -37,6 +62,14 @@ const MOBILE_FILL_Y = 0.44;
 
 const PARALLAX_X = 0.9;
 const PARALLAX_Y = 0.35;
+
+/* reveal: the camera starts high, to the left and looking down at the street, then
+   curves round and tilts up into its normal position (about 4 s) */
+const REVEAL_CAM_S = 4.0; // seconds the camera arc lasts
+const ARC_YAW = -0.6; // radians: how far to the left it starts
+const ARC_PITCH = 0.36; // radians: how much higher it starts (looks down)
+const ARC_DIST = 0.28; // starts 28 % further away
+const ARC_LOOK = 1.5; // metres: it starts looking a little below the target
 const REDUCED_T = 100;
 
 /* quality / performance */
@@ -45,10 +78,10 @@ const MAX_DPR_MOBILE = 1.2;
 const NO_MSAA_MIN_DPR = 1.25;
 const DPR_STEP = 0.85;
 const TARGET_FPS = 60;
-const SHADOW_FREEZE_T = 1.9;
+const SHADOW_FREEZE_T = 1.5;
 const SHADOW_EVERY = 3;
-const ADAPT_AFTER_T = 3.4;
-const SCROLL_THROTTLE_AFTER_T = 3.0; // while scrolling (after the reveal) draw at 30 fps
+const ADAPT_AFTER_T = 4.6; // the quality governor waits until the camera has landed
+const SCROLL_THROTTLE_AFTER_T = 4.4; // while scrolling (after the reveal) draw at 30 fps
 const GOV_WINDOW = 45;
 const GOV_SETTLE = 8;
 const SLOW_FACTOR = 1.45;
@@ -62,12 +95,14 @@ const RETIRE_MARGIN = "600%";
 const TAN_HALF = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
 const TARGET = new THREE.Vector3(SCENE.cx, SCENE.cy, 1);
 const VIEW_DIR = new THREE.Vector3(-0.14, -0.025, 1).normalize();
+const YAW_END = Math.atan2(VIEW_DIR.x, VIEW_DIR.z);
+const PITCH_END = Math.asin(VIEW_DIR.y);
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const clamp01 = (v: number) => clamp(v, 0, 1);
 const seg = (t: number, start: number, dur: number) =>
   clamp01((t - start) / dur);
-const easeOutQuart = (x: number) => 1 - Math.pow(1 - x, 4);
+const easeArc = (x: number) => 1 - Math.pow(1 - x, 2.3); // steady sweep with a soft landing
 const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
 const easeOutQuad = (x: number) => 1 - (1 - x) * (1 - x);
 const easeOutBack = (x: number, c1 = 1.5) => {
@@ -134,6 +169,7 @@ interface Parts {
   splash: ReturnType<typeof buildSplash>;
   callouts: Callouts;
   envUsers: EnvUser[];
+  setters: Array<(mode: ThemeMode) => void>;
 }
 
 /* ═══════════════════════════ THE SCENE ════════════════════════════════════
@@ -175,7 +211,7 @@ function createScene(host: HTMLDivElement): () => void {
   renderer.domElement.className = styles.canvas;
   // the canvas fades in when the reveal starts (no pop, no blank flash)
   renderer.domElement.style.opacity = "0";
-  renderer.domElement.style.transition = "opacity 0.6s ease";
+  renderer.domElement.style.transition = "opacity 0.25s ease";
   host.appendChild(renderer.domElement);
 
   /* MSAA check: if the browser silently refuses it, render denser instead */
@@ -213,7 +249,8 @@ function createScene(host: HTMLDivElement): () => void {
   scene.fog = fog;
   scene.environmentIntensity = 0.3;
 
-  scene.add(new THREE.HemisphereLight(0x59606c, 0x0a0a0b, 0.55));
+  const hemi = new THREE.HemisphereLight(0x59606c, 0x0a0a0b, 0.55);
+  scene.add(hemi);
 
   const key = new THREE.DirectionalLight(0xcfd5df, KEY_INTENSITY);
   key.position.set(-24, 32, 28);
@@ -240,6 +277,43 @@ function createScene(host: HTMLDivElement): () => void {
   let envTexture: THREE.Texture | null = null;
   const store: TexStore = [];
   let parts: Parts | null = null;
+
+  /* ── site theme → scene look ──
+     Follows the same data-theme attribute the rest of the site uses (ThemeToggle),
+     by watching the attribute itself: no props / other components had to change. */
+  const initTex = (
+    renderer as unknown as { initTexture?: (t: THREE.Texture) => void }
+  ).initTexture?.bind(renderer);
+  const readTheme = (): ThemeMode => {
+    const v =
+      host.closest("[data-theme]")?.getAttribute("data-theme") ??
+      document.documentElement.getAttribute("data-theme") ??
+      document.body?.getAttribute("data-theme");
+    return v === "light" ? "light" : "dark";
+  };
+  let themeMode: ThemeMode = "dark";
+  const applyBase = (mode: ThemeMode) => {
+    themeMode = mode;
+    const look = LOOK[mode];
+    (scene.background as THREE.Color).setHex(look.bg);
+    fog.color.setHex(look.bg);
+    renderer.setClearColor(look.bg, 1);
+    renderer.toneMappingExposure = look.exposure;
+    hemi.color.setHex(look.hemiSky);
+    hemi.groundColor.setHex(look.hemiGround);
+    hemi.intensity = look.hemi;
+    scene.environmentIntensity = look.env;
+    key.intensity = look.key;
+    rim.intensity = look.rim;
+  };
+  const applyTheme = (mode: ThemeMode) => {
+    applyBase(mode);
+    const P = parts;
+    if (!P) return;
+    P.setters.forEach((set) => set(mode));
+    P.callouts.setTheme(mode);
+  };
+  applyBase(readTheme());
 
   /* ── camera: fits the scene into the free part of the banner ── */
   const camera = new THREE.PerspectiveCamera(FOV, 16 / 9, 1, 260);
@@ -322,15 +396,25 @@ function createScene(host: HTMLDivElement): () => void {
     fog.density = THREE.MathUtils.lerp(
       FOG_START_DENSITY,
       FOG_DENSITY,
-      easeOutCubic(seg(t, 0, 2.6)),
+      easeOutCubic(seg(t, 0, 3.2)),
     );
 
-    // camera: a short dolly-in with a small sideways swing, then parallax
-    const e = easeOutQuart(seg(t, 0, 3.0));
-    const dist = fitDist * (1 + 0.42 * (1 - e));
-    camTarget.copy(TARGET);
-    camPos.copy(VIEW_DIR).multiplyScalar(dist).add(TARGET);
-    camPos.x += (1 - e) * 5;
+    // camera: a curved fly-in (swing round + tilt up + move closer), then parallax.
+    // `a` = how much of the arc is still to travel (1 at the start → 0 when it lands)
+    const e = easeArc(seg(t, 0, REVEAL_CAM_S));
+    const a = 1 - e;
+    const yaw = YAW_END + ARC_YAW * a;
+    const pitch = PITCH_END + ARC_PITCH * a;
+    const dist = fitDist * (1 + ARC_DIST * a);
+    const cp = Math.cos(pitch);
+    camPos
+      .set(
+        Math.sin(yaw) * cp * dist,
+        Math.sin(pitch) * dist,
+        Math.cos(yaw) * cp * dist,
+      )
+      .add(TARGET);
+    camTarget.set(TARGET.x, TARGET.y - ARC_LOOK * a, TARGET.z);
     if (!reduced) {
       pointer.cx += (pointer.x - pointer.cx) * 0.05;
       pointer.cy += (pointer.y - pointer.cy) * 0.05;
@@ -347,20 +431,20 @@ function createScene(host: HTMLDivElement): () => void {
     P.bottle.pivot.rotation.z = THREE.MathUtils.lerp(
       BOTTLE.startAngle,
       BOTTLE.angle,
-      easeOutBack(seg(t, 0.15, 1.15), 1.2),
+      easeOutBack(seg(t, 0.1, 1.0), 1.2),
     );
 
     // billboard lights flicker on
-    const f = flicker(t, 0.45);
-    P.billboard.panelMat.emissiveIntensity = f * 0.9;
-    P.billboard.spot.intensity = f * 180;
-    P.billboard.glowMat.opacity = 0.5 * seg(t, 0.5, 0.9);
-    P.truck.headMat.color.setScalar(0.12 + 0.88 * flicker(t, 0.9));
+    const f = flicker(t, 0.15);
+    P.billboard.panelMat.emissiveIntensity = f * P.billboard.look.panelEmissive;
+    P.billboard.spot.intensity = f * P.billboard.look.spot;
+    P.billboard.glowMat.opacity = P.billboard.look.glow * seg(t, 0.2, 0.7);
+    P.truck.headMat.color.setScalar(0.12 + 0.88 * flicker(t, 0.4));
 
     // liquid: grows down to the hatch, then splashes
-    P.stream.setGrowth(easeOutQuad(seg(t, 1.3, 0.6)));
+    P.stream.setGrowth(easeOutQuad(seg(t, 1.2, 0.55)));
     P.stream.flow(dt);
-    P.splash.update(time, easeOutBack(seg(t, 1.85, 0.5)));
+    P.splash.update(time, easeOutBack(seg(t, 1.7, 0.5)));
 
     // labels (2D overlay, anchored to the 3D bottle with the live camera)
     P.callouts.update(camera, t, time);
@@ -565,6 +649,33 @@ function createScene(host: HTMLDivElement): () => void {
   );
   io.observe(host);
 
+  // repaint immediately when the theme flips (works while the loop is paused too)
+  const onThemeChange = () => {
+    const mode = readTheme();
+    if (mode === themeMode) return;
+    const before = store.length;
+    applyTheme(mode);
+    if (initTex) for (let i = before; i < store.length; i++) initTex(store[i]); // first switch only
+    if (ready && !contextLost && !disposed) {
+      update(performance.now());
+      renderer.render(scene, camera);
+    }
+  };
+  const themeObserver = new MutationObserver(onThemeChange);
+  const themeNodes = new Set<Element>(
+    [
+      document.documentElement,
+      document.body,
+      host.closest("[data-theme]"),
+    ].filter((n): n is Element => !!n),
+  );
+  themeNodes.forEach((n) =>
+    themeObserver.observe(n, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    }),
+  );
+
   /* ── boot: build in small slices, compile without blocking, upload early ── */
   const boot = async () => {
     await idle();
@@ -634,13 +745,20 @@ function createScene(host: HTMLDivElement): () => void {
       splash,
       callouts: buildCallouts(host),
       envUsers,
+      setters: [
+        ground.setTheme,
+        billboard.setTheme,
+        bottle.setTheme,
+        truck.setTheme,
+        stream.setTheme,
+        splash.setTheme,
+      ],
     };
+    applyTheme(readTheme()); // before the textures are uploaded
     resize(); // lays out the callouts too
 
     // upload the textures a couple at a time (one big upload would freeze a frame)
-    const initTexture = (
-      renderer as unknown as { initTexture?: (t: THREE.Texture) => void }
-    ).initTexture?.bind(renderer);
+    const initTexture = initTex;
     if (initTexture) {
       for (let i = 0; i < store.length; i++) {
         initTexture(store[i]);
@@ -701,6 +819,7 @@ function createScene(host: HTMLDivElement): () => void {
     stopLoop();
     ro.disconnect();
     io.disconnect();
+    themeObserver.disconnect();
     window.removeEventListener("pointermove", onMove);
     window.removeEventListener("scroll", onScroll);
     renderer.domElement.removeEventListener("webglcontextlost", onContextLost);
