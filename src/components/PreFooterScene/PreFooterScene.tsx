@@ -89,8 +89,16 @@ const MAX_ANISOTROPY = 16;
 const COMPILE_TIMEOUT_MS = 12000; // only a safety net: we really wait for the compile
 
 /* boot / teardown distances (in screen heights from the banner) */
-const BOOT_MARGIN = "250%";
-const RETIRE_MARGIN = "600%";
+// FIX (blank on arrival): it now starts building 4 screens ahead (was 2.5) and is only
+// released 8 screens away (was 6), so a normal scroll never reaches the banner before it is built.
+const BOOT_MARGIN = "400%";
+const RETIRE_MARGIN = "800%";
+// the reveal starts as soon as this much of the banner peeks in (was 12 %)
+const REVEAL_RATIO = 0.06;
+// FIX (reveal played again and again): the reveal is shown ONCE per visit. If the scene is
+// released (far away) and built again later, it comes back already finished.
+const DONE_AFTER_MS = 600000;
+let hasRevealed = false;
 
 const TAN_HALF = Math.tan(THREE.MathUtils.degToRad(FOV / 2));
 const TARGET = new THREE.Vector3(SCENE.cx, SCENE.cy, 1);
@@ -126,13 +134,19 @@ interface IdleWindow {
 }
 
 /** Waits for a quiet moment, so building the scene never competes with scrolling. */
-const idle = () =>
+const idleRaw = () =>
   new Promise<void>((resolve) => {
     const w = window as unknown as IdleWindow;
     if (w.requestIdleCallback)
-      w.requestIdleCallback(() => resolve(), { timeout: 250 });
+      w.requestIdleCallback(() => resolve(), { timeout: 120 });
     else window.setTimeout(resolve, 24);
   });
+
+/** yields exactly one frame (used while the banner is close: no waiting for "idle") */
+const oneFrame = () =>
+  new Promise<void>((resolve) =>
+    requestAnimationFrame(() => window.setTimeout(resolve, 0)),
+  );
 
 /** True when WebGL runs on the CPU (SwiftShader / llvmpipe): hardware acceleration is off. */
 let softwareGLCache: boolean | null = null;
@@ -180,6 +194,16 @@ interface Parts {
 
 function createScene(host: HTMLDivElement): () => void {
   let disposed = false;
+
+  /* far away: wait for a quiet moment (never compete with scrolling).
+     Banner already close (about to be seen): only yield one frame, so the build
+     is finished by the time the visitor arrives. */
+  const idle = () => {
+    const r = host.getBoundingClientRect();
+    const vh = window.innerHeight || 1;
+    const near = r.top < vh * 1.6 && r.bottom > -vh * 0.5;
+    return near ? oneFrame() : idleRaw();
+  };
 
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const small =
@@ -370,7 +394,11 @@ function createScene(host: HTMLDivElement): () => void {
   };
 
   /* ── reveal timeline ── */
-  let revealStart: number | null = reduced ? -1 : null;
+  let revealStart: number | null = reduced
+    ? -1
+    : hasRevealed
+      ? performance.now() - DONE_AFTER_MS
+      : null;
   let wantReveal = false;
   let shadowsPrimed = false;
   let shadowsFrozen = false;
@@ -579,6 +607,7 @@ function createScene(host: HTMLDivElement): () => void {
   const beginReveal = () => {
     if (reduced || revealStart !== null) return;
     revealStart = performance.now();
+    hasRevealed = true;
     renderer.domElement.style.opacity = "1";
     sync();
   };
@@ -637,15 +666,15 @@ function createScene(host: HTMLDivElement): () => void {
     ([entry]) => {
       inView = entry.isIntersecting;
       const seen =
-        entry.intersectionRatio >= 0.12 ||
+        entry.intersectionRatio >= REVEAL_RATIO ||
         entry.intersectionRect.height > window.innerHeight * 0.5;
-      if (seen && !wantReveal) {
-        wantReveal = true;
-        if (ready) beginReveal();
-      }
+      if (seen) wantReveal = true;
+      // FIX: the reveal clock only starts while the banner is really on screen
+      // (before, a scene that finished building off screen played its reveal unseen)
+      if (inView && wantReveal && ready) beginReveal();
       sync();
     },
-    { threshold: [0, 0.12] },
+    { threshold: [0, REVEAL_RATIO] },
   );
   io.observe(host);
 
@@ -807,7 +836,13 @@ function createScene(host: HTMLDivElement): () => void {
       renderOnce();
       return;
     }
-    if (wantReveal) beginReveal();
+    if (hasRevealed) {
+      // rebuilt after a first visit: show the finished scene (no second reveal)
+      renderer.domElement.style.opacity = "1";
+      sync();
+      return;
+    }
+    if (inView && wantReveal) beginReveal();
     else sync();
   };
 
@@ -876,8 +911,14 @@ export const PreFooterScene: React.FC<PreFooterSceneProps> = ({
       if (timerId) window.clearTimeout(timerId);
       idleId = 0;
       timerId = 0;
-      dispose?.();
+      const d = dispose;
       dispose = null;
+      if (d) {
+        if (cancelled) d();
+        else if (w.requestIdleCallback)
+          w.requestIdleCallback(() => d(), { timeout: 1500 });
+        else window.setTimeout(d, 200);
+      }
     };
 
     const nearIO = new IntersectionObserver(

@@ -58,7 +58,7 @@ const TYPE_STEP = 0.03; // seconds per typed letter (desktop)
 const TYPE_STEP_TOUR = 0.016; // phone tour: a bit faster
 // PERF: the scene is built quietly in the background this long after the page has
 // loaded (instead of while the visitor scrolls into About). Set to -1 to turn off.
-const PREBUILD_AFTER_LOAD_MS = 2500;
+const PREBUILD_AFTER_LOAD_MS = 1200;
 // REVEAL: how fast the intro plays (1 = the old speed). Only the reveal ramps are
 // sped up; traffic, cat idle, lamps etc. keep their normal speed afterwards.
 const REVEAL_SPEED = 1.6;
@@ -79,6 +79,17 @@ const VISIBLE_RATIO = 0.08; // the loop runs only when >= 8% of the section is o
 const ADAPT_AFTER_T = 2.5;
 const SLOW_FRAME_MS = 20;
 const ADAPT_WINDOW = 40;
+
+// FIX (blank / never appears): compileAsync had no time limit. If a phone GPU driver never
+// reports "done", the build waited forever and the canvas stayed empty until a refresh.
+const COMPILE_TIMEOUT_MS = 10000;
+// FIX (hang on the next section): while Works rises over About, About is still on screen
+// for IntersectionObserver, so it kept drawing at full rate behind the cover.
+// 0 = Works not touching About, 1 = About fully covered.
+const COVER_SLOW_AT = 0.4; // from here on About draws at 30 fps (it is dimming anyway)
+const COVER_PAUSE_AT = 0.995; // fully covered: no drawing at all
+// FIX (blank): a build step that throws used to be swallowed silently (blank for good).
+const BOOT_RETRIES = 3;
 
 const BASE_TAN_V = Math.tan(THREE.MathUtils.degToRad(20));
 const TAN_H = BASE_TAN_V * (16 / 9);
@@ -197,6 +208,8 @@ interface BootControls {
   getShot: () => number;
   onTour: (v: boolean) => void;
   onLive: (v: boolean) => void;
+  /** hands out the teardown of a half-built scene, so a failed boot can be cleaned up */
+  onTeardownReady?: (fn: () => void) => void;
 }
 
 interface SceneHandle {
@@ -241,16 +254,42 @@ const NOOP_HANDLE: SceneHandle = {
 function bootScene(host: HTMLDivElement, ctl: BootControls): SceneHandle {
   let handle: SceneHandle | null = null;
   let cancelled = false;
-  bootSceneAsync(host, ctl, () => cancelled)
-    .then((h) => {
-      if (cancelled) h.dispose();
-      else handle = h;
-    })
-    .catch(() => undefined);
+  let attempt = 0;
+  let retryTimer = 0;
+  let halfBuilt: (() => void) | null = null;
+
+  const run = () => {
+    halfBuilt = null;
+    bootSceneAsync(
+      host,
+      {
+        ...ctl,
+        onTeardownReady: (fn) => {
+          halfBuilt = fn;
+        },
+      },
+      () => cancelled,
+    )
+      .then((h) => {
+        if (cancelled) h.dispose();
+        else handle = h;
+      })
+      .catch(() => {
+        // a build step threw (low memory, lost context, ...): release the half-built
+        // scene and try again instead of staying blank until the next refresh
+        halfBuilt?.();
+        halfBuilt = null;
+        if (cancelled || ++attempt >= BOOT_RETRIES) return;
+        retryTimer = window.setTimeout(run, 700 * attempt);
+      });
+  };
+  run();
+
   return {
     refresh: () => handle?.refresh(),
     dispose: () => {
       cancelled = true;
+      window.clearTimeout(retryTimer);
       handle?.dispose();
       handle = null;
     },
@@ -318,6 +357,9 @@ async function bootSceneAsync(
   let envTexture: THREE.Texture | null = null;
 
   let disposed = false;
+  // FIX: the GitHub image can finish loading in the middle of the build, and its onload
+  // calls renderOnce() -> update() before those exist (temporal dead zone error).
+  let booted = false;
   let raf = 0;
   let running = false;
   const cleanups: Array<() => void> = [];
@@ -366,6 +408,7 @@ async function bootSceneAsync(
     renderer.forceContextLoss();
     renderer.domElement.remove();
   };
+  ctl.onTeardownReady?.(teardown);
   /** returns true (after cleaning up) when the component was unmounted meanwhile */
   const aborted = () => {
     if (!isCancelled()) return false;
@@ -539,7 +582,11 @@ async function bootSceneAsync(
   sign.group.visible = true;
   try {
     const r = renderer as CompilingRenderer;
-    if (r.compileAsync) await r.compileAsync(scene, camera);
+    if (r.compileAsync)
+      await Promise.race([
+        r.compileAsync(scene, camera),
+        sleep(COMPILE_TIMEOUT_MS),
+      ]);
     else renderer.compile(scene, camera);
   } catch {
     /* not critical: three compiles on first use instead */
@@ -804,6 +851,31 @@ async function bootSceneAsync(
   let lastFrame = 0;
   let frameMs = 1000 / TARGET_FPS;
 
+  /* how much of About the Works section already covers (same maths as App.tsx) */
+  const worksEl = document.getElementById("works");
+  let cover = 0;
+  let coverRaf = 0;
+  const readCover = () => {
+    coverRaf = 0;
+    if (!worksEl || disposed) return;
+    cover = clamp01(
+      1 - worksEl.getBoundingClientRect().top / (window.innerHeight || 1),
+    );
+  };
+  const onCoverScroll = () => {
+    if (!coverRaf) coverRaf = requestAnimationFrame(readCover);
+  };
+  if (worksEl) {
+    window.addEventListener("scroll", onCoverScroll, { passive: true });
+    window.addEventListener("resize", onCoverScroll);
+    readCover();
+    cleanups.push(() => {
+      window.removeEventListener("scroll", onCoverScroll);
+      window.removeEventListener("resize", onCoverScroll);
+      if (coverRaf) cancelAnimationFrame(coverRaf);
+    });
+  }
+
   // automatic quality: lower the resolution step by step, and as a last resort
   // run at a steady 30 fps instead of stuttering
   let perfSum = 0;
@@ -838,20 +910,27 @@ async function bootSceneAsync(
   };
 
   function renderOnce() {
-    if (running || disposed) return;
+    if (!booted || running || disposed) return;
     update(performance.now());
     renderer.render(scene, camera);
   }
   const frame = (now: number) => {
     if (!running) return;
     raf = requestAnimationFrame(frame);
+    if (cover >= COVER_PAUSE_AT) return; // fully hidden behind Works: draw nothing
+    const slow = cover > COVER_SLOW_AT; // Works is rising over us: 30 fps is plenty
+    const minMs = slow ? Math.max(frameMs, 1000 / 30) : frameMs;
     const elapsed = now - lastFrame;
-    if (elapsed < frameMs - 0.75) return;
-    lastFrame =
-      lastFrame === 0 || elapsed > frameMs * 4
-        ? now
-        : now - (elapsed % frameMs);
-    adapt(elapsed, getT(now));
+    if (elapsed < minMs - 0.75) return;
+    const resumed = lastFrame === 0 || elapsed > minMs * 4;
+    lastFrame = resumed ? now : now - (elapsed % minMs);
+    if (slow || resumed) {
+      // never let the quality governor learn from throttled / resumed frames
+      perfSum = 0;
+      perfN = 0;
+    } else {
+      adapt(elapsed, getT(now));
+    }
     update(now);
     renderer.render(scene, camera);
   };
@@ -918,6 +997,7 @@ async function bootSceneAsync(
     window.addEventListener("pointermove", onMove, { passive: true });
   }
 
+  booted = true;
   resize();
   pollFont();
 
@@ -1041,10 +1121,13 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
         deviceMemory?: number;
         connection?: { saveData?: boolean };
       };
-      const canPrebuild =
-        PREBUILD_AFTER_LOAD_MS >= 0 &&
-        !nav.connection?.saveData &&
-        (nav.deviceMemory === undefined || nav.deviceMemory >= 4);
+      // FIX: low-memory phones and "data saver" used to skip the prebuild completely, so
+      // the whole build only started when About was already on screen (long blank).
+      // They now prebuild too, just a bit later (the build itself is sliced and gentle).
+      const canPrebuild = PREBUILD_AFTER_LOAD_MS >= 0;
+      const gentle =
+        (nav.deviceMemory !== undefined && nav.deviceMemory < 4) ||
+        !!nav.connection?.saveData;
       if (canPrebuild) {
         // never build while the hero is still revealing: wait until Hero.tsx says it
         // has settled (data-reveal-done), with a safety limit so we never wait forever
@@ -1062,12 +1145,12 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
             go();
             return;
           }
-          warmTimer = window.setTimeout(() => waitForHero(since), 400);
+          warmTimer = window.setTimeout(() => waitForHero(since), 250);
         };
         const arm = () => {
           warmTimer = window.setTimeout(
             () => waitForHero(performance.now()),
-            PREBUILD_AFTER_LOAD_MS,
+            PREBUILD_AFTER_LOAD_MS + (gentle ? 1500 : 0),
           );
         };
         if (document.readyState === "complete") {
@@ -1084,7 +1167,7 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
             start();
           }
         },
-        { rootMargin: "0px 0px -15% 0px" },
+        { rootMargin: "0px 0px 0px 0px" },
       );
       lazy.observe(host);
     }
