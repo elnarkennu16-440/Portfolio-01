@@ -101,8 +101,8 @@ export const BOARD_B_COPY: {
   lead: "In short",
   tag: "ongoing",
   rows: [
-    ["Maintaining this ", "Platform"],
-    ["for ", "Flawless Execution..."],
+    ["Developer: ", "An Organism..."],
+    ["that turns ", "COFFEE into CODE..."],
   ],
 };
 

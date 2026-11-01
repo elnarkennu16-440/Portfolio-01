@@ -43,6 +43,12 @@ export const About: React.FC = () => {
             <span className={styles.subtitleLine}></span>
             <span className={styles.subtitleText}>ABOUT — 2026</span>
           </div>
+
+          {/* Short tagline under the label (Kaushan Script, same style as the hero) */}
+          <p className={styles.tagline}>
+            Developing clean, component-driven user interfaces with an absolute
+            zero-tolerance approach to broken workflows
+          </p>
         </div>
       </div>
     </section>

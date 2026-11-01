@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap");
+
 /* ────────────────────────────────────────────────────────────────────────────
  * ABOUT — clean paragraph typography style matching the portfolio design
  * ──────────────────────────────────────────────────────────────────────────── */
@@ -150,6 +152,21 @@
   color: var(--about-sub);
 }
 
+/* Short tagline under "ABOUT — 2026": Kaushan Script, same brush style as the hero.
+   Only this line uses the script font; the label above is untouched. */
+.tagline {
+  margin: 0;
+  max-width: min(100%, 30rem);
+  font-family: "Kaushan Script", "Caveat", cursive;
+  font-size: clamp(0.85rem, 1.5vw, 1.1rem);
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  color: var(--about-fg);
+  opacity: 0.9;
+  text-wrap: balance;
+}
+
 /* ── Responsive adjustments ─── */
 @media (max-aspect-ratio: 1/1) {
   .layer {
@@ -168,6 +185,12 @@
 
   .subtitleText {
     font-size: 0.62rem;
+  }
+
+  .tagline {
+    font-size: 0.85rem;
+    line-height: 1.45;
+    max-width: 100%;
   }
 }
 
