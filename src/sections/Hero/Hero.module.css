@@ -1,33 +1,32 @@
-/* Brush-script font: used on the 3D billboard ("Focusing on") and for the sentence
-   on phones. HeroScene.tsx redraws the billboard once this font has loaded. */
+/* Brush-script font: used for the sentence on phones (the 3D billboard uses Archivo,
+   which HeroScene.module.css loads itself). */
 @import url("https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap");
 
 /* ────────────────────────────────────────────────────────────────────────────
- * HERO — a dark stage. The 3D street (HeroScene) sits at the back, a CSS
- * vignette + grain above it, and the readable text on top.
+ * HERO — a dark stage. The 3D street (HeroScene, WebGL) sits at the back, one
+ * static shade layer above it, and the readable text on top.
  * The hero stays black / grey in BOTH site themes (only the text is white).
  * ──────────────────────────────────────────────────────────────────────────── */
 
 .heroSection {
   --hand-font: "Kaushan Script", "Caveat", cursive;
-  /* LIGHT (default) — a white stage; the 3D scene turns white with it */
-  --hero-bg: #f3f4f6; /* keep in sync with LOOK.light.bg in HeroScene.tsx */
-  --hero-fg: #121214;
-  --hero-fg-dim: rgba(18, 18, 20, 0.72);
-  --hero-fg-faint: rgba(18, 18, 20, 0.55);
-  --hero-fg-hover: rgba(18, 18, 20, 0.55);
-  --hero-statement: rgba(18, 18, 20, 0.92);
-  --hero-vig: 255, 255, 255; /* edge vignette + navbar shade */
-  --hero-scrim: 243, 244, 246; /* scrim under the text */
-  --hero-line: rgba(0, 0, 0, 0.08);
-  --hero-underline: rgba(0, 0, 0, 0.4);
-  --hero-outline: rgba(0, 0, 0, 0.6);
-  --hero-cue-line: rgba(0, 0, 0, 0.18);
+  --ink: #09090a; /* same colour as the scene background (BG in glScene.ts) */
+  --hero-bg: var(--ink);
+  --hero-fg: #f4f4f5;
+  --hero-fg-dim: rgba(244, 244, 245, 0.72);
+  --hero-fg-faint: rgba(244, 244, 245, 0.5);
+  --hero-fg-hover: rgba(244, 244, 245, 0.6);
+  --hero-statement: rgba(255, 255, 255, 0.92);
+  --hero-line: rgba(255, 255, 255, 0.08);
+  --hero-underline: rgba(255, 255, 255, 0.4);
+  --hero-outline: rgba(255, 255, 255, 0.6);
+  --hero-cue-line: rgba(255, 255, 255, 0.18);
 
   /* How far the text + buttons sit above the bottom edge of the hero (desktop).
-     Scales with the window height: ~7.5rem on a short laptop window, 8rem max.
+     Kept low so the copy stays on the dark floor and never covers the 3D letters.
      Want them higher / lower? Change only this one line. */
-  --hero-lift: clamp(5.5rem, 19vh, 8rem);
+  --hero-lift: clamp(1.75rem, 5.5vh, 3.5rem);
 
   position: sticky;
   top: 0;
@@ -36,29 +35,21 @@
 
   isolation: isolate;
   width: 100%;
+  /* The navbar is `position: sticky` (in the page flow), so it reserves a strip
+     of --nav-h above the hero. That strip showed as a grey gap and made the hero
+     slide up ~58px before it pinned. We pull the hero up under the navbar
+     (negative margin) and make it full-window height, so the 3D scene starts at
+     the very top and the pill floats over it.
+     --nav-h MUST equal the height of `.inner` in Navbar.module.css. */
+  --nav-h: clamp(3.25rem, 4.5vw, 3.65rem);
+  margin-top: calc(var(--nav-h) * -1);
   min-height: 100vh;
-  min-height: 100dvh;
+  min-height: 100svh;
   display: flex;
   align-items: flex-end;
   color: var(--hero-fg);
   overflow: hidden;
   border-bottom: 1px solid var(--hero-line);
-}
-
-/* DARK — exactly the original look */
-[data-theme="dark"] .heroSection {
-  --hero-bg: #121214;
-  --hero-fg: #f4f4f5;
-  --hero-fg-dim: rgba(244, 244, 245, 0.72);
-  --hero-fg-faint: rgba(244, 244, 245, 0.5);
-  --hero-fg-hover: rgba(244, 244, 245, 0.6);
-  --hero-statement: rgba(255, 255, 255, 0.92);
-  --hero-vig: 0, 0, 0;
-  --hero-scrim: 10, 10, 12;
-  --hero-line: rgba(255, 255, 255, 0.08);
-  --hero-underline: rgba(255, 255, 255, 0.4);
-  --hero-outline: rgba(255, 255, 255, 0.6);
-  --hero-cue-line: rgba(255, 255, 255, 0.18);
 }
 
 .heroAboutWrapper {
@@ -84,45 +75,41 @@
   content-visibility: hidden;
 }
 
-.scene {
-  z-index: 0;
-}
-
-/* vignette (edges), a soft shade under the navbar and a scrim under the text,
-   plus very fine film grain */
-.atmosphere {
+/* ── 3D stage ────────────────────────────────────────────────────────────── */
+.stage {
   position: absolute;
   inset: 0;
-  z-index: 1;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* ONE static layer on top of the 3D (haze + vignette + dark floor under the copy).
+   Static gradients cost almost nothing to composite. */
+.shade {
+  position: absolute;
+  inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(
-      120% 90% at 50% 46%,
-      rgba(var(--hero-vig), 0) 42%,
-      rgba(var(--hero-vig), 0.55) 100%
-    ),
     linear-gradient(
       to bottom,
-      rgba(var(--hero-vig), 0.55) 0%,
-      rgba(var(--hero-vig), 0) 22%
+      var(--ink) 0%,
+      rgba(9, 9, 10, 0.78) 9%,
+      rgba(9, 9, 10, 0) 34%
     ),
-    linear-gradient(
-      to top,
-      rgba(var(--hero-scrim), 0.88) 0%,
-      rgba(var(--hero-scrim), 0) 40%
-    );
-}
-
-.atmosphere::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0.07;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
-}
-
-[data-theme="dark"] .atmosphere::after {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    radial-gradient(
+      ellipse 46% 34% at 86% 12%,
+      rgba(9, 9, 10, 0.92),
+      rgba(9, 9, 10, 0) 72%
+    ),
+    linear-gradient(to left, var(--ink) 0%, rgba(9, 9, 10, 0) 14%),
+    linear-gradient(to right, var(--ink) 0%, rgba(9, 9, 10, 0) 10%),
+    radial-gradient(
+      ellipse 62% 58% at 0% 100%,
+      rgba(9, 9, 10, 0.95) 0%,
+      rgba(9, 9, 10, 0.7) 45%,
+      rgba(9, 9, 10, 0) 100%
+    ),
+    linear-gradient(to top, rgba(9, 9, 10, 0.55) 0%, rgba(9, 9, 10, 0) 24%);
 }
 
 /* ── Text layer ──────────────────────────────────────────────────────────── */
@@ -151,8 +138,10 @@
   border: 0;
 }
 
+/* --d = wave start delay (÷ --reveal-speed). Tuned so the copy appears after
+   the 3D street has built itself (~3s). */
 .kicker {
-  --d: 2s;
+  --d: 4.6s;
 
   display: flex;
   align-items: center;
@@ -181,11 +170,11 @@
 }
 
 .statement {
-  --d: 2.2s;
+  --d: 4.8s;
 }
 
 .intro {
-  --d: 2.3s;
+  --d: 4.9s;
 
   margin: 0 0 1.6rem;
   font-size: clamp(0.95rem, 1.1vw, 1.08rem);
@@ -196,7 +185,7 @@
 }
 
 .links {
-  --d: 2.6s;
+  --d: 5.4s;
 
   display: flex;
   align-items: center;
@@ -212,9 +201,9 @@
 }
 
 /* scroll cue (bottom centre: the bottom-right corner belongs to the viewer
-   counter + chatbot) */
+   counter + chatbot). Not rendered by Hero.tsx right now; kept for later. */
 .scrollCue {
-  --d: 3s;
+  --d: 5.6s;
 
   position: absolute;
   left: 50%;
@@ -275,7 +264,7 @@
 
 /* =========================================================================
    WAVE REVEAL (same wave as the old hero) — starts when the loader is done
-   (.introReady), one element after another via --d.
+   AND the 3D scene has begun (.introReady), one element after another via --d.
    ========================================================================= */
 .reveal {
   clip-path: polygon(
@@ -358,8 +347,7 @@
 }
 
 /* PERF: when the wave has finished (Hero.tsx adds .revealDone) the last frame is
-   "everything visible", so the clip-path + will-change layers can be released.
-   Nothing changes on screen; the browser just stops masking text over the canvas. */
+   "everything visible", so the clip-path + will-change layers can be released. */
 .revealDone .reveal {
   clip-path: none;
   animation: none;
@@ -435,28 +423,19 @@
 
 /* ── Phones / tablets ────────────────────────────────────────────────────── */
 @media (max-width: 991px) {
-  .heroSection {
-    min-height: calc(100vh - 56px);
-    min-height: calc(100svh - 56px);
-  }
-
-  .atmosphere {
+  .shade {
     background:
-      radial-gradient(
-        130% 80% at 50% 38%,
-        rgba(var(--hero-vig), 0) 40%,
-        rgba(var(--hero-vig), 0.5) 100%
-      ),
       linear-gradient(
         to bottom,
-        rgba(var(--hero-vig), 0.55) 0%,
-        rgba(var(--hero-vig), 0) 20%
+        var(--ink) 0%,
+        rgba(9, 9, 10, 0.7) 8%,
+        rgba(9, 9, 10, 0) 28%
       ),
       linear-gradient(
         to top,
-        rgba(var(--hero-scrim), 0.94) 0%,
-        rgba(var(--hero-scrim), 0.7) 32%,
-        rgba(var(--hero-scrim), 0) 56%
+        rgba(9, 9, 10, 0.97) 0%,
+        rgba(9, 9, 10, 0.82) 28%,
+        rgba(9, 9, 10, 0) 56%
       );
   }
 
@@ -467,7 +446,7 @@
 
   .copy {
     max-width: 100%;
-    /* Nilagyan ng clearance sa kanan para hindi sumagi sa floating buttons */
+    /* clearance on the right so the text never touches the floating buttons */
     padding-right: 3.5rem;
   }
 
@@ -481,7 +460,6 @@
     clip: auto;
     white-space: normal;
     font-family: var(--hand-font);
-    /* Pinaliit ang font size sa mobile */
     font-size: clamp(0.95rem, 3.8vw, 1.15rem);
     line-height: 1.3;
     color: var(--hero-statement);
@@ -494,7 +472,6 @@
 
   .intro {
     margin-bottom: 1rem;
-    /* Pinaliit ang font size sa mobile */
     font-size: 0.8rem;
     line-height: 1.45;
   }
@@ -524,6 +501,13 @@
 
   .scrollCue {
     display: none;
+  }
+}
+
+/* the navbar pill is shorter on phones (Navbar.module.css: .inner = 2.85rem) */
+@media (max-width: 768px) {
+  .heroSection {
+    --nav-h: 2.85rem;
   }
 }
 

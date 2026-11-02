@@ -1,24 +1,431 @@
-/* The WebGL canvas fills whatever box it is placed in (the hero section).
-   Nothing here touches the rest of the page. */
+/* ────────────────────────────────────────────────────────────────────────────
+ * HERO SCENE — 3D street (CSS 3D, no libraries). Black + grey only.
+ *
+ * PERFORMANCE RULES (this is what keeps it smooth — do not undo them):
+ *  • Only `transform` and `opacity` are ever animated (the GPU does them
+ *    without repainting anything).
+ *  • No filter / blur / box-shadow / clip-path animation / SVG filters.
+ *  • An element that holds 3D children (transform-style: preserve-3d) must NOT
+ *    have opacity, filter, clip-path or overflow. Put those on the leaf
+ *    elements (the faces / planes) instead.
+ *  • Textures are pre-drawn bitmaps (see textures.ts), not live effects.
+ * The camera transform is set from Hero.tsx (JS), not from CSS variables.
+ * ──────────────────────────────────────────────────────────────────────────── */
 
-.root {
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap");
+
+.scene {
+  --ease: var(--ease-editorial, cubic-bezier(0.16, 1, 0.3, 1));
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
   position: absolute;
   inset: 0;
   overflow: hidden;
-  pointer-events: none;
-  /* same colour as the hero, so there is never a black flash before frame 1 */
-  background: var(--hero-bg, #121214);
-  /* PERF: the canvas is redrawn up to 60×/s. `contain` tells the browser that
-     nothing inside can change layout/paint outside this box, so it never has
-     to re-check the rest of the page when the canvas updates or is resized. */
-  contain: strict;
-  transform: translateZ(
-    0
-  ); /* Pinipigilan ang WebGL ghosting/smearing sa scroll */
+  background: #09090a;
+  contain: layout paint style;
 }
 
+/* The canvas must always fill the hero stage exactly (CSS size), no matter
+   the browser zoom or display scaling. Its pixel resolution is handled
+   separately in glScene.ts (devicePixelRatio). */
 .canvas {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
+}
+
+/* ── Camera (position + perspective + rotation are written by Hero.tsx) ─── */
+.camera {
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  width: 0;
+  height: 0;
+  perspective: 1900px;
+}
+.rig {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+/* ── Building blocks ─────────────────────────────────────────────────────── */
+.pos,
+.rise,
+.box,
+.cars,
+.word,
+.glyph {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-style: preserve-3d;
+}
+
+.box {
+  width: 0;
+  height: 0;
+  --t: #3a3a3d;
+  --r: #2a2a2d;
+  --f: #1b1b1e;
+}
+.fTop,
+.fFront,
+.fRight {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  box-sizing: border-box;
+  opacity: 0;
+}
+.fTop {
+  background-color: var(--t);
+}
+.fFront {
+  background-color: var(--f);
+}
+.fRight {
+  background-color: var(--r);
+}
+
+/* ── Reveal: things fade in while rising ~100px out of the ground ─────────── */
+.rise {
+  transform: translate3d(0, 0, calc(var(--sink, 120px) * -1));
+}
+.ready .rise {
+  animation: rise 1.4s var(--ease) var(--delay, 0s) forwards;
+}
+@keyframes rise {
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.ready .fTop,
+.ready .fFront,
+.ready .fRight,
+.ready .pole,
+.ready .arm,
+.ready .rail {
+  animation: fadeIn 0.9s ease-out calc(var(--delay, 0s) + 0.05s) forwards;
+}
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* flat pieces (ground, street, shadows, glows) just fade in */
+.plane,
+.ao,
+.lampGlow,
+.roadText,
+.pole,
+.arm,
+.rail {
+  position: absolute;
+  opacity: 0;
+}
+.plane {
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+.ready .plane {
+  animation: fadeIn 1.5s ease-out 0.05s forwards;
+}
+.ready .ao {
+  animation: fadeIn 1.6s ease-out 0.5s forwards;
+}
+.ready .lampGlow {
+  animation: fadeIn 1.8s ease-out 2s forwards;
+}
+.ready .roadText {
+  animation: fadeIn 1.4s ease-out 2.3s forwards;
+}
+
+/* soft dark patch on the ground under a solid thing (a gradient, not a blur) */
+.ao {
+  background: radial-gradient(
+    ellipse farthest-side at 50% 50%,
+    rgba(0, 0, 0, 0.92) 58%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  transform: translateZ(3px);
+}
+
+.roadText {
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 96px;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.lampGlow {
+  width: 460px;
+  height: 460px;
+  transform: translateZ(2px);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.17) 0%,
+    rgba(255, 255, 255, 0.06) 38%,
+    rgba(255, 255, 255, 0) 70%
+  );
+}
+
+/* ── Street lamps / posts / billboard rail (flat pieces) ─────────────────── */
+.pole,
+.arm,
+.rail {
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+.pole {
+  background: linear-gradient(90deg, #707076, #2c2c30);
+}
+.arm {
+  background: linear-gradient(90deg, #fff 0 44%, #8d8d93 44%);
+}
+
+/* ── Light streaks on the road (transform + opacity only) ────────────────── */
+.cars {
+  visibility: hidden;
+}
+.ready .cars {
+  visibility: visible;
+  transition: visibility 0s linear 2.6s;
+}
+.streak {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 22px;
+  height: var(--len, 160px);
+  margin-left: -11px;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  opacity: 0;
+  will-change: transform, opacity;
+  transform: translate3d(var(--cx), -2400px, 3px);
+}
+.streakIn {
+  animation: passIn var(--dur, 8s) linear var(--sd, 0s) infinite;
+}
+.streakOut {
+  animation: passOut var(--dur, 8s) linear var(--sd, 0s) infinite;
+}
+@keyframes passIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--cx), -2400px, 3px);
+  }
+  10%,
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--cx), 700px, 3px);
+  }
+}
+@keyframes passOut {
+  0% {
+    opacity: 0;
+    transform: translate3d(var(--cx), 700px, 3px);
+  }
+  10%,
+  90% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--cx), -2400px, 3px);
+  }
+}
+
+/* ── KENNU letters ───────────────────────────────────────────────────────── */
+.word {
+  transform-origin: 0 0; /* the stand-up rotation must pivot on the corner */
+}
+.glyph {
+  transform-origin: 50% 100%;
+  transform: scaleY(0.04);
+}
+.ready .glyph {
+  animation: glyphRise 1.2s var(--ease) calc(1.05s + var(--gi, 0) * 0.14s)
+    forwards;
+}
+@keyframes glyphRise {
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.face,
+.side {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+}
+.side {
+  transform-origin: 0 0;
+}
+.face {
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f6f6f7 0%, #e6e6e8 45%, #c4c4c8 100%);
+  transform: translateZ(0.5px);
+}
+/* a single light sweep across each letter after it has risen (transform only) */
+.face::after {
+  content: "";
+  position: absolute;
+  top: -10%;
+  bottom: -10%;
+  left: -60%;
+  width: 45%;
+  background: linear-gradient(
+    105deg,
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 255, 255, 0)
+  );
+  transform: translateX(0) skewX(-12deg);
+  opacity: 0;
+}
+.ready .face::after {
+  animation: sheen 1.6s ease-in-out calc(2.4s + var(--gi, 0) * 0.16s) 1 forwards;
+}
+@keyframes sheen {
+  0% {
+    opacity: 1;
+    transform: translateX(0) skewX(-12deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(520%) skewX(-12deg);
+  }
+}
+
+/* ── Billboard ───────────────────────────────────────────────────────────── */
+.bbFace {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  padding: 30px 46px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  border: 9px solid #212124;
+  color: #fff;
+  font-family: var(--display);
+  background:
+    radial-gradient(
+      ellipse 80% 55% at 50% -12%,
+      rgba(255, 255, 255, 0.2),
+      rgba(255, 255, 255, 0) 72%
+    ),
+    linear-gradient(#101012, #060607);
+}
+.bbLabel {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 26px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.62);
+}
+.bbLine {
+  display: block;
+  width: max-content;
+  font-size: 56px;
+  font-weight: 850;
+  font-stretch: 112%;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  white-space: nowrap;
+  color: rgba(255, 255, 255, 0.58);
+}
+.bbMark {
+  color: #fff;
+  text-decoration: underline;
+  text-decoration-thickness: 0.07em;
+  text-underline-offset: 0.12em;
+}
+.bbLabel,
+.bbLine {
+  opacity: 0;
+  transform: translateX(-24px);
+}
+.ready .bbLabel,
+.ready .bbLine {
+  animation: textIn 0.9s var(--ease) 2.7s forwards;
+}
+.ready .bbFace > :nth-child(3) {
+  animation-delay: 2.85s;
+}
+.ready .bbFace > :nth-child(4) {
+  animation-delay: 3s;
+}
+.ready .bbFace > :nth-child(5) {
+  animation-delay: 3.15s;
+}
+@keyframes textIn {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* film grain over the whole scene (one static tile, very light) */
+.grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-size: 256px 256px;
+  opacity: 0.22;
+}
+
+/* ── Reduced motion: show the finished scene, no movement ────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .glyph {
+    transform: none !important;
+    animation: none !important;
+  }
+  .fTop,
+  .fFront,
+  .fRight,
+  .plane,
+  .ao,
+  .lampGlow,
+  .roadText,
+  .pole,
+  .arm,
+  .rail,
+  .bbLabel,
+  .bbLine {
+    opacity: 1 !important;
+    animation: none !important;
+  }
+  .face::after,
+  .streak {
+    animation: none !important;
+  }
+  .cars {
+    visibility: hidden !important;
+  }
 }

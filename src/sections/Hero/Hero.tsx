@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { siteContent } from "../../content/siteContent";
 import { HeroScene } from "../../components/HeroScene/HeroScene";
+import type { SceneInput } from "../../components/HeroScene/glScene";
 
 import styles from "./Hero.module.css";
 
@@ -8,11 +9,11 @@ interface HeroProps {
   isIntroDone?: boolean;
 }
 
-/** How much faster the text wave plays than before (1 = old speed). The 3D fly-in uses
- *  the same number: REVEAL_SPEED in HeroScene.tsx — keep the two equal. */
+/** How fast the text wave plays (1 = base speed). Same wave as your old hero. */
 const REVEAL_SPEED = 1.6;
-/** The longest wave-reveal is 3s delay + 2s animation (÷ speed); after this nothing animates. */
-const REVEAL_TOTAL_MS = Math.round(5000 / REVEAL_SPEED) + 600;
+/** Longest wave = biggest --d in Hero.module.css (5.4s) + 2s animation, ÷ speed.
+ *  After this nothing in the text layer animates anymore. */
+const REVEAL_TOTAL_MS = Math.round(((5.4 + 2) / REVEAL_SPEED) * 1000) + 600;
 
 /**
  * Same "line + arrow" connector as the VIEW ALL PROJECTS button in Works.tsx:
@@ -34,31 +35,100 @@ const ConnectorArrow: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
+const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
+
 /**
  * Layers (back → front):
- *   1. HeroScene   — the 3D street: KENNU monoliths, road + ELNAR, buildings, billboard
- *   2. atmosphere  — vignette + film grain (CSS only)
- *   3. text layer  — intro sentence, links, scroll cue (real HTML: selectable, accessible)
+ *   1. stage   — the WebGL 3D street (HeroScene) + one static shade layer
+ *   2. text    — kicker, statement (phones), intro, links (real HTML)
  *
  * The billboard shows the "Focusing on…" sentence inside the 3D scene. On phones the
- * billboard is hidden and the same sentence is shown as normal text instead.
+ * sentence is shown as normal brush-script text instead (same as your old hero).
  */
 export const Hero: React.FC<HeroProps> = ({ isIntroDone = true }) => {
   const { hero, meta } = siteContent;
+  const sectionRef = useRef<HTMLElement | null>(null);
 
-  // PERF: once the text reveal has finished, drop its clip-path / will-change layers
-  // (they otherwise stay on top of the animated 3D canvas for the whole visit).
+  /* true the moment the 3D reveal really begins (textures are ready) */
+  const [started, setStarted] = useState(false);
+  const introReady = isIntroDone && started;
+
+  /* phones and weaker devices get the "lite" scene: same look, fewer pieces */
+  const [lite] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const nav = navigator as Navigator & { deviceMemory?: number };
+    return (
+      window.innerWidth < 992 ||
+      (nav.hardwareConcurrency ?? 8) <= 4 ||
+      (nav.deviceMemory ?? 8) <= 4
+    );
+  });
+
+  /* Pointer + scroll are only written into this plain object. The scene reads
+     it every frame: no React re-render, no DOM writes. */
+  const inputRef = useRef<SceneInput>({ mx: 0, my: 0, sc: 0 });
+
+  /* PERF: once the text reveal has finished, drop its clip-path / will-change layers */
   const [revealDone, setRevealDone] = useState(false);
   useEffect(() => {
-    if (!isIntroDone) return;
+    if (!introReady) return;
     const id = window.setTimeout(() => setRevealDone(true), REVEAL_TOTAL_MS);
     return () => window.clearTimeout(id);
-  }, [isIntroDone]);
+  }, [introReady]);
+
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    const reduce = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const mouse = window.matchMedia(
+      "(hover: hover) and (pointer: fine)",
+    ).matches;
+    if (reduce) return;
+
+    const onMove = (e: PointerEvent) => {
+      const r = section.getBoundingClientRect();
+      inputRef.current.mx = clamp(
+        ((e.clientX - r.left) / r.width - 0.5) * 2,
+        -1,
+        1,
+      );
+      inputRef.current.my = clamp(
+        ((e.clientY - r.top) / r.height - 0.5) * 2,
+        -1,
+        1,
+      );
+    };
+    const onLeave = () => {
+      inputRef.current.mx = 0;
+      inputRef.current.my = 0;
+    };
+    const onScroll = () => {
+      const r = section.getBoundingClientRect();
+      inputRef.current.sc = clamp(-r.top / Math.max(1, r.height), 0, 1);
+    };
+
+    if (mouse) {
+      section.addEventListener("pointermove", onMove, { passive: true });
+      section.addEventListener("pointerleave", onLeave);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    return () => {
+      section.removeEventListener("pointermove", onMove);
+      section.removeEventListener("pointerleave", onLeave);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
 
   return (
     <section
       id="hero"
-      className={`${styles.heroSection} ${isIntroDone ? styles.introReady : ""} ${
+      ref={sectionRef}
+      className={`${styles.heroSection} ${introReady ? styles.introReady : ""} ${
         revealDone ? styles.revealDone : ""
       }`}
       aria-label="Introduction"
@@ -66,8 +136,16 @@ export const Hero: React.FC<HeroProps> = ({ isIntroDone = true }) => {
       // read by AboutScene: it builds its 3D scene only after the hero has settled
       data-reveal-done={revealDone ? "true" : "false"}
     >
-      <HeroScene isIntroDone={isIntroDone} className={styles.scene} />
-      <div className={styles.atmosphere} aria-hidden="true" />
+      {/* 3D street */}
+      <div className={styles.stage} aria-hidden="true">
+        <HeroScene
+          ready={isIntroDone}
+          lite={lite}
+          inputRef={inputRef}
+          onStart={() => setStarted(true)}
+        />
+        <div className={styles.shade} />
+      </div>
 
       {/* The big 3D letters are drawn in WebGL, so the real heading lives here */}
       <h1 className={styles.srOnly}>Kennu Elnar</h1>
