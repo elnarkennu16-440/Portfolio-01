@@ -22,6 +22,9 @@ export interface CameraPreset {
   tilt: number;
   /** perspective distance (px). Smaller = stronger 3D */
   perspective: number;
+  /** extra zoom of the whole scene (1 = as designed, 0.9 = a bit zoomed out).
+   *  The scene shrinks toward the middle of the screen, so it stays centred. */
+  zoom?: number;
 }
 
 export const CAMERA: { desktop: CameraPreset; mobile: CameraPreset } = {
@@ -42,6 +45,8 @@ export const CAMERA: { desktop: CameraPreset; mobile: CameraPreset } = {
     yaw: 42,
     tilt: 56,
     perspective: 1900,
+    /* phones: zoomed out a little so the big KENNU letters have room at the sides */
+    zoom: 0.88,
   },
 };
 
@@ -58,15 +63,21 @@ export interface CameraVars {
 export function computeCamera(W: number, H: number): CameraVars {
   const desktop = W >= 992;
   const c = desktop ? CAMERA.desktop : CAMERA.mobile;
-  const k = desktop
-    ? Math.min(W / c.designW, H / c.designH)
-    : Math.min(W / c.designW, (H * 0.55) / c.designH);
+  const zoom = c.zoom ?? 1;
+  const k =
+    (desktop
+      ? Math.min(W / c.designW, H / c.designH)
+      : Math.min(W / c.designW, (H * 0.55) / c.designH)) * zoom;
+  /* zoom about the middle of the 3D area (centre of the width, 34 % down), so the
+     composition stays centred instead of sliding toward the anchor */
+  const px = W * 0.5;
+  const py = H * 0.34;
   return {
     k,
     yaw: c.yaw,
     tilt: c.tilt,
-    ax: W * c.anchorX,
-    ay: H * c.anchorY,
+    ax: px + (W * c.anchorX - px) * zoom,
+    ay: py + (H * c.anchorY - py) * zoom,
     persp: c.perspective * k,
   };
 }

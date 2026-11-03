@@ -438,32 +438,37 @@ function boardCanvases(len: number, h: number, s: number) {
   return { base, text };
 }
 
-/** "SOFTWARE / DEVELOPER" painted on the asphalt: two lines across the lane, stretched
- *  along the road like real markings. (Same canvas size, same spot, same fade as before.) */
+/** "SOFTWARE" (left lane) and "DEVELOPER" (right lane) painted on the asphalt, stretched
+ *  along the road like real markings. ONE canvas covers the whole painted area:
+ *    canvas x → along the road (1 px = 0.5 world units), canvas y → across the road.
+ *  The matching quad lives in glScene.ts (search "road paint"): keep both in sync
+ *  (x -130..130, y 130..-650 → 260 × 780 units = 520 × 1560 px). */
 function roadTextCanvas(): HTMLCanvasElement {
-  const W = 1600;
-  const H = 240;
+  const W = 1560;
+  const H = 520;
   const c = mk(W, H);
   const g = c.getContext("2d") as CanvasRenderingContext2D & {
     letterSpacing?: string;
   };
-  const LINES = ["SOFTWARE", "DEVELOPER"];
-  const SIZE = 128; // two lines have to fit the lane, so the letters are smaller than "ELNAR" was
+  const SIZE = 190; // letter height ≈ 133 px = 66 world units (a little over a third of a lane)
   g.font = `800 ${SIZE}px ${FONT}`;
-  if ("letterSpacing" in g) g.letterSpacing = "10px";
-  // both lines share ONE stretch (the longer line, DEVELOPER, fills the old text length),
-  // so the letters look the same on each line
-  const widest = Math.max(...LINES.map((t) => g.measureText(t).width)) || 1;
-  const k = 1500 / widest;
+  if ("letterSpacing" in g) g.letterSpacing = "14px";
   const cap = g.measureText("H").actualBoundingBoxAscent || SIZE * 0.7;
-  const gap = 26; // space between the two lines
-  const top = Math.max(0, (H - (cap * 2 + gap)) / 2);
   g.fillStyle = "rgba(255,255,255,0.9)";
   g.textBaseline = "alphabetic";
-  LINES.forEach((t, i) => {
+
+  /* each word: where it starts along the road (px), how long it is (px) and the
+     middle of its lane across the road (px). Letter tops point to the road's left side. */
+  const words = [
+    { t: "SOFTWARE", from: 4, len: 1380, mid: 100 }, // left lane
+    { t: "DEVELOPER", from: 420, len: 1120, mid: 440 }, // right lane
+  ];
+  words.forEach(({ t, from, len, mid }) => {
+    const wTxt = g.measureText(t).width || 1;
     g.save();
-    g.scale(k, 1);
-    g.fillText(t, 0, top + cap + i * (cap + gap));
+    g.translate(from, 0);
+    g.scale(len / wTxt, 1);
+    g.fillText(t, 0, mid + cap / 2);
     g.restore();
   });
   return c;

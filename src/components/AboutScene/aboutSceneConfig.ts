@@ -1,185 +1,135 @@
-import * as THREE from "three";
-import { BOARD_A, BOARD_B, CAT, SIGN_LAYOUTS } from "./aboutSceneParts";
-
 /* ────────────────────────────────────────────────────────────────────────────
- * aboutSceneConfig.ts — every tunable number of the About street scene in ONE
- * place (camera, reveal timing, tour, theme looks). Same idea as the hero's
- * sceneConfig.ts. The engine that uses these is aboutEngine.ts.
- * Device-dependent quality (resolution, fps, MSAA ...) lives in aboutQuality.ts.
+ * ABOUT SCENE — all the numbers in one place.
+ *
+ * Same street as the Hero, but seen from the sidewalk at eye level (POV).
+ * World: x → right, y → up, z → toward you (1 unit ≈ 1 metre).
+ *   far sidewalk + buildings  z < -5      road  -5 … 2.5      near sidewalk  z > 2.5
  * ──────────────────────────────────────────────────────────────────────────── */
 
-export const GITHUB_IMAGE_SRC = "/images/Github-Contribution.png";
+import type { V3 } from "./aboutGlUtils";
 
-/* ═══════════════════════════ TUNING ═══════════════════════════════════════ */
-export const FOG_COLOR = 0x121214;
-export const FOG_DENSITY = 0.017;
-export const FOG_START_DENSITY = 0.085;
-export const START_POS = new THREE.Vector3(-34, 15, 36);
-export const START_TARGET = new THREE.Vector3(4, 1.5, -8);
-export const END_POS = new THREE.Vector3(-15, 1.8, 11);
-export const END_TARGET = new THREE.Vector3(5, 2.7, -9);
-export const PARALLAX_X = 0.8;
-export const PARALLAX_Y = 0.3;
-export const REDUCED_T = 100;
+/** the paragraph shown on the comment sign (also read by About.tsx for screen readers) */
+export const ABOUT_TEXT =
+  "I maintain this platform as an open repository to document my background, practical work, and technical development. Instead of leaving projects confined to private directories, this space serves as an accessible record of my hands-on exploration and steady learning curve. I place high value on structural clarity and consistent routines. Much of my time involves refining interface behavior, addressing edge cases deliberately, and building applications with longevity and clean organization in mind.";
 
-export const TOUR_MS = 5200;
-export const TOUR_TAN_V = Math.tan(THREE.MathUtils.degToRad(23));
-// Phone tour order: the cat + comment sign FIRST (it needs the longest time), then the
-// GitHub board, then "this platform". The index of a shot = its position in this list.
-export const SHOTS = ["The cat", "GitHub activity", "This platform"] as const;
-export const SHOT_COUNT = SHOTS.length;
-export const CAT_SHOT = 0; // index of "The cat" in SHOTS
-export const BOARD_A_SHOT = 1; // index of "GitHub activity" in SHOTS
-export const CAT_SHOT_MS = 16000; // phone tour: the cat shot stays longer so the sign can be read
-export const SIGN_SHOW_T = 3.7; // seconds after the reveal starts: the sign pops out of the cat
-export const TYPE_STEP = 0.03; // seconds per typed letter (desktop)
-export const TYPE_STEP_TOUR = 0.016; // phone tour: a bit faster
-// PERF: the scene is built quietly in the background this long after the page has
-// loaded (instead of while the visitor scrolls into About). Set to -1 to turn off.
-export const PREBUILD_AFTER_LOAD_MS = 1200;
-// REVEAL: how fast the intro plays (1 = the old speed). Only the reveal ramps are
-// sped up; traffic, cat idle, lamps etc. keep their normal speed afterwards.
-export const REVEAL_SPEED = 1.6;
-// REVEAL: it starts as soon as this much of the section is on screen (was 20 %), so
-// the first (almost empty) moments happen while the section is still scrolling in.
-export const REVEAL_RATIO = 0.1;
-// phone tour: the cat is the FIRST shot, so it (and its sign) come out much earlier
-export const TOUR_CAT_POP_T = 1.0;
-export const SIGN_SHOW_TOUR_T = 2.3;
-
-export const MIN_DPR = 1;
-export const SHADOW_FREEZE_T = 4.4;
-export const VISIBLE_RATIO = 0.08; // the loop runs only when >= 8% of the section is on screen
-// PERF: while About is only half on screen (still scrolling in, the hero is drawing too)
-// it draws at 30 fps; from this share on it uses its full frame rate.
-export const FULL_RATE_RATIO = 0.5;
-
-// Automatic quality governor (see aboutEngine.ts). A window = this many drawn frames.
-export const ADAPT_AFTER_T = 2; // seconds after the reveal started (the first bakes are spiky)
-export const ADAPT_WINDOW = 30;
-export const SLOW_FACTOR = 1.35; // a window is "slow" when avg frame > target frame × this
-export const DPR_STEP = 0.82; // every slow window lowers the resolution by 18 %
-
-// FIX (blank / never appears): compileAsync had no time limit. If a phone GPU driver never
-// reports "done", the build waited forever and the canvas stayed empty until a refresh.
-export const COMPILE_TIMEOUT_MS = 10000;
-// FIX (hang on the next section): while Works rises over About, About is still on screen
-// for IntersectionObserver, so it kept drawing at full rate behind the cover.
-// 0 = Works not touching About, 1 = About fully covered.
-export const COVER_SLOW_AT = 0.4; // from here on About draws at 30 fps (it is dimming anyway)
-export const COVER_PAUSE_AT = 0.995; // fully covered: no drawing at all
-// FIX (blank): a build step that throws used to be swallowed silently (blank for good).
-export const BOOT_RETRIES = 3;
-
-export const BASE_TAN_V = Math.tan(THREE.MathUtils.degToRad(20));
-export const TAN_H = BASE_TAN_V * (16 / 9);
-
-export const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-export const seg = (t: number, start: number, dur: number) =>
-  clamp01((t - start) / dur);
-export const easeOutQuart = (x: number) => 1 - Math.pow(1 - x, 4);
-export const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
-export const easeOutExpo = (x: number) =>
-  x >= 1 ? 1 : 1 - Math.pow(2, -10 * x);
-export const easeOutBack = (x: number) => {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+/* ── LOOKS: must match About.module.css (--about-bg) so canvas + section blend ── */
+export const LOOKS = {
+  dark: { bg: [0x12, 0x12, 0x14] as V3 }, // #121214
+  light: { bg: [0xe6, 0xe6, 0xe9] as V3 }, // #e6e6e9
 };
 
-export const FLICKER = [0, 0.9, 0.15, 1, 0.35, 1, 0.1, 1];
-export const flicker = (t: number, start: number) => {
-  const x = t - start;
-  if (x < 0) return 0;
-  if (x > 0.9) return 1;
-  return FLICKER[
-    Math.min(FLICKER.length - 1, Math.floor((x / 0.9) * FLICKER.length))
-  ];
-};
-
-/* ═══════════════════════════ THEME (light / dark) ═════════════════════════
- * The scene used to be hard-coded dark. It now follows the site theme: the
- * "dark" look below is EXACTLY the old one; "light" matches the Hero's light mode
- * (cars, cat and billboards stay dark). Tune the light look here.
- * IMPORTANT: LOOKS.light.bg must equal --about-bg (light) in About.module.css. */
-export type ThemeName = "dark" | "light";
-export interface Look {
-  bg: number; // sky + fog colour
-  hemiSky: number;
-  hemiGround: number;
-  hemiI: number;
-  keyColor: number;
-  keyI: number;
-  rimColor: number;
-  rimI: number;
-  exposure: number;
-  glow: number; // 1 = lamp glow / lit windows / dust on, 0 = off (invisible on light)
+/* ── CAMERA ─────────────────────────────────────────────────────────────── */
+export interface Pose {
+  eye: V3;
+  target: V3;
+  fov: number; // vertical, degrees
 }
-export const LOOKS: Record<ThemeName, Look> = {
-  dark: {
-    bg: FOG_COLOR,
-    hemiSky: 0x59606c,
-    hemiGround: 0x0a0a0b,
-    hemiI: 0.55,
-    keyColor: 0xcfd5df,
-    keyI: 2.4,
-    rimColor: 0x8e95a3,
-    rimI: 1.1,
-    exposure: 0.95,
-    glow: 1,
-  },
-  light: {
-    bg: 0xe6e6e9,
-    hemiSky: 0xffffff,
-    hemiGround: 0xb4b4ba,
-    hemiI: 1.5,
-    keyColor: 0xffffff,
-    keyI: 2.6,
-    rimColor: 0xffffff,
-    rimI: 0.6,
-    exposure: 1.0,
-    glow: 0,
-  },
+
+/** the Hero looks down from far away; scrolling into About moves the camera from
+ *  START (that same high view) to END (street-level POV). */
+export const CAMERA = {
+  start: { eye: [-17, 25, 31], target: [1, 0.5, -4], fov: 38 } as Pose,
+  end: { eye: [0, 1.8, 13.8], target: [0.6, 2.9, -5], fov: 50 } as Pose,
+  /** phones / portrait: a little higher and wider so the billboard AND the cat fit */
+  endPortrait: { eye: [0.5, 7.4, 17], target: [0.6, 2.4, -3], fov: 74 } as Pose,
+  /** the horizontal field of view never goes below this (keeps both sides visible) */
+  minHFov: 74,
+  minHFovPortrait: 56,
+  maxFov: 86,
+  maxFovPortrait: 100,
+  near: 0.1,
+  far: 260,
 };
 
-/** Same string as in ThemeToggle.tsx (it announces every theme change). */
-export const THEME_EVENT = "kennu:themechange";
+/* ── FOG / DEPTH ────────────────────────────────────────────────────────── */
+export const FOG = { start: 28, end: 105 };
 
-/** The site theme = the nearest data-theme attribute (the toggle's own contract).
- *  No attribute (or "light") = light mode, exactly like ThemeToggle.module.css. */
-export const readTheme = (from: Element | null): ThemeName => {
-  const holder = from?.closest("[data-theme]") ?? document.documentElement;
-  return holder.getAttribute("data-theme") === "dark" ? "dark" : "light";
+/* ── STREET ─────────────────────────────────────────────────────────────── */
+export const STREET = {
+  x0: -48,
+  x1: 48,
+  z0: -12, // far edge of the textured ground
+  z1: 26, // near edge
+  roadFar: -5,
+  roadNear: 2.5,
+  crossX0: -1.2, // zebra crossing
+  crossX1: 3.0,
 };
 
-export function poseForShot(
-  shot: number,
-  aspect: number,
-  pos: THREE.Vector3,
-  target: THREE.Vector3,
-) {
-  if (shot === CAT_SHOT) {
-    // frame the cat AND the 3D comment sign above it (sign ≈ 90 % of the screen width)
-    const dist = THREE.MathUtils.clamp(
-      SIGN_LAYOUTS.tall.bodyW / (0.9 * 2 * TOUR_TAN_V * aspect),
-      4.6,
-      10.5,
-    );
-    pos.set(CAT.x + dist * 0.147, 1.15, CAT.z + dist);
-    target.set(CAT.x, 1.65, CAT.z);
-    return;
-  }
-  const b = shot === BOARD_A_SHOT ? BOARD_A : BOARD_B;
-  const cy = b.postH + b.h / 2;
-  const nx = Math.sin(b.yaw);
-  const nz = Math.cos(b.yaw);
-  const rx = Math.cos(b.yaw);
-  const rz = -Math.sin(b.yaw);
-  const dist = Math.max(14, ((b.w / 2) * 1.14) / (TOUR_TAN_V * aspect));
-  pos.set(
-    b.x + nx * dist + rx * dist * 0.17,
-    1.9,
-    b.z + nz * dist + rz * dist * 0.17,
-  );
-  target.set(b.x, cy - 0.16 * 2 * TOUR_TAN_V * dist, b.z);
+/* ── BUILDINGS (far side of the street) ─────────────────────────────────── */
+export interface Block {
+  x: number; // left edge
+  zFront: number; // z of the face you see (+z face)
+  w: number;
+  d: number;
+  h: number;
+  seed: number;
+  lit: number; // share of lit windows
+  base: number; // wall grey (0-255)
+  delay: number;
+  skipOnLite?: boolean;
 }
+export const BUILDINGS: Block[] = [
+  { x: -25, zFront: -9.5, w: 13.5, d: 9, h: 21, seed: 4, lit: 0.1, base: 34, delay: 0.25 },
+  { x: -10.5, zFront: -11.5, w: 9.5, d: 9, h: 25, seed: 8, lit: 0.17, base: 30, delay: 0.4 },
+  { x: -0.5, zFront: -12.5, w: 8, d: 9, h: 17, seed: 12, lit: 0.12, base: 28, delay: 0.55 },
+  { x: 8.2, zFront: -15, w: 9.5, d: 9, h: 30, seed: 16, lit: 0.07, base: 24, delay: 0.35, skipOnLite: true },
+  { x: 19, zFront: -18, w: 12, d: 9, h: 15, seed: 20, lit: 0.06, base: 22, delay: 0.7, skipOnLite: true },
+];
+
+/* ── GITHUB BILLBOARD (far sidewalk, left) ──────────────────────────────── */
+export const BILLBOARD = {
+  x: -6.8, // centre
+  z: -7.2,
+  yBottom: 1.7,
+  w: 7.4,
+  h: 4.16,
+  yaw: 12, // degrees, turned a little toward you
+  contributions: 612,
+  /** phones: moved + scaled so it sits above the sign */
+  portrait: { x: -2.4, z: -9.5, scale: 1.15 },
+  /** the picture in /public — shown on the board (turned grey). Falls back to a drawn calendar. */
+  image: "Github-Contribution.png",
+};
+
+/* ── COMMENT SIGN (floats above the cat) ────────────────────────────────── */
+export const SIGN = {
+  x: 2.9,
+  y: 3.75, // centre height
+  z: 1.8,
+  w: 8.2,
+  h: 3.6,
+  depth: 0.32,
+  radius: 0.5,
+  tailX: 1.9, // tail position from the centre (right of the middle)
+  tailLen: 1.15,
+  tailW: 0.95,
+  yaw: -5,
+  /** portrait / phones: taller bubble, more room for the text */
+  portrait: { x: 0.6, y: 2.7, z: 7, w: 9.6, h: 6.2, tailX: 0.9 },
+  /** typing speed */
+  charsPerSecond: 58,
+};
+
+/* ── CAT (near sidewalk, bottom right) ──────────────────────────────────── */
+export const CAT = { x: 4.3, z: 4.3, yaw: -26, scale: 1.5, portraitX: 1.9, portraitZ: 11.6 };
+
+/* ── STREET LAMP + CARS + DUST ──────────────────────────────────────────── */
+export const LAMP = { x: -2.2, z: -5.6, h: 8.4 };
+export const CARS = [
+  { lane: -3.5, dir: -1, speed: 3.4, x0: 46, len: 4.4, tone: 5 },
+  { lane: 0.9, dir: 1, speed: 4.2, x0: -80, len: 4.6, tone: 8 },
+];
+export const DUST = { count: 90, liteCount: 40 };
+
+/* ── REVEAL TIMELINE (seconds after the About scene starts) ─────────────── */
+export const TIMELINE = {
+  ground: { delay: 0.05, dur: 1.4 },
+  lampOn: 1.6,
+  billboard: { delay: 0.9, dur: 1.5 },
+  billboardOn: 2.1, // the screen lights up
+  cat: { delay: 1.5, dur: 1.2 },
+  sign: { delay: 2.0, dur: 1.1 },
+  typeStart: 3.3,
+  cars: 2.6,
+};

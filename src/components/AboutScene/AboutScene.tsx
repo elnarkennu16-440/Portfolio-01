@@ -1,192 +1,95 @@
 import React, { useEffect, useRef, useState } from "react";
 import styles from "./AboutScene.module.css";
-import { createAboutScene } from "./aboutEngine";
-import type { SceneHandle } from "./aboutEngine";
-import {
-  CAT_SHOT,
-  CAT_SHOT_MS,
-  GITHUB_IMAGE_SRC,
-  PREBUILD_AFTER_LOAD_MS,
-  SHOTS,
-  SHOT_COUNT,
-  TOUR_MS,
-} from "./aboutSceneConfig";
-
-/* ────────────────────────────────────────────────────────────────────────────
- * AboutScene — the React side of the About street: mounts the canvas host, starts
- * the (pre)build at the right moment, and drives the phone tour buttons.
- * The 3D engine itself is split out, like the hero:
- *   aboutEngine.ts        engine: build steps + render loop + auto quality
- *   aboutSceneConfig.ts  every tunable number (camera, timing, theme looks)
- *   aboutQuality.ts      per-device quality (resolution / fps / MSAA)
- *   aboutSceneParts.ts   the 3D objects (road, city, boards, cat, sign ...)
- * ──────────────────────────────────────────────────────────────────────────── */
+import { AboutController, AboutInput, createAboutScene } from "./aboutGl";
 
 interface AboutSceneProps {
   className?: string;
-  githubImageSrc?: string;
 }
 
-export const AboutScene: React.FC<AboutSceneProps> = ({
-  className,
-  githubImageSrc = GITHUB_IMAGE_SRC,
-}) => {
-  const hostRef = useRef<HTMLDivElement | null>(null);
-  const handleRef = useRef<SceneHandle | null>(null);
-  const shotRef = useRef(0);
+const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
-  const [shot, setShot] = useState(0);
-  const [tour, setTour] = useState(false);
-  const [live, setLive] = useState(false);
-  const [reduced] = useState<boolean>(
-    () =>
-      typeof window !== "undefined" &&
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-  );
+/** light theme = default (no data-theme="dark"), same rule as ThemeToggle */
+const isDark = () => document.documentElement.getAttribute("data-theme") === "dark";
+
+/**
+ * ABOUT — the 3D street at eye level. Drawn on one <canvas> with WebGL (see
+ * aboutGl.ts), so the page only sees a single flat image. The camera follows the
+ * scroll: as About slides in under the Hero, it dollies from the Hero's high
+ * view down into this street-level POV.
+ */
+export const AboutScene: React.FC<AboutSceneProps> = ({ className = "" }) => {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  /* phones and weaker devices get the "lite" scene: same look, fewer pieces */
+  const [lite] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const nav = navigator as Navigator & { deviceMemory?: number };
+    return window.innerWidth < 992 || (nav.hardwareConcurrency ?? 8) <= 4 || (nav.deviceMemory ?? 8) <= 4;
+  });
+
+  const inputRef = useRef<AboutInput>({ mx: 0, my: 0, progress: 0, dark: true });
 
   useEffect(() => {
-    shotRef.current = shot;
-    handleRef.current?.refresh();
-  }, [shot]);
+    const canvas = canvasRef.current;
+    const section = rootRef.current?.parentElement;
+    if (!canvas || !section) return;
 
-  useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
+    inputRef.current.dark = isDark();
+    const scene: AboutController | null = createAboutScene(canvas, { lite, input: inputRef });
 
-    let gone = false;
-    const start = () => {
-      if (handleRef.current || gone) return;
-      handleRef.current = createAboutScene(host, {
-        githubImageSrc,
-        getShot: () => shotRef.current,
-        onTour: (v) => {
-          if (!gone) setTour(v);
-        },
-        onLive: (v) => {
-          if (!gone) setLive(v);
-        },
-      });
+    /* scroll → how far About has slid into place (0 → 1) */
+    let raf = 0;
+    const measure = () => {
+      raf = 0;
+      const r = section.getBoundingClientRect();
+      inputRef.current.progress = clamp(1 - r.top / Math.max(1, window.innerHeight), 0, 1);
     };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(measure);
+    };
+    measure();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
 
-    let lazy: IntersectionObserver | null = null;
-    let warmTimer = 0;
-    let onLoad: (() => void) | null = null;
-    if (typeof IntersectionObserver === "undefined") {
-      start();
-    } else {
-      // PERF: build the scene in the background shortly after the page has loaded, so
-      // that scrolling into About never has to wait for it. (The observer below stays
-      // as the fallback: if the visitor gets here first, it starts immediately.)
-      const nav = navigator as Navigator & {
-        deviceMemory?: number;
-        connection?: { saveData?: boolean };
-      };
-      // FIX: low-memory phones and "data saver" used to skip the prebuild completely, so
-      // the whole build only started when About was already on screen (long blank).
-      // They now prebuild too, just a bit later (the build itself is sliced and gentle).
-      const canPrebuild = PREBUILD_AFTER_LOAD_MS >= 0;
-      const gentle =
-        (nav.deviceMemory !== undefined && nav.deviceMemory < 4) ||
-        !!nav.connection?.saveData;
-      if (canPrebuild) {
-        // never build while the hero is still revealing: wait until Hero.tsx says it
-        // has settled (data-reveal-done), with a safety limit so we never wait forever
-        const go = () => {
-          lazy?.disconnect();
-          start();
-        };
-        const waitForHero = (since: number) => {
-          const hero = document.getElementById("hero");
-          if (
-            !hero ||
-            hero.dataset.revealDone === "true" ||
-            performance.now() - since > 15000
-          ) {
-            go();
-            return;
-          }
-          warmTimer = window.setTimeout(() => waitForHero(since), 250);
-        };
-        const arm = () => {
-          warmTimer = window.setTimeout(
-            () => waitForHero(performance.now()),
-            PREBUILD_AFTER_LOAD_MS + (gentle ? 1500 : 0),
-          );
-        };
-        if (document.readyState === "complete") {
-          arm();
-        } else {
-          onLoad = arm;
-          window.addEventListener("load", arm, { once: true });
-        }
-      }
-      lazy = new IntersectionObserver(
-        (entries) => {
-          if (entries.some((en) => en.isIntersecting)) {
-            lazy?.disconnect();
-            start();
-          }
-        },
-        { rootMargin: "0px 0px 0px 0px" },
-      );
-      lazy.observe(host);
+    /* pointer parallax (mouse only) */
+    const mouse = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const onMove = (e: PointerEvent) => {
+      const r = section.getBoundingClientRect();
+      inputRef.current.mx = clamp(((e.clientX - r.left) / r.width - 0.5) * 2, -1, 1);
+      inputRef.current.my = clamp(((e.clientY - r.top) / r.height - 0.5) * 2, -1, 1);
+    };
+    const onLeave = () => {
+      inputRef.current.mx = 0;
+      inputRef.current.my = 0;
+    };
+    if (mouse && !reduce) {
+      section.addEventListener("pointermove", onMove, { passive: true });
+      section.addEventListener("pointerleave", onLeave);
     }
 
-    return () => {
-      gone = true;
-      window.clearTimeout(warmTimer);
-      if (onLoad) window.removeEventListener("load", onLoad);
-      lazy?.disconnect();
-      handleRef.current?.dispose();
-      handleRef.current = null;
-    };
-  }, [githubImageSrc]);
+    /* light / dark toggle */
+    const mo = new MutationObserver(() => {
+      inputRef.current.dark = isDark();
+    });
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
 
-  useEffect(() => {
-    if (!tour || !live || reduced) return;
-    const timer = window.setTimeout(
-      () => setShot((s) => (s + 1) % SHOT_COUNT),
-      shot === CAT_SHOT ? CAT_SHOT_MS : TOUR_MS,
-    );
-    return () => window.clearTimeout(timer);
-  }, [tour, live, reduced, shot]);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      section.removeEventListener("pointermove", onMove);
+      section.removeEventListener("pointerleave", onLeave);
+      mo.disconnect();
+      scene?.dispose();
+    };
+  }, [lite]);
 
   return (
-    <>
-      <div className={`${styles.root} ${className ?? ""}`} aria-hidden="true">
-        <div ref={hostRef} className={styles.host} />
-      </div>
-
-      {tour && (
-        <div className={styles.controls} role="group" aria-label="Choose view">
-          {SHOTS.map((label, i) => (
-            <button
-              key={label}
-              type="button"
-              className={styles.dash}
-              onClick={() => setShot(i)}
-              aria-label={`Show ${label}`}
-              aria-current={i === shot ? "true" : undefined}
-            >
-              <span className={styles.dashTrack}>
-                {i === shot && (
-                  <span
-                    key={shot}
-                    className={`${styles.dashFill} ${
-                      !live || reduced ? styles.dashFillHeld : ""
-                    }`}
-                    style={{
-                      animationDuration: `${shot === CAT_SHOT ? CAT_SHOT_MS : TOUR_MS}ms`,
-                    }}
-                  />
-                )}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-    </>
+    <div ref={rootRef} className={`${styles.root} ${className}`} aria-hidden="true">
+      <canvas ref={canvasRef} className={styles.canvas} />
+    </div>
   );
 };
 

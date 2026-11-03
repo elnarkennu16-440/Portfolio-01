@@ -546,11 +546,12 @@ export function createScene(
 
     /* "ELNAR" painted on the road */
     {
+      /* road paint: "SOFTWARE" / "DEVELOPER" (see roadTextCanvas in textures.ts) */
       const m = new MeshBuilder();
-      const y1 = 230;
-      const len = 640;
-      const x0 = -128;
-      const x1 = -32;
+      const y1 = 130;
+      const len = 780;
+      const x0 = -130;
+      const x1 = 130;
       m.quad(
         [
           [x0, y1, 3],
