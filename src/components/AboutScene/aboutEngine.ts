@@ -1,0 +1,987 @@
+import * as THREE from "three";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import styles from "./AboutScene.module.css";
+import {
+  buildBoardA,
+  buildBoardB,
+  buildCat,
+  buildCity,
+  buildCommentSign,
+  buildCrossing,
+  buildDust,
+  buildGooseLamp,
+  buildGroundAndRoad,
+  buildStreetLights,
+  buildTraffic,
+  createRoadCurve,
+  disposeObject,
+  isBlocked,
+  mulberry32,
+  setAnisotropy,
+  SIGN_LAYOUTS,
+  SIGN_TIP,
+  CONTRIBUTIONS,
+} from "./aboutSceneParts";
+import {
+  ADAPT_AFTER_T,
+  ADAPT_WINDOW,
+  BASE_TAN_V,
+  CAT_SHOT,
+  COMPILE_TIMEOUT_MS,
+  COVER_PAUSE_AT,
+  COVER_SLOW_AT,
+  DPR_STEP,
+  END_POS,
+  END_TARGET,
+  FOG_DENSITY,
+  FOG_START_DENSITY,
+  FULL_RATE_RATIO,
+  LOOKS,
+  MIN_DPR,
+  PARALLAX_X,
+  PARALLAX_Y,
+  REDUCED_T,
+  REVEAL_RATIO,
+  REVEAL_SPEED,
+  SHADOW_FREEZE_T,
+  SIGN_SHOW_T,
+  SIGN_SHOW_TOUR_T,
+  SLOW_FACTOR,
+  START_POS,
+  START_TARGET,
+  TAN_H,
+  THEME_EVENT,
+  TOUR_CAT_POP_T,
+  TOUR_TAN_V,
+  TYPE_STEP,
+  TYPE_STEP_TOUR,
+  VISIBLE_RATIO,
+  BOOT_RETRIES,
+  easeOutBack,
+  easeOutCubic,
+  easeOutExpo,
+  easeOutQuart,
+  flicker,
+  poseForShot,
+  readTheme,
+  seg,
+  clamp01,
+} from "./aboutSceneConfig";
+import type { ThemeName } from "./aboutSceneConfig";
+import { detectQuality } from "./aboutQuality";
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * aboutEngine.ts — the engine of the About street (three.js): builds the scene in
+ * small steps, runs the render loop, and keeps it smooth (resolution budget, fps
+ * cap, automatic quality, pause when hidden / covered).
+ * The React part (tour buttons, mounting) is AboutScene.tsx.
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+export interface BootControls {
+  githubImageSrc: string;
+  getShot: () => number;
+  onTour: (v: boolean) => void;
+  onLive: (v: boolean) => void;
+  /** hands out the teardown of a half-built scene, so a failed boot can be cleaned up */
+  onTeardownReady?: (fn: () => void) => void;
+}
+
+export interface SceneHandle {
+  refresh: () => void;
+  dispose: () => void;
+}
+
+/** yields to the browser so the hero (and scrolling) keep their frames while we build */
+const nextFrame = () =>
+  new Promise<void>((resolve) =>
+    requestAnimationFrame(() => window.setTimeout(resolve, 0)),
+  );
+
+/** resolves in an idle moment of the browser (or after `ms` at the latest) */
+const idleSlot = (ms: number) =>
+  new Promise<void>((resolve) => {
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(() => resolve(), { timeout: ms });
+    } else {
+      window.setTimeout(resolve, 16);
+    }
+  });
+const sleep = (ms: number) =>
+  new Promise<void>((resolve) => window.setTimeout(resolve, ms));
+
+type CompilingRenderer = THREE.WebGLRenderer & {
+  compileAsync?: (
+    scene: THREE.Object3D,
+    camera: THREE.Camera,
+  ) => Promise<unknown>;
+};
+
+const NOOP_HANDLE: SceneHandle = {
+  refresh: () => undefined,
+  dispose: () => undefined,
+};
+
+/**
+ * The scene is built in small steps (one per frame) instead of one long freeze,
+ * and shaders are compiled with compileAsync. dispose() can be called at any time.
+ */
+export function createAboutScene(
+  host: HTMLDivElement,
+  ctl: BootControls,
+): SceneHandle {
+  let handle: SceneHandle | null = null;
+  let cancelled = false;
+  let attempt = 0;
+  let retryTimer = 0;
+  let halfBuilt: (() => void) | null = null;
+
+  const run = () => {
+    halfBuilt = null;
+    bootSceneAsync(
+      host,
+      {
+        ...ctl,
+        onTeardownReady: (fn) => {
+          halfBuilt = fn;
+        },
+      },
+      () => cancelled,
+    )
+      .then((h) => {
+        if (cancelled) h.dispose();
+        else handle = h;
+      })
+      .catch(() => {
+        // a build step threw (low memory, lost context, ...): release the half-built
+        // scene and try again instead of staying blank until the next refresh
+        halfBuilt?.();
+        halfBuilt = null;
+        if (cancelled || ++attempt >= BOOT_RETRIES) return;
+        retryTimer = window.setTimeout(run, 700 * attempt);
+      });
+  };
+  run();
+
+  return {
+    refresh: () => handle?.refresh(),
+    dispose: () => {
+      cancelled = true;
+      window.clearTimeout(retryTimer);
+      handle?.dispose();
+      handle = null;
+    },
+  };
+}
+
+async function bootSceneAsync(
+  host: HTMLDivElement,
+  ctl: BootControls,
+  isCancelled: () => boolean,
+): Promise<SceneHandle> {
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // PERF: one quality profile for this device (resolution budget, fps cap, MSAA ...)
+  const q = detectQuality();
+  setAnisotropy(q.aniso);
+  const finePointer = window.matchMedia(
+    "(hover: hover) and (pointer: fine)",
+  ).matches;
+  const deviceDpr = window.devicePixelRatio || 1;
+
+  let renderer: THREE.WebGLRenderer;
+  try {
+    renderer = new THREE.WebGLRenderer({
+      // PERF: MSAA on a big canvas is expensive. Dense screens do not need it and
+      // phones / weaker laptops skip it (see aboutQuality.ts).
+      antialias: q.antialias,
+      stencil: false,
+      powerPreference: "high-performance",
+    });
+  } catch {
+    return NOOP_HANDLE;
+  }
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.95;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.autoUpdate = false;
+  renderer.domElement.className = styles.canvas;
+  host.appendChild(renderer.domElement);
+
+  let dprCap = q.dprMax;
+  const dprFloor = Math.min(MIN_DPR, deviceDpr);
+  let lastW = 0;
+  let lastH = 0;
+  let lastDpr = 0;
+
+  const applySize = (w: number, h: number) => {
+    // PERF: the canvas never gets more pixels than the budget (huge / 4K windows)
+    const dpr = Math.min(
+      window.devicePixelRatio || 1,
+      dprCap,
+      Math.sqrt(q.pixelBudget / (w * h)),
+    );
+    if (w === lastW && h === lastH && Math.abs(dpr - lastDpr) < 0.005) return;
+    lastW = w;
+    lastH = h;
+    lastDpr = dpr;
+    renderer.setPixelRatio(dpr);
+    renderer.setSize(w, h, false);
+  };
+
+  let theme: ThemeName = readTheme(host);
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(LOOKS[theme].bg);
+  const fog = new THREE.FogExp2(LOOKS[theme].bg, FOG_START_DENSITY);
+  scene.fog = fog;
+  let glowK = LOOKS[theme].glow;
+
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  let envTexture: THREE.Texture | null = null;
+
+  let disposed = false;
+  // FIX: the GitHub image can finish loading in the middle of the build, and its onload
+  // calls renderOnce() -> update() before those exist (temporal dead zone error).
+  let booted = false;
+  let raf = 0;
+  let running = false;
+  const cleanups: Array<() => void> = [];
+
+  /* PERF: while the scene is built in the background, never compete with the visitor.
+     `breathe()` is the pause between build steps: while the visitor is scrolling or
+     touching and About is not on screen yet, it waits (max ~0.6 s), then waits for an
+     idle moment. As soon as About IS on screen it only yields one frame (fast path). */
+  let lastInput = 0;
+  const markInput = () => {
+    lastInput = performance.now();
+  };
+  const inputEvents = ["scroll", "wheel", "touchmove", "keydown"] as const;
+  inputEvents.forEach((ev) =>
+    window.addEventListener(ev, markInput, { passive: true }),
+  );
+  cleanups.push(() =>
+    inputEvents.forEach((ev) => window.removeEventListener(ev, markInput)),
+  );
+  const hostVisible = () => {
+    const r = host.getBoundingClientRect();
+    return r.top < window.innerHeight * 0.9 && r.bottom > 0;
+  };
+  const breathe = async () => {
+    await nextFrame();
+    if (hostVisible()) return;
+    const t0 = performance.now();
+    while (
+      performance.now() - lastInput < 160 &&
+      performance.now() - t0 < 600
+    ) {
+      await sleep(60);
+    }
+    await idleSlot(80);
+  };
+  const teardown = () => {
+    if (disposed) return;
+    disposed = true;
+    running = false;
+    cancelAnimationFrame(raf);
+    cleanups.forEach((fn) => fn());
+    disposeObject(scene);
+    envTexture?.dispose();
+    pmrem.dispose();
+    renderer.dispose();
+    renderer.forceContextLoss();
+    renderer.domElement.remove();
+  };
+  ctl.onTeardownReady?.(teardown);
+  /** returns true (after cleaning up) when the component was unmounted meanwhile */
+  const aborted = () => {
+    if (!isCancelled()) return false;
+    teardown();
+    return true;
+  };
+
+  /* ── step 1: environment + lights ──────────────────────────────────────── */
+  envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environment = envTexture;
+  scene.environmentIntensity = 0.3;
+
+  const hemi = new THREE.HemisphereLight(0x59606c, 0x0a0a0b, 0.55);
+  scene.add(hemi);
+
+  const key = new THREE.DirectionalLight(0xcfd5df, 2.4);
+  key.position.set(-30, 36, 24);
+  key.target.position.set(12, 0, -8);
+  key.castShadow = true;
+  key.shadow.mapSize.set(q.shadowMap, q.shadowMap);
+  key.shadow.camera.left = -52;
+  key.shadow.camera.right = 52;
+  key.shadow.camera.top = 52;
+  key.shadow.camera.bottom = -52;
+  key.shadow.camera.near = 1;
+  key.shadow.camera.far = 140;
+  key.shadow.bias = -0.0004;
+  key.shadow.normalBias = 0.03;
+  scene.add(key, key.target);
+
+  const rim = new THREE.DirectionalLight(0x8e95a3, 1.1);
+  rim.position.set(34, 16, -44);
+  scene.add(rim);
+
+  /** applies the lights / sky / exposure of the current theme */
+  const applyLook = () => {
+    const look = LOOKS[theme];
+    (scene.background as THREE.Color).setHex(look.bg);
+    fog.color.setHex(look.bg);
+    hemi.color.setHex(look.hemiSky);
+    hemi.groundColor.setHex(look.hemiGround);
+    hemi.intensity = look.hemiI;
+    key.color.setHex(look.keyColor);
+    key.intensity = look.keyI;
+    rim.color.setHex(look.rimColor);
+    rim.intensity = look.rimI;
+    renderer.toneMappingExposure = look.exposure;
+    glowK = look.glow;
+  };
+  applyLook();
+
+  await breathe();
+  if (aborted()) return NOOP_HANDLE;
+
+  /* ── step 2: road ──────────────────────────────────────────────────────── */
+  const rand = mulberry32(20261029 + 7);
+  const curve = createRoadCurve();
+  const roadParts = buildGroundAndRoad(curve, rand);
+  scene.add(roadParts.group);
+  roadParts.dashes.geometry.setDrawRange(0, 0);
+
+  await breathe();
+  if (aborted()) return NOOP_HANDLE;
+
+  const crossing = buildCrossing(curve, rand);
+  scene.add(crossing.mesh);
+
+  await breathe();
+  if (aborted()) return NOOP_HANDLE;
+
+  /* ── step 3: buildings ─────────────────────────────────────────────────── */
+  const city = buildCity(curve, rand, isBlocked);
+  scene.add(city.group);
+
+  await breathe();
+  if (aborted()) return NOOP_HANDLE;
+
+  /* ── step 4: billboards ────────────────────────────────────────────────── */
+  const boardA = buildBoardA(ctl.githubImageSrc, () => renderOnce());
+  scene.add(boardA.group);
+
+  await breathe();
+  if (aborted()) return NOOP_HANDLE;
+
+  const boardB = buildBoardB();
+  scene.add(boardB.group);
+
+  await breathe();
+  if (aborted()) return NOOP_HANDLE;
+
+  /* ── step 5: lamps, cat, traffic, dust ─────────────────────────────────── */
+  // (the order of the rand() users below must not change: it decides the layout)
+  const lamps = buildStreetLights(curve, isBlocked);
+  const goose = buildGooseLamp();
+  scene.add(lamps.group, goose.group);
+
+  await breathe();
+  if (aborted()) return NOOP_HANDLE;
+
+  const cat = buildCat();
+  const traffic = buildTraffic(curve, rand);
+  const dust = buildDust(rand, q.dust);
+  traffic.group.visible = false;
+  scene.add(cat.group, traffic.group, dust.points);
+
+  await breathe();
+  if (aborted()) return NOOP_HANDLE;
+
+  /* ── step 5b: the 3D comment sign above the cat + the theme switch ─────── */
+  const sign = buildCommentSign(getComputedStyle(host).fontFamily || undefined);
+  scene.add(sign.group);
+
+  const themed = [
+    roadParts.theme,
+    crossing.theme,
+    city.theme,
+    boardA.theme,
+    boardB.theme,
+    lamps.theme,
+    goose.theme,
+  ];
+  const applyParts = () => {
+    const light = theme === "light";
+    for (const part of themed) part.set(light);
+    sign.setTheme(theme);
+  };
+
+  await breathe();
+  if (aborted()) return NOOP_HANDLE;
+
+  if (theme === "light") {
+    // started in light mode: swap part by part (one per frame, no freeze)
+    for (const part of themed) {
+      part.set(true);
+      await breathe();
+      if (aborted()) return NOOP_HANDLE;
+    }
+    sign.setTheme("light");
+  }
+
+  const brushLoaded = () => {
+    let ok = false;
+    document.fonts.forEach((f) => {
+      if (
+        f.family.replace(/["']/g, "") === "Kaushan Script" &&
+        f.status === "loaded"
+      )
+        ok = true;
+    });
+    return ok;
+  };
+  let fontTries = 0;
+  const pollFont = () => {
+    if (disposed) return;
+    document.fonts
+      .load('76px "Kaushan Script"')
+      .catch(() => [])
+      .then(() => {
+        if (disposed) return;
+        if (brushLoaded()) {
+          boardB.redraw();
+          renderOnce();
+        } else if (++fontTries < 12) {
+          window.setTimeout(pollFont, 400);
+        }
+      });
+  };
+
+  const camera = new THREE.PerspectiveCamera(40, 16 / 9, 0.5, 360);
+  const endPos = END_POS.clone();
+  const tmp = new THREE.Vector3();
+  const camPos = new THREE.Vector3();
+  const camTarget = new THREE.Vector3();
+  const goalPos = new THREE.Vector3();
+  const goalTarget = new THREE.Vector3();
+  const curPos = new THREE.Vector3();
+  const curTarget = new THREE.Vector3();
+  const pointer = { x: 0, y: 0, cx: 0, cy: 0 };
+  let aspect = 16 / 9;
+  let tanV = BASE_TAN_V;
+  let tour = false;
+  let shotApplied = -1;
+  let lastNow = 0;
+
+  /* ── step 6: compile every shader WITHOUT blocking the page ────────────── */
+  traffic.group.visible = true;
+  sign.group.visible = true;
+  try {
+    const r = renderer as CompilingRenderer;
+    if (r.compileAsync)
+      await Promise.race([
+        r.compileAsync(scene, camera),
+        sleep(COMPILE_TIMEOUT_MS),
+      ]);
+    else renderer.compile(scene, camera);
+  } catch {
+    /* not critical: three compiles on first use instead */
+  } finally {
+    traffic.group.visible = false;
+    sign.group.visible = false;
+  }
+  if (aborted()) return NOOP_HANDLE;
+
+  // PERF: upload every texture to the GPU now, two per step, instead of all at once
+  // inside the very first render (that was one long freeze when arriving at About).
+  const toUpload = new Set<THREE.Texture>();
+  const collect = (m: THREE.Material) => {
+    const mm = m as THREE.Material & {
+      map?: THREE.Texture | null;
+      emissiveMap?: THREE.Texture | null;
+    };
+    if (mm.map) toUpload.add(mm.map);
+    if (mm.emissiveMap) toUpload.add(mm.emissiveMap);
+  };
+  scene.traverse((o) => {
+    const mat = (o as THREE.Mesh).material as
+      | THREE.Material
+      | THREE.Material[]
+      | undefined;
+    if (Array.isArray(mat)) mat.forEach(collect);
+    else if (mat) collect(mat);
+  });
+  let uploaded = 0;
+  for (const tx of toUpload) {
+    renderer.initTexture(tx);
+    if (++uploaded % 2 === 0) {
+      await breathe();
+      if (aborted()) return NOOP_HANDLE;
+    }
+  }
+
+  // how big the sign may be on this screen (landscape): readable, but never off-screen
+  const probeCam = new THREE.PerspectiveCamera();
+  const probe = new THREE.Vector3();
+  const signTip = new THREE.Vector3(SIGN_TIP.x, SIGN_TIP.y, SIGN_TIP.z);
+  const fitSign = (w: number) => {
+    probeCam.fov = camera.fov;
+    probeCam.aspect = camera.aspect;
+    probeCam.near = camera.near;
+    probeCam.far = camera.far;
+    probeCam.updateProjectionMatrix();
+    probeCam.position.copy(endPos);
+    probeCam.lookAt(END_TARGET);
+    probeCam.updateMatrixWorld(true);
+    const depth = Math.max(
+      0.5,
+      -probe.copy(signTip).applyMatrix4(probeCam.matrixWorldInverse).z,
+    );
+    const ppm = w / 2 / (tanV * aspect * depth); // screen px per metre at the sign
+    const cx = (probe.copy(signTip).project(probeCam).x * 0.5 + 0.5) * w;
+    const L = SIGN_LAYOUTS.wide;
+    const natural = L.bodyW * ppm * 0.94; // px at scale 1 (slightly turned)
+    const wanted = Math.min(600, Math.max(380, 0.44 * w));
+    const roomR = (w - cx - 24) / ((1 - L.tailAt) * natural);
+    const roomL = (cx - 24) / (L.tailAt * natural);
+    return Math.min(
+      1.6,
+      Math.max(0.55, Math.min(wanted / natural, roomR, roomL)),
+    );
+  };
+  let sizeApplied = false;
+  let signClock = -1; // seconds since the sign popped out (-1 = not shown yet)
+  let signScale = 1;
+
+  const resize = () => {
+    if (disposed) return;
+    const w = host.clientWidth;
+    const h = host.clientHeight;
+    // FIX (hang when scrolling back to About): while Works covers About, About is
+    // `content-visibility: hidden`, so the host reports 0 x 0. The old code resized the
+    // canvas to 1 x 1 (and, on phones, rebuilt the comment sign twice) and again to full
+    // size when About came back = a big GPU/CPU stall every time. A hidden host is ignored.
+    if (w < 2 || h < 2) return;
+    // nothing changed (the observer also fires once on start): do no work at all
+    if (w === lastW && h === lastH && booted && sizeApplied) return;
+    sizeApplied = true;
+    applySize(w, h);
+    aspect = w / h;
+    camera.aspect = aspect;
+
+    const nextTour = aspect < 1;
+    if (nextTour) {
+      tanV = TOUR_TAN_V;
+    } else {
+      tanV = Math.min(Math.max(TAN_H / aspect, BASE_TAN_V), 0.62);
+      const dolly = Math.min(1.9, Math.max(1, TAN_H / (tanV * aspect)));
+      endPos
+        .copy(END_TARGET)
+        .add(tmp.copy(END_POS).sub(END_TARGET).multiplyScalar(dolly));
+    }
+    camera.fov = THREE.MathUtils.radToDeg(Math.atan(tanV) * 2);
+    camera.updateProjectionMatrix();
+
+    if (nextTour !== tour) {
+      tour = nextTour;
+      ctl.onTour(tour);
+      sign.setLayout(tour ? "tall" : "wide");
+    }
+    if (tour) {
+      shotApplied = ctl.getShot();
+      poseForShot(shotApplied, aspect, goalPos, goalTarget);
+    } else {
+      goalPos.copy(endPos);
+      goalTarget.copy(END_TARGET);
+    }
+    curPos.copy(goalPos);
+    curTarget.copy(goalTarget);
+    signScale = tour ? 1 : fitSign(w);
+    renderOnce();
+  };
+
+  let revealStart: number | null = reduced ? -1 : null;
+  let revealed = reduced;
+  let shadowsPrimed = false;
+  let shadowsFrozen = false;
+  let forceShadow = false;
+  let shadowFrame = 0;
+
+  const getT = (now: number) =>
+    reduced
+      ? REDUCED_T
+      : revealStart === null
+        ? -1
+        : (now - revealStart) / 1000;
+
+  const update = (now: number) => {
+    const real = getT(now); // real seconds since the reveal started
+    const t = real < 0 || reduced ? real : real * REVEAL_SPEED; // reveal timeline
+    const dt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 0.016;
+    lastNow = now;
+
+    if (tour) {
+      const s = ctl.getShot();
+      if (s !== shotApplied) {
+        shotApplied = s;
+        poseForShot(s, aspect, goalPos, goalTarget);
+      }
+      const k = reduced ? 1 : 1 - Math.exp(-dt * 2.6);
+      curPos.lerp(goalPos, k);
+      curTarget.lerp(goalTarget, k);
+    }
+
+    fog.density = THREE.MathUtils.lerp(
+      FOG_START_DENSITY,
+      FOG_DENSITY,
+      easeOutCubic(seg(t, 0, 3.6)),
+    );
+
+    const e = easeOutQuart(seg(t, 0, 3.8));
+    camPos.copy(START_POS).lerp(curPos, e);
+    camTarget.copy(START_TARGET).lerp(curTarget, e);
+    if (!reduced && !tour) {
+      pointer.cx += (pointer.x - pointer.cx) * 0.05;
+      pointer.cy += (pointer.y - pointer.cy) * 0.05;
+      camPos.x +=
+        pointer.cx * PARALLAX_X * e + Math.sin(now * 0.00012) * 0.35 * e;
+      camPos.y +=
+        -pointer.cy * PARALLAX_Y * e + Math.sin(now * 0.00009) * 0.06 * e;
+      camTarget.x += pointer.cx * 0.6 * e;
+    } else if (!reduced) {
+      camPos.y += Math.sin(now * 0.00009) * 0.05 * e;
+    }
+    camera.position.copy(camPos);
+    camera.lookAt(camTarget);
+
+    // 3D comment sign: pops out of the cat, then types itself in. The clock only
+    // advances while the loop runs, so nobody misses the typing.
+    if (signClock < 0) {
+      if (
+        t >= (tour ? SIGN_SHOW_TOUR_T : SIGN_SHOW_T) &&
+        (!tour || ctl.getShot() === CAT_SHOT)
+      ) {
+        signClock = reduced ? 99 : 0;
+      }
+    } else if (running && !reduced) {
+      signClock += dt;
+    }
+    sign.update(
+      signClock,
+      now,
+      camPos,
+      tour ? TYPE_STEP_TOUR : TYPE_STEP,
+      signScale,
+      reduced,
+    );
+
+    const dashes = Math.floor(
+      easeOutCubic(seg(t, 0.3, 2.4)) * roadParts.dashCount,
+    );
+    roadParts.dashes.geometry.setDrawRange(0, dashes * 6);
+    const bars = Math.ceil(easeOutCubic(seg(t, 0.8, 1.4)) * crossing.barCount);
+    crossing.mesh.geometry.setDrawRange(0, bars * 6);
+
+    const rise = (b: typeof boardA | typeof boardB, t0: number) => {
+      b.footing.scale.x = Math.max(0.001, easeOutExpo(seg(t, t0, 0.7)));
+      const p = Math.max(0.001, easeOutExpo(seg(t, t0 + 0.35, 0.8)));
+      b.posts.forEach((post) => (post.scale.y = p));
+      b.rig.scale.y = Math.max(0.001, easeOutExpo(seg(t, t0 + 0.9, 0.9)));
+    };
+    rise(boardA, 0.5);
+    rise(boardB, 0.9);
+
+    const fa = flicker(t, 2.0);
+    boardA.setGlow(fa);
+    boardA.spot.intensity = fa * 200;
+    const fb = flicker(t, 2.5);
+    boardB.setGlow(fb);
+    boardB.spot.intensity = fb * 240;
+
+    boardA.setCount(
+      Math.round(CONTRIBUTIONS.count * easeOutExpo(seg(t, 2.3, 1.7))),
+    );
+    const wipe = easeOutCubic(seg(t, 2.6, 1.4));
+    boardA.curtain.scale.x = Math.max(0.001, 1 - wipe);
+    boardA.curtain.visible = wipe < 0.999;
+
+    const wBase = easeOutCubic(seg(t, 1.0, 2.4));
+    city.facadeMats.forEach((m, i) => {
+      const wFlick =
+        wBase < 1 ? 0.6 + 0.4 * Math.abs(Math.sin(t * 37 + i * 5)) : 1;
+      m.emissiveIntensity = wBase * 1.05 * wFlick * glowK;
+    });
+    city.beacons.forEach((b, i) => {
+      (b.material as THREE.MeshBasicMaterial).opacity =
+        t > 2.5
+          ? 0.45 + 0.55 * Math.max(0, Math.sin(now * 0.003 + i * 1.7))
+          : 0;
+    });
+
+    lamps.glowMat.opacity = 0.55 * seg(t, 1.8, 1.4) * glowK;
+    const lg = seg(t, 2.2, 1.3);
+    goose.glowMat.opacity = 0.8 * lg * glowK;
+    goose.coneMat.opacity = 0.05 * lg * glowK;
+    goose.poolMat.opacity = 0.35 * lg * glowK;
+
+    traffic.group.visible = t > 2.4;
+    if (traffic.group.visible) traffic.update(reduced ? 0 : real);
+
+    cat.update(
+      reduced ? 0 : now / 1000,
+      pointer.cx,
+      pointer.cy,
+      easeOutBack(seg(t, tour ? TOUR_CAT_POP_T : 3.0, 0.9)),
+    );
+
+    dust.material.opacity = 0.55 * seg(t, 2.5, 2) * glowK;
+    if (t > 2.4) dust.update(reduced ? 0 : now / 1000);
+
+    // PERF: the shadow map is the most expensive pass. It is re-baked only every
+    // SHADOW_STEP-th frame while things grow, then frozen for good.
+    if (!shadowsPrimed || forceShadow) {
+      renderer.shadowMap.needsUpdate = true;
+      shadowsPrimed = true;
+      forceShadow = false;
+      if (t >= SHADOW_FREEZE_T) shadowsFrozen = true;
+    } else if (t >= 0 && t < SHADOW_FREEZE_T) {
+      if (++shadowFrame % q.shadowStep === 0)
+        renderer.shadowMap.needsUpdate = true;
+    } else if (t >= SHADOW_FREEZE_T && !shadowsFrozen) {
+      renderer.shadowMap.needsUpdate = true;
+      shadowsFrozen = true;
+    }
+  };
+
+  let inView = false;
+  let lastFrame = 0;
+  let frameMs = 1000 / q.fps;
+  let ratio = 0; // how much of the section is on screen (from the observer)
+
+  /* how much of About the Works section already covers (same maths as App.tsx) */
+  const worksEl = document.getElementById("works");
+  let cover = 0;
+  let coverRaf = 0;
+  const readCover = () => {
+    coverRaf = 0;
+    if (!worksEl || disposed) return;
+    cover = clamp01(
+      1 - worksEl.getBoundingClientRect().top / (window.innerHeight || 1),
+    );
+  };
+  const onCoverScroll = () => {
+    if (!coverRaf) coverRaf = requestAnimationFrame(readCover);
+  };
+  if (worksEl) {
+    window.addEventListener("scroll", onCoverScroll, { passive: true });
+    window.addEventListener("resize", onCoverScroll);
+    readCover();
+    cleanups.push(() => {
+      window.removeEventListener("scroll", onCoverScroll);
+      window.removeEventListener("resize", onCoverScroll);
+      if (coverRaf) cancelAnimationFrame(coverRaf);
+    });
+  }
+
+  // automatic quality: lower the resolution step by step, and as a last resort
+  // run at a steady 30 fps instead of stuttering. The yardstick is the frame time we
+  // are aiming for (so a 30 fps phone is not punished for its own frame cap).
+  let perfSum = 0;
+  let perfN = 0;
+  let slowWindows = 0;
+  const adapt = (dt: number, t: number) => {
+    if (reduced || t < ADAPT_AFTER_T || dt > 250) {
+      perfSum = 0;
+      perfN = 0;
+      return;
+    }
+    perfSum += dt;
+    perfN++;
+    if (perfN < ADAPT_WINDOW) return;
+    const avg = perfSum / perfN;
+    perfSum = 0;
+    perfN = 0;
+    if (avg > frameMs * SLOW_FACTOR) {
+      // very slow = act at once, a bit slow = act when it happens twice in a row
+      if (avg > frameMs * 2 || ++slowWindows >= 2) {
+        slowWindows = 0;
+        const current = Math.min(
+          window.devicePixelRatio || 1,
+          dprCap,
+          Math.sqrt(q.pixelBudget / Math.max(1, lastW * lastH)),
+        );
+        if (current > dprFloor + 0.01) {
+          dprCap = Math.max(dprFloor, current * DPR_STEP);
+          applySize(lastW, lastH);
+        } else if (frameMs < 30) {
+          frameMs = 1000 / 30;
+        }
+      }
+    } else {
+      slowWindows = 0;
+    }
+  };
+
+  function renderOnce() {
+    if (!booted || running || disposed) return;
+    update(performance.now());
+    renderer.render(scene, camera);
+  }
+  const frame = (now: number) => {
+    if (!running) return;
+    raf = requestAnimationFrame(frame);
+    if (cover >= COVER_PAUSE_AT) return; // fully hidden behind Works: draw nothing
+    // Works is rising over us, or we are only half on screen (the hero is still drawing
+    // too): 30 fps is plenty there and halves the GPU load while the page scrolls
+    const slow = cover > COVER_SLOW_AT || ratio < FULL_RATE_RATIO;
+    const minMs = slow ? Math.max(frameMs, 1000 / 30) : frameMs;
+    const elapsed = now - lastFrame;
+    if (elapsed < minMs - 0.75) return;
+    const resumed = lastFrame === 0 || elapsed > minMs * 4;
+    lastFrame = resumed ? now : now - (elapsed % minMs);
+    if (slow || resumed) {
+      // never let the quality governor learn from throttled / resumed frames
+      perfSum = 0;
+      perfN = 0;
+    } else {
+      adapt(elapsed, getT(now));
+    }
+    update(now);
+    renderer.render(scene, camera);
+  };
+  const startLoop = () => {
+    if (running || disposed || reduced) return;
+    running = true;
+    lastFrame = 0;
+    lastNow = 0;
+    raf = requestAnimationFrame(frame);
+  };
+  const stopLoop = () => {
+    running = false;
+    cancelAnimationFrame(raf);
+  };
+
+  // survive a GPU context loss (low memory, driver reset) instead of going black
+  const canvasEl = renderer.domElement;
+  const onLost = (e: Event) => {
+    e.preventDefault();
+    stopLoop();
+  };
+  const onRestored = () => {
+    forceShadow = true;
+    if (inView && revealed) startLoop();
+    else renderOnce();
+  };
+  canvasEl.addEventListener("webglcontextlost", onLost);
+  canvasEl.addEventListener("webglcontextrestored", onRestored);
+  cleanups.push(() => {
+    canvasEl.removeEventListener("webglcontextlost", onLost);
+    canvasEl.removeEventListener("webglcontextrestored", onRestored);
+  });
+
+  const onMove = (e: PointerEvent) => {
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
+  };
+
+  // PERF: resize bursts (window drag, phone toolbar) are merged into one resize
+  let resizeTimer = 0;
+  const ro = new ResizeObserver(() => {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(resize, 80);
+  });
+  ro.observe(host);
+  // PERF: the loop only runs while a real part of the section is on screen
+  // (a thin sliver under the hero does not count) and only after the reveal started.
+  const io = new IntersectionObserver(
+    ([entry]) => {
+      ratio = entry.isIntersecting ? entry.intersectionRatio : 0;
+      inView = entry.isIntersecting && entry.intersectionRatio >= VISIBLE_RATIO;
+      if (inView && !revealed && entry.intersectionRatio >= REVEAL_RATIO) {
+        revealed = true;
+        revealStart = performance.now();
+      }
+      if (inView && revealed) startLoop();
+      else stopLoop();
+      ctl.onLive(revealed && inView);
+    },
+    { threshold: [0, VISIBLE_RATIO, REVEAL_RATIO, FULL_RATE_RATIO, 0.9] },
+  );
+  io.observe(host);
+  cleanups.push(() => {
+    window.clearTimeout(resizeTimer);
+    ro.disconnect();
+    io.disconnect();
+    window.removeEventListener("pointermove", onMove);
+  });
+
+  if (finePointer && !reduced) {
+    window.addEventListener("pointermove", onMove, { passive: true });
+  }
+
+  booted = true;
+  resize();
+  pollFont();
+
+  /* ── theme: follow the site's light / dark toggle ──────────────────────── */
+  const forceRender = () => {
+    if (disposed) return;
+    update(performance.now());
+    renderer.render(scene, camera);
+  };
+  const setTheme = (next: ThemeName) => {
+    if (next === theme || disposed) return;
+    theme = next;
+    applyLook();
+    applyParts();
+    forceRender(); // draw right now, so the view-transition sees the new theme
+  };
+  // 1) the attribute the toggle sets (data-theme), wherever it lives
+  const mo = new MutationObserver(() => setTheme(readTheme(host)));
+  mo.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+    subtree: true,
+  });
+  // 2) the event ThemeToggle announces (the theme arrives in event.detail)
+  const onThemeEvent = (e: Event) => {
+    const d = (e as CustomEvent<unknown>).detail;
+    if (d === "dark" || d === "light") setTheme(d);
+  };
+  window.addEventListener(THEME_EVENT, onThemeEvent);
+  cleanups.push(() => {
+    mo.disconnect();
+    window.removeEventListener(THEME_EVENT, onThemeEvent);
+  });
+  setTheme(readTheme(host)); // it may have changed while the scene was being built
+
+  // the page font may finish loading after the first draw of the sign's text
+  document.fonts.ready
+    .then(() => {
+      if (disposed) return;
+      sign.redraw();
+      renderOnce();
+    })
+    .catch(() => undefined);
+
+  // quietly prepare the light textures after the intro, so the first toggle is instant
+  if (theme === "dark") {
+    const idle = (fn: () => void) =>
+      typeof window.requestIdleCallback === "function"
+        ? window.requestIdleCallback(fn, { timeout: 4000 })
+        : window.setTimeout(fn, 300);
+    let next = 0;
+    const warm = () => {
+      if (disposed || next >= themed.length) return;
+      for (const tx of themed[next++].prepare()) renderer.initTexture(tx);
+      idle(warm);
+    };
+    const warmTimer = window.setTimeout(() => idle(warm), 6500);
+    cleanups.push(() => window.clearTimeout(warmTimer));
+  }
+
+  return { refresh: () => renderOnce(), dispose: teardown };
+}

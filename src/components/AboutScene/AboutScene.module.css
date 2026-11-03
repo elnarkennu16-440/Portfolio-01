@@ -7,7 +7,8 @@
   overflow: hidden;
   pointer-events: none;
   transform: translateZ(0);
-  /* PERF: the browser never has to look outside this box when the canvas changes */
+  /* PERF: same trick as HeroScene.module.css: the canvas box is isolated, so the
+     browser never re-lays-out / re-paints the page around it while it animates */
   contain: layout paint style;
 }
 
