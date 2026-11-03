@@ -7,6 +7,8 @@
   overflow: hidden;
   pointer-events: none;
   transform: translateZ(0);
+  /* PERF: the browser never has to look outside this box when the canvas changes */
+  contain: layout paint style;
 }
 
 .host {

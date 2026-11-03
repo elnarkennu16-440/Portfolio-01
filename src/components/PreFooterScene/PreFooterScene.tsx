@@ -9,8 +9,6 @@ import {
   buildBottle,
   buildGround,
   buildProps,
-  buildSplash,
-  buildStream,
   buildTruck,
   disposeObject,
   mulberry32,
@@ -18,6 +16,8 @@ import {
 import type { EnvUser, TexStore, ThemeMode } from "./preFooterParts";
 import { buildCallouts } from "./preFooterCallouts";
 import type { Callouts } from "./preFooterCallouts";
+import { buildToolRain } from "./preFooterTools";
+import type { ToolRain } from "./preFooterTools";
 
 /* ═══════════════════════════ TUNING ═══════════════════════════════════════ */
 const BG = 0x0b0b0d; // same as the banner section background
@@ -70,6 +70,18 @@ const ARC_YAW = -0.6; // radians: how far to the left it starts
 const ARC_PITCH = 0.36; // radians: how much higher it starts (looks down)
 const ARC_DIST = 0.28; // starts 28 % further away
 const ARC_LOOK = 1.5; // metres: it starts looking a little below the target
+
+/* after the arc: a slow zoom-in on the pour (bottle neck -> hatch), so the falling
+   tool tiles are clearly visible. The zoom is limited so the bottle, the truck and
+   every label still fit on screen (desktop and mobile). */
+const ZOOM_START = 3.0; // s: starts while the arc is still landing (no stop between the two)
+const ZOOM_S = 2.3; // s: how long the zoom takes
+const ZOOM_MAX = 1.5; // never zoom more than this
+// the area that must stay on screen, in metres around the zoom target
+const ZOOM_LEFT = 7.4;
+const ZOOM_RIGHT = 7.0;
+const ZOOM_UP = 4.8;
+const ZOOM_DOWN = 4.8;
 const REDUCED_T = 100;
 
 /* quality / performance */
@@ -80,8 +92,8 @@ const DPR_STEP = 0.85;
 const TARGET_FPS = 60;
 const SHADOW_FREEZE_T = 1.5;
 const SHADOW_EVERY = 3;
-const ADAPT_AFTER_T = 4.6; // the quality governor waits until the camera has landed
-const SCROLL_THROTTLE_AFTER_T = 4.4; // while scrolling (after the reveal) draw at 30 fps
+const ADAPT_AFTER_T = 5.8; // the quality governor waits until the camera has landed and zoomed
+const SCROLL_THROTTLE_AFTER_T = 5.6; // while scrolling (after the reveal) draw at 30 fps
 const GOV_WINDOW = 45;
 const GOV_SETTLE = 8;
 const SLOW_FACTOR = 1.45;
@@ -105,6 +117,8 @@ const TARGET = new THREE.Vector3(SCENE.cx, SCENE.cy, 1);
 const VIEW_DIR = new THREE.Vector3(-0.14, -0.025, 1).normalize();
 const YAW_END = Math.atan2(VIEW_DIR.x, VIEW_DIR.z);
 const PITCH_END = Math.asin(VIEW_DIR.y);
+// what the camera looks at once it has zoomed in: between the bottle neck and the hatch
+const ZOOM_TARGET = new THREE.Vector3(4.2, 7.6, 1.85);
 
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const clamp01 = (v: number) => clamp(v, 0, 1);
@@ -112,7 +126,8 @@ const seg = (t: number, start: number, dur: number) =>
   clamp01((t - start) / dur);
 const easeArc = (x: number) => 1 - Math.pow(1 - x, 2.3); // steady sweep with a soft landing
 const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
-const easeOutQuad = (x: number) => 1 - (1 - x) * (1 - x);
+const easeInOutCubic = (x: number) =>
+  x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 const easeOutBack = (x: number, c1 = 1.5) => {
   const c3 = c1 + 1;
   return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
@@ -179,8 +194,7 @@ interface Parts {
   billboard: ReturnType<typeof buildBillboard>;
   bottle: ReturnType<typeof buildBottle>;
   truck: ReturnType<typeof buildTruck>;
-  stream: ReturnType<typeof buildStream>;
-  splash: ReturnType<typeof buildSplash>;
+  tools: ToolRain;
   callouts: Callouts;
   envUsers: EnvUser[];
   setters: Array<(mode: ThemeMode) => void>;
@@ -345,6 +359,7 @@ function createScene(host: HTMLDivElement): () => void {
   const camTarget = new THREE.Vector3();
   const pointer = { x: 0, y: 0, cx: 0, cy: 0 };
   let fitDist = 34;
+  let zoomK = 1; // how much closer the camera ends up (see ZOOM_*)
 
   const resize = () => {
     if (disposed) return;
@@ -365,6 +380,16 @@ function createScene(host: HTMLDivElement): () => void {
     // where its centre should land on screen: right side on desktop, top on mobile
     const cx = mobile ? 0.5 : 1 - fx / 2;
     const cy = mobile ? MOBILE_CENTER_Y : DESKTOP_CENTER_Y;
+    // how far we may zoom in: the pour area (bottle + labels + hatch) must still fit
+    // on screen around the zoom target, which sits at (cx, cy) on screen
+    const pxPerM = h / (2 * fitDist * TAN_HALF);
+    const zoomLimit = Math.min(
+      (cx * w - 12) / ZOOM_LEFT,
+      ((1 - cx) * w - 12) / ZOOM_RIGHT,
+      (fy * h * 0.5) / ZOOM_UP,
+      (fy * h * 0.5) / ZOOM_DOWN,
+    );
+    zoomK = clamp(zoomLimit / pxPerM, 1, ZOOM_MAX);
     camera.setViewOffset(
       w,
       h,
@@ -378,9 +403,12 @@ function createScene(host: HTMLDivElement): () => void {
     // callouts: lay them out from the camera's final pose, so they never overlap
     // each other and never leave the screen (update() restores the live pose)
     if (parts) {
-      camPos.copy(VIEW_DIR).multiplyScalar(fitDist).add(TARGET);
+      camPos
+        .copy(VIEW_DIR)
+        .multiplyScalar(fitDist / zoomK)
+        .add(ZOOM_TARGET);
       camera.position.copy(camPos);
-      camera.lookAt(TARGET);
+      camera.lookAt(ZOOM_TARGET);
       camera.updateMatrixWorld(true);
       parts.callouts.layout({
         camera,
@@ -404,7 +432,6 @@ function createScene(host: HTMLDivElement): () => void {
   let shadowsFrozen = false;
   let shadowTick = 0;
   const shadowEvery = softwareGL ? SHADOW_EVERY * 2 : SHADOW_EVERY;
-  let lastNow = 0;
 
   const getT = (now: number) =>
     reduced
@@ -418,8 +445,6 @@ function createScene(host: HTMLDivElement): () => void {
     if (!P) return;
     const t = getT(now);
     const time = now * 0.001;
-    const dt = lastNow ? Math.min(0.1, (now - lastNow) / 1000) : 0.016;
-    lastNow = now;
 
     fog.density = THREE.MathUtils.lerp(
       FOG_START_DENSITY,
@@ -433,16 +458,19 @@ function createScene(host: HTMLDivElement): () => void {
     const a = 1 - e;
     const yaw = YAW_END + ARC_YAW * a;
     const pitch = PITCH_END + ARC_PITCH * a;
-    const dist = fitDist * (1 + ARC_DIST * a);
+    // then (while the arc is still landing) a slow zoom-in on the pour
+    const zt = easeInOutCubic(seg(t, ZOOM_START, ZOOM_S));
+    const dist = (fitDist * (1 + ARC_DIST * a)) / (1 + (zoomK - 1) * zt);
     const cp = Math.cos(pitch);
+    camTarget.lerpVectors(TARGET, ZOOM_TARGET, zt);
     camPos
       .set(
         Math.sin(yaw) * cp * dist,
         Math.sin(pitch) * dist,
         Math.cos(yaw) * cp * dist,
       )
-      .add(TARGET);
-    camTarget.set(TARGET.x, TARGET.y - ARC_LOOK * a, TARGET.z);
+      .add(camTarget);
+    camTarget.y -= ARC_LOOK * a;
     if (!reduced) {
       pointer.cx += (pointer.x - pointer.cx) * 0.05;
       pointer.cy += (pointer.y - pointer.cy) * 0.05;
@@ -469,10 +497,8 @@ function createScene(host: HTMLDivElement): () => void {
     P.billboard.glowMat.opacity = P.billboard.look.glow * seg(t, 0.2, 0.7);
     P.truck.headMat.color.setScalar(0.12 + 0.88 * flicker(t, 0.4));
 
-    // liquid: grows down to the hatch, then splashes
-    P.stream.setGrowth(easeOutQuad(seg(t, 1.2, 0.55)));
-    P.stream.flow(dt);
-    P.splash.update(time, easeOutBack(seg(t, 1.7, 0.5)));
+    // tool tiles pour out of the bottle and drop into the hatch (staggered)
+    P.tools.update(t);
 
     // labels (2D overlay, anchored to the 3D bottle with the live camera)
     P.callouts.update(camera, t, time);
@@ -591,7 +617,6 @@ function createScene(host: HTMLDivElement): () => void {
     running = true;
     lastFrame = 0;
     lastTick = 0;
-    lastNow = 0;
     govReset();
     raf = requestAnimationFrame(frame);
   };
@@ -732,9 +757,8 @@ function createScene(host: HTMLDivElement): () => void {
 
     const bottle = buildBottle(store);
     const truck = buildTruck();
-    const stream = buildStream(store);
-    const splash = buildSplash();
-    scene.add(bottle.rig, truck.group, stream.mesh, splash.group);
+    const tools = buildToolRain(small);
+    scene.add(bottle.rig, truck.group, tools.group);
     await idle();
     if (disposed) return;
 
@@ -770,8 +794,7 @@ function createScene(host: HTMLDivElement): () => void {
       billboard,
       bottle,
       truck,
-      stream,
-      splash,
+      tools,
       callouts: buildCallouts(host),
       envUsers,
       setters: [
@@ -779,12 +802,12 @@ function createScene(host: HTMLDivElement): () => void {
         billboard.setTheme,
         bottle.setTheme,
         truck.setTheme,
-        stream.setTheme,
-        splash.setTheme,
       ],
     };
     applyTheme(readTheme()); // before the textures are uploaded
     resize(); // lays out the callouts too
+    if (initTex) tools.prime(initTex, 6); // the first tiles are ready when the pour starts
+    void tools.loadIcons(); // copies the icons from the Capabilities section (background)
 
     // upload the textures a couple at a time (one big upload would freeze a frame)
     const initTexture = initTex;
@@ -799,7 +822,7 @@ function createScene(host: HTMLDivElement): () => void {
     }
 
     // compile every shader off the main thread and WAIT for it (no forced sync compile)
-    parts.splash.group.visible = true; // so its material is compiled too
+    parts.tools.warm(true); // so the tile materials are compiled too
     try {
       const c = renderer as unknown as {
         compileAsync?: (
@@ -824,10 +847,10 @@ function createScene(host: HTMLDivElement): () => void {
 
     ready = true;
     try {
-      update(performance.now()); // not revealed yet: hides the splash again
-      parts.splash.group.visible = true;
+      update(performance.now()); // not revealed yet: hides the tiles again
+      parts.tools.warm(true);
       renderer.render(scene, camera); // first real frame (invisible: the canvas is at opacity 0)
-      parts.splash.group.visible = false;
+      parts.tools.warm(false);
     } catch {
       /* not critical */
     }
@@ -863,6 +886,7 @@ function createScene(host: HTMLDivElement): () => void {
       onContextRestored,
     );
     parts?.callouts.dispose();
+    parts?.tools.dispose();
     disposeObject(scene);
     store.forEach((t) => t.dispose());
     (room as unknown as { dispose?: () => void } | null)?.dispose?.();

@@ -25,6 +25,13 @@ import {
   isBlocked,
   mulberry32,
 } from "./aboutSceneParts";
+import {
+  QualityGovernor,
+  detectTier,
+  isWeakGpu,
+  loadImageOnce,
+  whenFontsReady,
+} from "./aboutPerf";
 
 /* ────────────────────────────────────────────────────────────────────────────
  * AboutScene — the 3D street for the About section (three.js, optimized).
@@ -35,7 +42,7 @@ const GITHUB_IMAGE_SRC = "/images/Github-Contribution.png";
 /* ═══════════════════════════ TUNING ═══════════════════════════════════════ */
 const FOG_COLOR = 0x121214;
 const FOG_DENSITY = 0.017;
-const FOG_START_DENSITY = 0.085;
+const FOG_START_DENSITY = 0.06; // was 0.085: the first moments are no longer a grey wall
 const START_POS = new THREE.Vector3(-34, 15, 36);
 const START_TARGET = new THREE.Vector3(4, 1.5, -8);
 const END_POS = new THREE.Vector3(-15, 1.8, 11);
@@ -59,6 +66,9 @@ const TYPE_STEP_TOUR = 0.016; // phone tour: a bit faster
 // PERF: the scene is built quietly in the background this long after the page has
 // loaded (instead of while the visitor scrolls into About). Set to -1 to turn off.
 const PREBUILD_AFTER_LOAD_MS = 1200;
+// The build no longer waits for the whole hero intro: at the latest this long after the
+// page has loaded it starts (or at once when the visitor starts scrolling / touching).
+const PREBUILD_MAX_WAIT_MS = 4500;
 // REVEAL: how fast the intro plays (1 = the old speed). Only the reveal ramps are
 // sped up; traffic, cat idle, lamps etc. keep their normal speed afterwards.
 const REVEAL_SPEED = 1.6;
@@ -69,16 +79,13 @@ const REVEAL_RATIO = 0.1;
 const TOUR_CAT_POP_T = 1.0;
 const SIGN_SHOW_TOUR_T = 2.3;
 
-const MAX_DPR_DESKTOP = 1.5;
-const MAX_DPR_MOBILE = 1.25;
-const MIN_DPR = 1;
-const TARGET_FPS = 60;
+// PERF: resolution / fps / pixel budget now come from aboutPerf.ts (device tier +
+// QualityGovernor). Only the absolute floor of the canvas pixel ratio lives here.
+const MIN_DPR_ABS = 0.5;
+const RESIZE_DEBOUNCE_MS = 90; // one canvas re-allocation per resize, not one per event
 const SHADOW_FREEZE_T = 4.4;
-const SHADOW_STEP = 4; // re-bake the shadow map every 4th frame during the reveal
+const SHADOW_STEP = 6; // re-bake the shadow map every 6th frame during the reveal
 const VISIBLE_RATIO = 0.08; // the loop runs only when >= 8% of the section is on screen
-const ADAPT_AFTER_T = 2.5;
-const SLOW_FRAME_MS = 20;
-const ADAPT_WINDOW = 40;
 
 // FIX (blank / never appears): compileAsync had no time limit. If a phone GPU driver never
 // reports "done", the build waited forever and the canvas stayed empty until a refresh.
@@ -93,6 +100,11 @@ const BOOT_RETRIES = 3;
 
 const BASE_TAN_V = Math.tan(THREE.MathUtils.degToRad(20));
 const TAN_H = BASE_TAN_V * (16 / 9);
+
+/* Add ?perf=1 to the page URL and the console prints how long every build step takes
+   (and when the quality governor changes level). Normal visitors see nothing. */
+const PERF_LOG =
+  typeof location !== "undefined" && /[?&]perf=1\b/.test(location.search);
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const seg = (t: number, start: number, dur: number) =>
@@ -302,8 +314,7 @@ async function bootSceneAsync(
   isCancelled: () => boolean,
 ): Promise<SceneHandle> {
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const small =
-    window.innerWidth < 768 || window.matchMedia("(pointer: coarse)").matches;
+  let tier = detectTier();
   const finePointer = window.matchMedia(
     "(hover: hover) and (pointer: fine)",
   ).matches;
@@ -312,6 +323,9 @@ async function bootSceneAsync(
   let renderer: THREE.WebGLRenderer;
   try {
     renderer = new THREE.WebGLRenderer({
+      // PERF: an opaque canvas is cheaper for the browser to composite (no blending
+      // against the page). The scene paints its own opaque background anyway.
+      alpha: false,
       // PERF: MSAA on a big canvas is expensive. On dense screens (>= 1.5 dpr) the
       // extra pixels already smooth the edges, so MSAA is only used on 1x / 1.25x screens.
       antialias: deviceDpr < 1.5,
@@ -330,15 +344,39 @@ async function bootSceneAsync(
   renderer.domElement.className = styles.canvas;
   host.appendChild(renderer.domElement);
 
-  let dprCap = small ? MAX_DPR_MOBILE : MAX_DPR_DESKTOP;
-  const dprFloor = Math.min(MIN_DPR, deviceDpr);
+  // integrated / mobile GPUs: gentler starting point (the governor still adapts)
+  if (isWeakGpu(renderer.getContext())) {
+    tier = {
+      ...tier,
+      shadowSize: Math.min(tier.shadowSize, 1024),
+      aniso: Math.min(tier.aniso, 4),
+      pixelBudget: Math.min(tier.pixelBudget, 2_000_000),
+      startLevel: Math.max(tier.startLevel, 2), // steady 30 fps from the first frame
+    };
+  }
+
   let lastW = 0;
   let lastH = 0;
   let lastDpr = 0;
+  // PERF: watches the real frame rhythm and steps quality down within ~1 s
+  // (resolution first, then 30 fps) instead of letting the page hang.
+  const governor = new QualityGovernor(tier.startLevel, (level) => {
+    if (PERF_LOG) console.info(`[About] quality level -> ${level}`);
+    applySize(lastW, lastH);
+  });
+
+  /** canvas pixel ratio: device ratio, capped, scaled by the governor, and never
+   *  more than the pixel budget (fill-rate is what makes a lit 3D scene hang) */
+  const dprFor = (w: number, h: number) => {
+    let dpr =
+      Math.min(window.devicePixelRatio || 1, tier.dprCap) * governor.scale;
+    dpr = Math.min(dpr, Math.sqrt(tier.pixelBudget / Math.max(1, w * h)));
+    return Math.max(MIN_DPR_ABS, dpr);
+  };
 
   const applySize = (w: number, h: number) => {
-    const dpr = Math.min(window.devicePixelRatio || 1, dprCap);
-    if (w === lastW && h === lastH && dpr === lastDpr) return;
+    const dpr = dprFor(w, h);
+    if (w === lastW && h === lastH && Math.abs(dpr - lastDpr) < 0.01) return;
     lastW = w;
     lastH = h;
     lastDpr = dpr;
@@ -383,17 +421,29 @@ async function bootSceneAsync(
     const r = host.getBoundingClientRect();
     return r.top < window.innerHeight * 0.9 && r.bottom > 0;
   };
+  const bootT0 = performance.now();
+  let markT = bootT0;
+  const mark = (label: string) => {
+    if (!PERF_LOG) return;
+    const n = performance.now();
+    console.info(
+      `[About] ${label.padEnd(26)} +${Math.round(n - markT)} ms  (total ${Math.round(n - bootT0)} ms)`,
+    );
+    markT = n;
+  };
   const breathe = async () => {
     await nextFrame();
     if (hostVisible()) return;
+    // the visitor may be scrolling toward About right now: stay polite, but never
+    // for long (a long wait here is what used to leave About blank on arrival)
     const t0 = performance.now();
     while (
-      performance.now() - lastInput < 160 &&
-      performance.now() - t0 < 600
+      performance.now() - lastInput < 120 &&
+      performance.now() - t0 < 220
     ) {
-      await sleep(60);
+      await sleep(40);
     }
-    await idleSlot(80);
+    await idleSlot(40);
   };
   const teardown = () => {
     if (disposed) return;
@@ -416,6 +466,12 @@ async function bootSceneAsync(
     return true;
   };
 
+  // PERF: fonts and the GitHub image load in the background while steps 1-3 run. The
+  // boards / sign are then drawn ONCE with the final font + image, so no big texture
+  // has to be redrawn and re-uploaded in the middle of the reveal.
+  const fontsP = whenFontsReady(1800);
+  const imageP = loadImageOnce(ctl.githubImageSrc, 2200);
+
   /* ── step 1: environment + lights ──────────────────────────────────────── */
   envTexture = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environment = envTexture;
@@ -428,7 +484,7 @@ async function bootSceneAsync(
   key.position.set(-30, 36, 24);
   key.target.position.set(12, 0, -8);
   key.castShadow = true;
-  key.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
+  key.shadow.mapSize.set(tier.shadowSize, tier.shadowSize);
   key.shadow.camera.left = -52;
   key.shadow.camera.right = 52;
   key.shadow.camera.top = 52;
@@ -474,17 +530,47 @@ async function bootSceneAsync(
   await breathe();
   if (aborted()) return NOOP_HANDLE;
 
-  /* ── step 3: buildings ─────────────────────────────────────────────────── */
-  const city = buildCity(curve, rand, isBlocked);
-  scene.add(city.group);
+  mark("road built");
+
+  /* ── step 3: billboards (they carry the two spot lights, so after this the light
+        setup is final and shaders can start compiling in the background) ──────── */
+  const fontsOk = await fontsP;
+  const githubImg = await imageP;
+  if (aborted()) return NOOP_HANDLE;
+  mark("fonts + image ready");
+  const boardA = buildBoardA(ctl.githubImageSrc, () => renderOnce(), githubImg);
+  const boardB = buildBoardB();
+  scene.add(boardA.group, boardB.group);
+  mark("boards built");
+
+  // PERF: compiling the lit shaders is the slowest thing in the whole build (it runs
+  // in the GPU process, in parallel). Start it NOW, so it overlaps with the CPU work
+  // of the next steps instead of being added after them.
+  const camera = new THREE.PerspectiveCamera(40, 16 / 9, 0.5, 360);
+  const compileNow = (): Promise<unknown> => {
+    try {
+      const r = renderer as CompilingRenderer;
+      if (!r.compileAsync) {
+        renderer.compile(scene, camera);
+        return Promise.resolve();
+      }
+      return Promise.race([
+        r.compileAsync(scene, camera).catch(() => undefined),
+        sleep(COMPILE_TIMEOUT_MS),
+      ]);
+    } catch {
+      return Promise.resolve(); // not critical: three compiles on first use instead
+    }
+  };
+  const compileA = compileNow();
 
   await breathe();
   if (aborted()) return NOOP_HANDLE;
 
-  /* ── step 4: billboards ────────────────────────────────────────────────── */
-  const boardA = buildBoardA(ctl.githubImageSrc, () => renderOnce());
-  const boardB = buildBoardB();
-  scene.add(boardA.group, boardB.group);
+  /* ── step 4: buildings ─────────────────────────────────────────────────── */
+  const city = buildCity(curve, rand, isBlocked);
+  scene.add(city.group);
+  mark("city built");
 
   await breathe();
   if (aborted()) return NOOP_HANDLE;
@@ -494,7 +580,7 @@ async function bootSceneAsync(
   const goose = buildGooseLamp();
   const cat = buildCat();
   const traffic = buildTraffic(curve, rand);
-  const dust = buildDust(rand, small ? 90 : 180);
+  const dust = buildDust(rand, tier.dust);
   traffic.group.visible = false;
   scene.add(lamps.group, goose.group, cat.group, traffic.group, dust.points);
 
@@ -502,7 +588,17 @@ async function bootSceneAsync(
   if (aborted()) return NOOP_HANDLE;
 
   /* ── step 5b: the 3D comment sign above the cat + the theme switch ─────── */
-  const sign = buildCommentSign(getComputedStyle(host).fontFamily || undefined);
+  // the sign is created directly in the right layout + theme (no rebuild / repaint /
+  // shader recompile on the first visible frame)
+  const startTour =
+    (host.clientWidth || window.innerWidth) /
+      Math.max(1, host.clientHeight || window.innerHeight) <
+    1;
+  const sign = buildCommentSign(
+    getComputedStyle(host).fontFamily || undefined,
+    startTour ? "tall" : "wide",
+    theme,
+  );
   scene.add(sign.group);
 
   const themed = [
@@ -530,7 +626,6 @@ async function bootSceneAsync(
       await breathe();
       if (aborted()) return NOOP_HANDLE;
     }
-    sign.setTheme("light");
   }
 
   const brushLoaded = () => {
@@ -561,7 +656,6 @@ async function bootSceneAsync(
       });
   };
 
-  const camera = new THREE.PerspectiveCamera(40, 16 / 9, 0.5, 360);
   const endPos = END_POS.clone();
   const tmp = new THREE.Vector3();
   const camPos = new THREE.Vector3();
@@ -573,28 +667,24 @@ async function bootSceneAsync(
   const pointer = { x: 0, y: 0, cx: 0, cy: 0 };
   let aspect = 16 / 9;
   let tanV = BASE_TAN_V;
-  let tour = false;
+  let tour = startTour;
   let shotApplied = -1;
   let lastNow = 0;
 
-  /* ── step 6: compile every shader WITHOUT blocking the page ────────────── */
+  /* ── step 6: finish compiling every shader WITHOUT blocking the page ───── */
+  mark("everything built");
   traffic.group.visible = true;
   sign.group.visible = true;
+  let compileB: Promise<unknown>;
   try {
-    const r = renderer as CompilingRenderer;
-    if (r.compileAsync)
-      await Promise.race([
-        r.compileAsync(scene, camera),
-        sleep(COMPILE_TIMEOUT_MS),
-      ]);
-    else renderer.compile(scene, camera);
-  } catch {
-    /* not critical: three compiles on first use instead */
+    compileB = compileNow(); // the objects are collected right now (synchronously)
   } finally {
     traffic.group.visible = false;
     sign.group.visible = false;
   }
+  await Promise.all([compileA, compileB]);
   if (aborted()) return NOOP_HANDLE;
+  mark("shaders compiled");
 
   // PERF: upload every texture to the GPU now, two per step, instead of all at once
   // inside the very first render (that was one long freeze when arriving at About).
@@ -604,8 +694,12 @@ async function bootSceneAsync(
       map?: THREE.Texture | null;
       emissiveMap?: THREE.Texture | null;
     };
-    if (mm.map) toUpload.add(mm.map);
-    if (mm.emissiveMap) toUpload.add(mm.emissiveMap);
+    for (const tx of [mm.map, mm.emissiveMap]) {
+      if (!tx) continue;
+      // PERF: weaker GPUs sample fewer taps at grazing angles (looks the same up close)
+      tx.anisotropy = Math.min(tx.anisotropy, tier.aniso);
+      toUpload.add(tx);
+    }
   };
   scene.traverse((o) => {
     const mat = (o as THREE.Mesh).material as
@@ -618,11 +712,13 @@ async function bootSceneAsync(
   let uploaded = 0;
   for (const tx of toUpload) {
     renderer.initTexture(tx);
-    if (++uploaded % 2 === 0) {
+    if (++uploaded % 4 === 0) {
       await breathe();
       if (aborted()) return NOOP_HANDLE;
     }
   }
+
+  mark("textures uploaded");
 
   // how big the sign may be on this screen (landscape): readable, but never off-screen
   const probeCam = new THREE.PerspectiveCamera();
@@ -735,8 +831,10 @@ async function bootSceneAsync(
     camPos.copy(START_POS).lerp(curPos, e);
     camTarget.copy(START_TARGET).lerp(curTarget, e);
     if (!reduced && !tour) {
-      pointer.cx += (pointer.x - pointer.cx) * 0.05;
-      pointer.cy += (pointer.y - pointer.cy) * 0.05;
+      // same smoothing as before at 60 fps, but identical at 30 fps too
+      const pk = 1 - Math.pow(0.95, dt * 60);
+      pointer.cx += (pointer.x - pointer.cx) * pk;
+      pointer.cy += (pointer.y - pointer.cy) * pk;
       camPos.x +=
         pointer.cx * PARALLAX_X * e + Math.sin(now * 0.00012) * 0.35 * e;
       camPos.y +=
@@ -849,7 +947,6 @@ async function bootSceneAsync(
 
   let inView = false;
   let lastFrame = 0;
-  let frameMs = 1000 / TARGET_FPS;
 
   /* how much of About the Works section already covers (same maths as App.tsx) */
   const worksEl = document.getElementById("works");
@@ -876,39 +973,6 @@ async function bootSceneAsync(
     });
   }
 
-  // automatic quality: lower the resolution step by step, and as a last resort
-  // run at a steady 30 fps instead of stuttering
-  let perfSum = 0;
-  let perfN = 0;
-  let slowWindows = 0;
-  const adapt = (dt: number, t: number) => {
-    if (reduced || t < ADAPT_AFTER_T || dt > 250) {
-      perfSum = 0;
-      perfN = 0;
-      return;
-    }
-    perfSum += dt;
-    perfN++;
-    if (perfN < ADAPT_WINDOW) return;
-    const avg = perfSum / perfN;
-    perfSum = 0;
-    perfN = 0;
-    if (avg > SLOW_FRAME_MS) {
-      if (avg > 30 || ++slowWindows >= 2) {
-        slowWindows = 0;
-        const current = Math.min(window.devicePixelRatio || 1, dprCap);
-        if (current > dprFloor + 0.01) {
-          dprCap = Math.max(dprFloor, current * 0.85);
-          applySize(lastW, lastH);
-        } else if (frameMs < 30) {
-          frameMs = 1000 / 30;
-        }
-      }
-    } else {
-      slowWindows = 0;
-    }
-  };
-
   function renderOnce() {
     if (!booted || running || disposed) return;
     update(performance.now());
@@ -917,20 +981,21 @@ async function bootSceneAsync(
   const frame = (now: number) => {
     if (!running) return;
     raf = requestAnimationFrame(frame);
-    if (cover >= COVER_PAUSE_AT) return; // fully hidden behind Works: draw nothing
+    if (cover >= COVER_PAUSE_AT) {
+      // fully hidden behind Works: draw nothing, and do not judge smoothness
+      governor.resetTiming();
+      return;
+    }
+    // the governor reads EVERY animation frame (also the ones we skip drawing)
+    governor.tick(now);
     const slow = cover > COVER_SLOW_AT; // Works is rising over us: 30 fps is plenty
-    const minMs = slow ? Math.max(frameMs, 1000 / 30) : frameMs;
+    const minMs = slow
+      ? Math.max(governor.frameMs, 1000 / 30)
+      : governor.frameMs;
     const elapsed = now - lastFrame;
     if (elapsed < minMs - 0.75) return;
     const resumed = lastFrame === 0 || elapsed > minMs * 4;
     lastFrame = resumed ? now : now - (elapsed % minMs);
-    if (slow || resumed) {
-      // never let the quality governor learn from throttled / resumed frames
-      perfSum = 0;
-      perfN = 0;
-    } else {
-      adapt(elapsed, getT(now));
-    }
     update(now);
     renderer.render(scene, camera);
   };
@@ -939,6 +1004,7 @@ async function bootSceneAsync(
     running = true;
     lastFrame = 0;
     lastNow = 0;
+    governor.resetTiming();
     raf = requestAnimationFrame(frame);
   };
   const stopLoop = () => {
@@ -969,7 +1035,11 @@ async function bootSceneAsync(
     pointer.y = (e.clientY / window.innerHeight) * 2 - 1;
   };
 
-  const ro = new ResizeObserver(resize);
+  let resizeTimer = 0;
+  const ro = new ResizeObserver(() => {
+    window.clearTimeout(resizeTimer);
+    resizeTimer = window.setTimeout(resize, RESIZE_DEBOUNCE_MS);
+  });
   ro.observe(host);
   // PERF: the loop only runs while a real part of the section is on screen
   // (a thin sliver under the hero does not count) and only after the reveal started.
@@ -979,6 +1049,7 @@ async function bootSceneAsync(
       if (inView && !revealed && entry.intersectionRatio >= REVEAL_RATIO) {
         revealed = true;
         revealStart = performance.now();
+        mark("reveal starts");
       }
       if (inView && revealed) startLoop();
       else stopLoop();
@@ -988,6 +1059,7 @@ async function bootSceneAsync(
   );
   io.observe(host);
   cleanups.push(() => {
+    window.clearTimeout(resizeTimer);
     ro.disconnect();
     io.disconnect();
     window.removeEventListener("pointermove", onMove);
@@ -998,8 +1070,9 @@ async function bootSceneAsync(
   }
 
   booted = true;
+  if (tour) ctl.onTour(true);
   resize();
-  pollFont();
+  if (!fontsOk) pollFont(); // only when the fonts were NOT ready at build time
 
   /* ── theme: follow the site's light / dark toggle ──────────────────────── */
   const forceRender = () => {
@@ -1034,13 +1107,15 @@ async function bootSceneAsync(
   setTheme(readTheme(host)); // it may have changed while the scene was being built
 
   // the page font may finish loading after the first draw of the sign's text
-  document.fonts.ready
-    .then(() => {
-      if (disposed) return;
-      sign.redraw();
-      renderOnce();
-    })
-    .catch(() => undefined);
+  if (!fontsOk) {
+    document.fonts.ready
+      .then(() => {
+        if (disposed) return;
+        sign.redraw();
+        renderOnce();
+      })
+      .catch(() => undefined);
+  }
 
   // quietly prepare the light textures after the intro, so the first toggle is instant
   if (theme === "dark") {
@@ -1108,6 +1183,8 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
       });
     };
 
+    const intentEvents = ["scroll", "wheel", "touchstart", "keydown"] as const;
+    let removeIntent: (() => void) | null = null;
     let lazy: IntersectionObserver | null = null;
     let warmTimer = 0;
     let onLoad: (() => void) | null = null;
@@ -1140,13 +1217,23 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
           if (
             !hero ||
             hero.dataset.revealDone === "true" ||
-            performance.now() - since > 15000
+            performance.now() - since > PREBUILD_MAX_WAIT_MS
           ) {
             go();
             return;
           }
           warmTimer = window.setTimeout(() => waitForHero(since), 250);
         };
+        // the visitor starts to scroll / touch: About is next, start right now
+        const intent = () => {
+          window.clearTimeout(warmTimer);
+          go();
+        };
+        intentEvents.forEach((ev) =>
+          window.addEventListener(ev, intent, { passive: true, once: true }),
+        );
+        removeIntent = () =>
+          intentEvents.forEach((ev) => window.removeEventListener(ev, intent));
         const arm = () => {
           warmTimer = window.setTimeout(
             () => waitForHero(performance.now()),
@@ -1175,6 +1262,7 @@ export const AboutScene: React.FC<AboutSceneProps> = ({
     return () => {
       gone = true;
       window.clearTimeout(warmTimer);
+      removeIntent?.();
       if (onLoad) window.removeEventListener("load", onLoad);
       lazy?.disconnect();
       handleRef.current?.dispose();

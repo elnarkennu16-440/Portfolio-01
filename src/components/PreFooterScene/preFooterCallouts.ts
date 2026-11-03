@@ -116,6 +116,8 @@ const PAD_X = 10;
 const PAD_TOP = 16;
 const PAD_BOTTOM = 10;
 const MARGIN = 8; // minimum px between two labels
+// reveal time (s) when the first label appears: during the zoom-in on the pour
+const CALLOUT_T0 = 3.9;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const seg = (t: number, start: number, dur: number) =>
@@ -327,7 +329,7 @@ export function buildCallouts(host: HTMLElement): Callouts {
   const update = (camera: THREE.Camera, t: number, time: number) => {
     let any = false;
     for (let i = 0; i < items.length; i++) {
-      if (seg(t, 2.2 + i * 0.08, 0.6) > 0.001) {
+      if (seg(t, CALLOUT_T0 + i * 0.08, 0.6) > 0.001) {
         any = true;
         break;
       }
@@ -349,7 +351,7 @@ export function buildCallouts(host: HTMLElement): Callouts {
     ctx.textBaseline = "middle";
 
     items.forEach((it, i) => {
-      const p = seg(t, 2.2 + i * 0.08, 0.6);
+      const p = seg(t, CALLOUT_T0 + i * 0.08, 0.6);
       if (p <= 0.001) return;
       const e = easeOutCubic(p);
 

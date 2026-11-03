@@ -166,6 +166,32 @@ const BOARD_BG = "#0e0e10";
 
 /* ═══════════════════════════════ HELPERS ══════════════════════════════════ */
 
+/**
+ * PERF — compile time. three.js builds ONE shader program per different material
+ * "shape" (has a map? an emissive map? ...). Lit shaders (5 lights + shadows + env)
+ * are slow to compile, and about 14 different shapes meant seconds of compiling
+ * before anything could be shown. Every standard material now has a map and an
+ * emissive map (a 1×1 white pixel when it has no real one: same colours, same look),
+ * so they all share a handful of programs instead.
+ */
+let whiteTex: THREE.DataTexture | null = null;
+const stdMat = (params: THREE.MeshStandardMaterialParameters) => {
+  if (!whiteTex) {
+    whiteTex = new THREE.DataTexture(
+      new Uint8Array([255, 255, 255, 255]),
+      1,
+      1,
+    );
+    whiteTex.colorSpace = THREE.SRGBColorSpace;
+    whiteTex.needsUpdate = true;
+  }
+  return new THREE.MeshStandardMaterial({
+    map: whiteTex,
+    emissiveMap: whiteTex,
+    ...params,
+  });
+};
+
 export const mulberry32 = (seed: number): Rand => {
   let s = seed | 0;
   return () => {
@@ -352,14 +378,35 @@ export const isBlocked: BlockFn = (x, z, pad) => {
 function makeAsphaltTexture(rand: Rand) {
   const S = 512;
   const { canvas, ctx } = makeCanvas(S, S);
-  ctx.fillStyle = "#1b1b1e";
-  ctx.fillRect(0, 0, S, S);
+  // PERF: 26 000 tiny fillRect() calls (each with a colour string) used to be one long
+  // freeze while building. The same dots are now blended straight into the pixel
+  // buffer: identical result, identical rand() order, a fraction of the time.
+  const img = ctx.createImageData(S, S);
+  const px = img.data;
+  for (let i = 0; i < S * S * 4; i += 4) {
+    px[i] = 0x1b;
+    px[i + 1] = 0x1b;
+    px[i + 2] = 0x1e;
+    px[i + 3] = 255;
+  }
   for (let i = 0; i < 26000; i++) {
     const v = 26 + Math.floor(rand() * 70);
-    ctx.fillStyle = `rgba(${v},${v},${v + 3},${0.18 + rand() * 0.4})`;
+    const a = 0.18 + rand() * 0.4;
     const size = rand() < 0.08 ? 2 : 1;
-    ctx.fillRect(Math.floor(rand() * S), Math.floor(rand() * S), size, size);
+    const x = Math.floor(rand() * S);
+    const y = Math.floor(rand() * S);
+    const cr = v;
+    const cb = v + 3;
+    for (let yy = y; yy < y + size && yy < S; yy++) {
+      for (let xx = x; xx < x + size && xx < S; xx++) {
+        const o = (yy * S + xx) * 4;
+        px[o] = px[o] + (cr - px[o]) * a;
+        px[o + 1] = px[o + 1] + (cr - px[o + 1]) * a;
+        px[o + 2] = px[o + 2] + (cb - px[o + 2]) * a;
+      }
+    }
   }
+  ctx.putImageData(img, 0, 0);
   for (let i = 0; i < 10; i++) {
     const x = rand() * S;
     const y = rand() * S;
@@ -520,7 +567,7 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
 
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(800, 800),
-    new THREE.MeshStandardMaterial({
+    stdMat({
       color: 0x0d0d0f,
       roughness: 0.96,
       metalness: 0,
@@ -541,7 +588,7 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
       uTile: 8,
       vTile: 8,
     }).geo,
-    new THREE.MeshStandardMaterial({
+    stdMat({
       map: makePavingTexture(rand),
       color: 0xb4b4ba,
       roughness: 0.8,
@@ -562,7 +609,7 @@ export function buildGroundAndRoad(curve: THREE.CatmullRomCurve3, rand: Rand) {
       uTile: 6,
       vTile: 6,
     }).geo,
-    new THREE.MeshStandardMaterial({
+    stdMat({
       map: makeAsphaltTexture(rand),
       color: 0xa6a6ac,
       roughness: 0.44,
@@ -989,7 +1036,7 @@ function buildBoard(
   // every lit surface of the board shares one glow value
   const lit: THREE.MeshStandardMaterial[] = [];
   const addLit = (map: THREE.Texture, transparent = false) => {
-    const m = new THREE.MeshStandardMaterial({
+    const m = stdMat({
       map,
       emissiveMap: map,
       emissive: 0xffffff,
@@ -1006,12 +1053,12 @@ function buildBoard(
     for (const m of lit) m.emissiveIntensity = v;
   };
 
-  const metal = new THREE.MeshStandardMaterial({
+  const metal = stdMat({
     color: 0x1a1a1d,
     metalness: 0.75,
     roughness: 0.45,
   });
-  const concrete = new THREE.MeshStandardMaterial({
+  const concrete = stdMat({
     color: 0x2b2b2f,
     roughness: 0.92,
     metalness: 0.02,
@@ -1121,8 +1168,13 @@ function buildBoard(
   };
 }
 
-export function buildBoardA(src: string, onChange: () => void) {
-  let gray: HTMLCanvasElement | null = null;
+export function buildBoardA(
+  src: string,
+  onChange: () => void,
+  /** already decoded by aboutPerf.loadImageOnce → the board is drawn ONCE, no re-upload */
+  preloaded: HTMLImageElement | null = null,
+) {
+  let gray: HTMLCanvasElement | null = preloaded ? toDarkMono(preloaded) : null;
   const board = buildBoard(BOARD_A, (ctx, W, H) => drawBoardA(ctx, W, H, gray));
   const L = layoutA(board.W, board.H);
 
@@ -1159,14 +1211,17 @@ export function buildBoardA(src: string, onChange: () => void) {
   curtain.position.set(il.x + il.w / 2, il.y, board.frameD / 2 + 0.01);
   board.rig.add(curtain);
 
-  const img = new Image();
-  img.decoding = "async";
-  img.onload = () => {
-    gray = toDarkMono(img);
-    board.redraw();
-    onChange();
-  };
-  img.src = src;
+  if (!gray) {
+    // not preloaded (slow / missing): fall back to the old late redraw
+    const img = new Image();
+    img.decoding = "async";
+    img.onload = () => {
+      gray = toDarkMono(img);
+      board.redraw();
+      onChange();
+    };
+    img.src = src;
+  }
 
   return { ...board, setCount, curtain };
 }
@@ -1258,7 +1313,7 @@ function makeFacade(rand: Rand, variant: 0 | 1 | 2): FacadeSet {
     for (let c = 0; c <= COLS; c++) map.fillRect(c * PX_W - 1, 0, 2, H);
   }
 
-  const material = new THREE.MeshStandardMaterial({
+  const material = stdMat({
     map: toTexture(a.canvas, true),
     emissiveMap: toTexture(b.canvas, true),
     emissive: 0xffffff,
@@ -1279,11 +1334,11 @@ export function buildCity(
     makeFacade(rand, 1),
     makeFacade(rand, 2),
   ];
-  const roofMat = new THREE.MeshStandardMaterial({
+  const roofMat = stdMat({
     color: 0x18181b,
     roughness: 0.95,
   });
-  const concrete = new THREE.MeshStandardMaterial({
+  const concrete = stdMat({
     color: 0x2a2a2e,
     roughness: 0.92,
     metalness: 0.03,
@@ -1450,7 +1505,7 @@ export function buildStreetLights(
 ) {
   const group = new THREE.Group();
   const L = curve.getLength();
-  const poleMat = new THREE.MeshStandardMaterial({
+  const poleMat = stdMat({
     color: 0x1b1b1e,
     metalness: 0.8,
     roughness: 0.4,
@@ -1515,7 +1570,7 @@ export function buildGooseLamp() {
   const group = new THREE.Group();
   group.position.set(LAMP.x, 0, LAMP.z);
 
-  const metal = new THREE.MeshStandardMaterial({
+  const metal = stdMat({
     color: 0x1b1b1e,
     metalness: 0.8,
     roughness: 0.4,
@@ -1604,12 +1659,12 @@ export function buildTraffic(curve: THREE.CatmullRomCurve3, rand: Rand) {
   const L = curve.getLength();
   const span = L - 12;
   const group = new THREE.Group();
-  const bodyMat = new THREE.MeshStandardMaterial({
+  const bodyMat = stdMat({
     color: 0x1d1d20,
     metalness: 0.9,
     roughness: 0.26,
   });
-  const glassMat = new THREE.MeshStandardMaterial({
+  const glassMat = stdMat({
     color: 0x050506,
     metalness: 0.9,
     roughness: 0.08,
@@ -1716,7 +1771,7 @@ export function buildCat() {
   rig.scale.setScalar(0.001);
   group.add(rig);
 
-  const fur = new THREE.MeshStandardMaterial({
+  const fur = stdMat({
     color: 0x1c1c20,
     roughness: 0.82,
     metalness: 0.04,
@@ -2045,7 +2100,11 @@ function drawSignFace(
   return { left, right, blockBottom: y0 + block, lineH, lines };
 }
 
-export function buildCommentSign(initialFamily: string = SANS) {
+export function buildCommentSign(
+  initialFamily: string = SANS,
+  initialLayout: SignLayoutName = "wide",
+  initialTheme: SignTheme = "dark",
+) {
   const group = new THREE.Group();
   group.position.set(SIGN_TIP.x, SIGN_TIP.y, SIGN_TIP.z);
   group.rotation.order = "YXZ";
@@ -2053,8 +2112,8 @@ export function buildCommentSign(initialFamily: string = SANS) {
   group.visible = false;
 
   let family = initialFamily;
-  let theme: SignTheme = "dark";
-  let cfg: SignLayout = SIGN_LAYOUTS.wide;
+  let theme: SignTheme = initialTheme;
+  let cfg: SignLayout = SIGN_LAYOUTS[initialLayout];
   let frame = signFrame(cfg);
   let W = 0;
   let H = 0;
@@ -2066,8 +2125,8 @@ export function buildCommentSign(initialFamily: string = SANS) {
   let typedShown = -2;
   let blinkShown = false;
 
-  const edgeMat = new THREE.MeshStandardMaterial({
-    color: SIGN_COLORS.dark.edge,
+  const edgeMat = stdMat({
+    color: SIGN_COLORS[initialTheme].edge,
     roughness: 0.55,
     metalness: 0.12,
   });
@@ -2076,12 +2135,12 @@ export function buildCommentSign(initialFamily: string = SANS) {
     fog: false,
   });
   const coverMat = new THREE.MeshBasicMaterial({
-    color: SIGN_COLORS.dark.fill,
+    color: SIGN_COLORS[initialTheme].fill,
     toneMapped: false,
     fog: false,
   });
   const caretMat = new THREE.MeshBasicMaterial({
-    color: SIGN_COLORS.dark.caret,
+    color: SIGN_COLORS[initialTheme].caret,
     toneMapped: false,
     fog: false,
   });

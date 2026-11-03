@@ -283,77 +283,57 @@ function makeLabelTexture(store: TexStore) {
   const H = 512;
   const { canvas, ctx } = makeCanvas(W, H);
 
+  const roundRectPath = (
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    r: number,
+  ) => {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  };
+
   /** Draws the whole label. `logo` = the loaded KE logo (null = fallback text). */
   const paint = (logo: HTMLImageElement | null) => {
     ctx.clearRect(0, 0, W, H);
-    // paper with a scalloped top edge (alpha-tested on the material)
-    ctx.fillStyle = "#dcdde1";
-    ctx.beginPath();
-    ctx.moveTo(0, H);
-    ctx.lineTo(0, 46);
-    const n = 14;
-    const sw = W / n;
-    for (let i = 0; i < n; i++)
-      ctx.arc(sw * i + sw / 2, 46, sw / 2, Math.PI, 0, false);
-    ctx.lineTo(W, H);
-    ctx.closePath();
+    // the print: one black plate (rounded corners are alpha-tested on the material).
+    // No paper, no scalloped edge: it reads as the logo itself printed on the glass.
+    ctx.fillStyle = "#0b0b0d";
+    roundRectPath(0, 0, W, H, 34);
     ctx.fill();
-    ctx.strokeStyle = "#2a2b2f";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(26, 92, W - 52, H - 128);
+    // thin gray rim, so the black plate is readable on the dark glass
+    ctx.strokeStyle = "#55575e";
+    ctx.lineWidth = 6;
+    roundRectPath(10, 10, W - 20, H - 20, 26);
+    ctx.stroke();
 
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillStyle = "#4a4c52";
-    ctx.font = `600 24px ${SANS}`;
-    setSpacing(ctx, 5);
-    ctx.fillText("ELNAR · EST. 2026", W / 2, 126);
-
-    // the print: a gray plate with the (white) logo on it, as big as the label allows
-    const PX = 140;
-    const PY = 138;
-    const PW = 360;
-    const PH = 254;
-    ctx.fillStyle = "#3f4147";
-    if (typeof ctx.roundRect === "function") {
-      ctx.beginPath();
-      ctx.roundRect(PX, PY, PW, PH, 18);
-      ctx.fill();
-    } else {
-      ctx.fillRect(PX, PY, PW, PH); // older browsers: square corners
-    }
     if (logo && logo.naturalWidth > 0 && logo.naturalHeight > 0) {
-      const maxW = PW - 28;
-      const maxH = PH - 24;
-      const k = Math.min(maxW / logo.naturalWidth, maxH / logo.naturalHeight);
+      // as big as the plate allows
+      const pad = 24;
+      const k = Math.min(
+        (W - pad * 2) / logo.naturalWidth,
+        (H - pad * 2) / logo.naturalHeight,
+      );
       const lw = logo.naturalWidth * k;
       const lh = logo.naturalHeight * k;
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
-      ctx.drawImage(logo, PX + (PW - lw) / 2, PY + (PH - lh) / 2, lw, lh);
+      ctx.drawImage(logo, (W - lw) / 2, (H - lh) / 2, lw, lh);
     } else {
       // fallback while the logo loads (or if it cannot be found)
       ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.font = `800 84px Georgia, "Times New Roman", serif`;
+      ctx.font = `800 120px Georgia, "Times New Roman", serif`;
       setSpacing(ctx, 2);
-      ctx.fillText("KENNU", W / 2, PY + PH / 2 + 4);
-      ctx.textBaseline = "alphabetic";
+      ctx.fillText("KENNU", W / 2, H / 2 + 6);
     }
-
-    ctx.fillStyle = "#4a4c52";
-    ctx.font = `600 23px ${SANS}`;
-    setSpacing(ctx, 4);
-    ctx.fillText("QUALITY ASSURANCE · WEB", W / 2, 420);
-    // wax seal
-    ctx.fillStyle = "#17181b";
-    ctx.beginPath();
-    ctx.arc(W / 2, 449, 19, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#d9dbe0";
-    ctx.font = `700 24px ${SANS}`;
-    setSpacing(ctx, 0);
-    ctx.fillText("★", W / 2, 457);
   };
 
   paint(null);
@@ -691,10 +671,10 @@ export function buildBottle(store: TexStore) {
 
   // liquid inside (light gray, slightly self-lit so it reads on the dark scene)
   const liquidMat = new THREE.MeshStandardMaterial({
-    color: 0xc4c7cd,
+    color: 0x17181b,
     roughness: 0.25,
     metalness: 0.1,
-    emissive: 0x4a4c52,
+    emissive: 0x050506,
     emissiveIntensity: 0.6,
   });
   local.add(
@@ -832,8 +812,8 @@ export function buildBottle(store: TexStore) {
   ];
   const setTheme = (mode: ThemeMode) => {
     const light = mode === "light";
-    liquidMat.color.setHex(light ? 0x6a6d75 : 0xc4c7cd);
-    liquidMat.emissive.setHex(light ? 0x1c1d20 : 0x4a4c52);
+    liquidMat.color.setHex(light ? 0x1c1d20 : 0x17181b);
+    liquidMat.emissive.setHex(light ? 0x060607 : 0x050506);
   };
   return { rig, pivot, envMats, setTheme };
 }

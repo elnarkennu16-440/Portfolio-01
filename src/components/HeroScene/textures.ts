@@ -438,7 +438,8 @@ function boardCanvases(len: number, h: number, s: number) {
   return { base, text };
 }
 
-/** "ELNAR" painted on the asphalt (stretched along the road like real markings) */
+/** "SOFTWARE / DEVELOPER" painted on the asphalt: two lines across the lane, stretched
+ *  along the road like real markings. (Same canvas size, same spot, same fade as before.) */
 function roadTextCanvas(): HTMLCanvasElement {
   const W = 1600;
   const H = 240;
@@ -446,15 +447,25 @@ function roadTextCanvas(): HTMLCanvasElement {
   const g = c.getContext("2d") as CanvasRenderingContext2D & {
     letterSpacing?: string;
   };
-  g.font = `800 200px ${FONT}`;
-  if ("letterSpacing" in g) g.letterSpacing = "16px";
-  const wTxt = g.measureText("ELNAR").width || 1;
+  const LINES = ["SOFTWARE", "DEVELOPER"];
+  const SIZE = 128; // two lines have to fit the lane, so the letters are smaller than "ELNAR" was
+  g.font = `800 ${SIZE}px ${FONT}`;
+  if ("letterSpacing" in g) g.letterSpacing = "10px";
+  // both lines share ONE stretch (the longer line, DEVELOPER, fills the old text length),
+  // so the letters look the same on each line
+  const widest = Math.max(...LINES.map((t) => g.measureText(t).width)) || 1;
+  const k = 1500 / widest;
+  const cap = g.measureText("H").actualBoundingBoxAscent || SIZE * 0.7;
+  const gap = 26; // space between the two lines
+  const top = Math.max(0, (H - (cap * 2 + gap)) / 2);
   g.fillStyle = "rgba(255,255,255,0.9)";
   g.textBaseline = "alphabetic";
-  g.save();
-  g.scale(1500 / wTxt, 1);
-  g.fillText("ELNAR", 0, 205);
-  g.restore();
+  LINES.forEach((t, i) => {
+    g.save();
+    g.scale(k, 1);
+    g.fillText(t, 0, top + cap + i * (cap + gap));
+    g.restore();
+  });
   return c;
 }
 
