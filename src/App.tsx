@@ -299,15 +299,15 @@ export default function App() {
           {/* Capabilities Section */}
           <Capabilities />
 
-          {/* Philosophy / Scroll-Switching Statement Section */}
-          <PreFooterBanner
-            onOpenContact={handleOpenContact}
-            onOpenSubpage={handleOpenSubpage}
-          />
-
           {/* PROFESIONAL OVERVIEW (Replaces Process) */}
           <ProfessionalOverview onOpenSubpage={handleOpenSubpage} />
         </main>
+
+        {/* Philosophy / Scroll-Switching Statement Section */}
+        <PreFooterBanner
+          onOpenContact={handleOpenContact}
+          onOpenSubpage={handleOpenSubpage}
+        />
 
         {/* Footer */}
         <Footer

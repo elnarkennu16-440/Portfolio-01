@@ -4,7 +4,13 @@
  * ──────────────────────────────────────────────────────────────────────────── */
 
 import { rng } from "./aboutGlUtils";
-import { ABOUT_TEXT, BILLBOARD, BUILDINGS, SIGN, STREET } from "./aboutSceneConfig";
+import {
+  ABOUT_TEXT,
+  BILLBOARD,
+  BUILDINGS,
+  SIGN,
+  STREET,
+} from "./aboutSceneConfig";
 
 const mk = (w: number, h: number) => {
   const c = document.createElement("canvas");
@@ -28,7 +34,14 @@ function grain(c: HTMLCanvasElement, amount: number, seed: number) {
   g.putImageData(img, 0, 0);
 }
 
-function blob(g: CanvasRenderingContext2D, x: number, y: number, rx: number, ry: number, rgba: string) {
+function blob(
+  g: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  rx: number,
+  ry: number,
+  rgba: string,
+) {
   g.save();
   g.translate(x, y);
   g.scale(1, ry / rx);
@@ -72,13 +85,18 @@ function groundCanvas(ppm: number): HTMLCanvasElement {
   for (let x = Math.floor(S.x0 / slab) * slab; x < S.x1; x += slab) {
     for (let z = Math.floor(S.z0 / slab) * slab; z < S.z1; z += slab) {
       const v = r();
-      g.fillStyle = v > 0.5 ? `rgba(255,255,255,${(v - 0.5) * 0.07})` : `rgba(0,0,0,${(0.5 - v) * 0.16})`;
+      g.fillStyle =
+        v > 0.5
+          ? `rgba(255,255,255,${(v - 0.5) * 0.07})`
+          : `rgba(0,0,0,${(0.5 - v) * 0.16})`;
       g.fillRect(X(x), Z(z), slab * ppm, slab * ppm);
     }
   }
   g.fillStyle = "rgba(0,0,0,0.5)";
-  for (let x = Math.floor(S.x0 / slab) * slab; x < S.x1; x += slab) g.fillRect(X(x), 0, Math.max(1, 0.05 * ppm), H);
-  for (let z = Math.floor(S.z0 / slab) * slab; z < S.z1; z += slab) g.fillRect(0, Z(z), W, Math.max(1, 0.05 * ppm));
+  for (let x = Math.floor(S.x0 / slab) * slab; x < S.x1; x += slab)
+    g.fillRect(X(x), 0, Math.max(1, 0.05 * ppm), H);
+  for (let z = Math.floor(S.z0 / slab) * slab; z < S.z1; z += slab)
+    g.fillRect(0, Z(z), W, Math.max(1, 0.05 * ppm));
 
   // asphalt
   g.fillStyle = "#161618";
@@ -86,7 +104,12 @@ function groundCanvas(ppm: number): HTMLCanvasElement {
   // tyre tracks
   for (const lane of [-3.1, 1.2]) {
     for (const off of [-0.7, 0.7]) {
-      const gr = g.createLinearGradient(0, Z(lane + off - 0.45), 0, Z(lane + off + 0.45));
+      const gr = g.createLinearGradient(
+        0,
+        Z(lane + off - 0.45),
+        0,
+        Z(lane + off + 0.45),
+      );
       gr.addColorStop(0, "rgba(255,255,255,0)");
       gr.addColorStop(0.5, "rgba(255,255,255,0.05)");
       gr.addColorStop(1, "rgba(255,255,255,0)");
@@ -108,25 +131,45 @@ function groundCanvas(ppm: number): HTMLCanvasElement {
   g.fillRect(0, Z(2.05), W, 0.12 * ppm);
   g.fillStyle = "rgba(255,255,255,0.8)";
   const mid = (S.roadFar + S.roadNear) / 2;
-  for (let x = S.x0; x < S.x1; x += 7) g.fillRect(X(x), Z(mid) - 0.07 * ppm, 3.2 * ppm, 0.14 * ppm);
+  for (let x = S.x0; x < S.x1; x += 7)
+    g.fillRect(X(x), Z(mid) - 0.07 * ppm, 3.2 * ppm, 0.14 * ppm);
 
-  // zebra crossing (bars run across the road)
+  // zebra crossing: the bars run ALONG the road (horizontal in the POV) and are
+  // stacked one behind the other from the far kerb to the near kerb — the way
+  // pedestrians cross, and the same as in the Hero
   g.fillStyle = "rgba(255,255,255,0.82)";
-  for (let x = S.crossX0; x < S.crossX1; x += 0.95) g.fillRect(X(x), Z(S.roadFar + 0.5), 0.5 * ppm, (S.roadNear - S.roadFar - 1) * ppm);
+  for (let z = S.roadFar + 0.55; z < S.roadNear - 0.6; z += 0.95) {
+    g.fillRect(X(S.crossX0), Z(z), (S.crossX1 - S.crossX0) * ppm, 0.5 * ppm);
+  }
 
   // stains + gutter drains
   for (let i = 0; i < 40; i++) {
-    blob(g, X(S.x0 + r() * (S.x1 - S.x0)), Z(S.roadFar + r() * (S.roadNear - S.roadFar)), (0.6 + r() * 1.6) * ppm, (0.4 + r() * 0.9) * ppm, `rgba(0,0,0,${0.2 + r() * 0.2})`);
+    blob(
+      g,
+      X(S.x0 + r() * (S.x1 - S.x0)),
+      Z(S.roadFar + r() * (S.roadNear - S.roadFar)),
+      (0.6 + r() * 1.6) * ppm,
+      (0.4 + r() * 0.9) * ppm,
+      `rgba(0,0,0,${0.2 + r() * 0.2})`,
+    );
   }
   g.fillStyle = "#050506";
-  for (let x = -30; x < 40; x += 16) g.fillRect(X(x), Z(S.roadNear) - 0.4 * ppm, 1.2 * ppm, 0.3 * ppm);
+  for (let x = -30; x < 40; x += 16)
+    g.fillRect(X(x), Z(S.roadNear) - 0.4 * ppm, 1.2 * ppm, 0.3 * ppm);
 
   grain(c, 14, 33);
   return c;
 }
 
 /* ── building wall: big square windows, some lit ────────────────────────── */
-function facadeCanvas(wM: number, hM: number, ppm: number, seed: number, lit: number, base: number): HTMLCanvasElement {
+function facadeCanvas(
+  wM: number,
+  hM: number,
+  ppm: number,
+  seed: number,
+  lit: number,
+  base: number,
+): HTMLCanvasElement {
   const cw = 2.4;
   const ch = 3.0;
   const cols = Math.max(2, Math.round(wM / cw));
@@ -166,7 +209,12 @@ function facadeCanvas(wM: number, hM: number, ppm: number, seed: number, lit: nu
         g.shadowColor = "rgba(255,255,255,0.5)";
         g.shadowBlur = 0.5 * ppm;
         g.fillStyle = v < lit * 0.55 ? "#f4f4f5" : "#b9b9bd";
-        g.fillRect(x + 0.06 * ppm, y + 0.06 * ppm, w - 0.12 * ppm, h - 0.12 * ppm);
+        g.fillRect(
+          x + 0.06 * ppm,
+          y + 0.06 * ppm,
+          w - 0.12 * ppm,
+          h - 0.12 * ppm,
+        );
         g.restore();
       }
     }
@@ -177,13 +225,24 @@ function facadeCanvas(wM: number, hM: number, ppm: number, seed: number, lit: nu
   ao.addColorStop(1, "rgba(0,0,0,0.5)");
   g.fillStyle = ao;
   g.fillRect(0, 0, c.width, c.height);
-  for (let i = 0; i < 10; i++) blob(g, r() * c.width, r() * c.height, (1 + r() * 3) * ppm, (3 + r() * 7) * ppm, `rgba(0,0,0,${0.05 + r() * 0.07})`);
+  for (let i = 0; i < 10; i++)
+    blob(
+      g,
+      r() * c.width,
+      r() * c.height,
+      (1 + r() * 3) * ppm,
+      (3 + r() * 7) * ppm,
+      `rgba(0,0,0,${0.05 + r() * 0.07})`,
+    );
   grain(c, 11, seed + 5);
   return c;
 }
 
 /* ── the GitHub billboard ───────────────────────────────────────────────── */
-function loadImage(urls: string[], timeout = 3500): Promise<HTMLImageElement | null> {
+function loadImage(
+  urls: string[],
+  timeout = 3500,
+): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     let i = 0;
     let done = false;
@@ -212,7 +271,11 @@ function loadImage(urls: string[], timeout = 3500): Promise<HTMLImageElement | n
   });
 }
 
-function billboardCanvas(ppm: number, img: HTMLImageElement | null, font: string): HTMLCanvasElement {
+function billboardCanvas(
+  ppm: number,
+  img: HTMLImageElement | null,
+  font: string,
+): HTMLCanvasElement {
   const W = BILLBOARD.w * ppm;
   const H = BILLBOARD.h * ppm;
   const c = mk(W, H);
@@ -296,7 +359,12 @@ export interface SignLayout {
   total: number; // number of characters
 }
 
-function signTextCanvas(wM: number, hM: number, ppm: number, font: string): SignLayout {
+function signTextCanvas(
+  wM: number,
+  hM: number,
+  ppm: number,
+  font: string,
+): SignLayout {
   const W = Math.round(wM * ppm);
   const H = Math.round(hM * ppm);
   const c = mk(W, H);
@@ -336,11 +404,19 @@ function signTextCanvas(wM: number, hM: number, ppm: number, font: string): Sign
     const y = top + i * lineH + size * 1.02;
     g.fillText(ln, padX, y);
     const ends: number[] = [];
-    for (let k = 1; k <= ln.length; k++) ends.push((padX + g.measureText(ln.slice(0, k)).width) / W);
+    for (let k = 1; k <= ln.length; k++)
+      ends.push((padX + g.measureText(ln.slice(0, k)).width) / W);
     out.push({ text: ln, ends });
     total += ln.length + 1;
   });
-  return { canvas: c, lines: out, x0: padX / W, topUV: top / H, lineHUV: lineH / H, total };
+  return {
+    canvas: c,
+    lines: out,
+    x0: padX / W,
+    topUV: top / H,
+    lineHUV: lineH / H,
+    total,
+  };
 }
 
 /* ── small soft tiles ───────────────────────────────────────────────────── */
@@ -364,7 +440,10 @@ function reflectionTile(): HTMLCanvasElement {
   const g = c.getContext("2d")!;
   const img = g.createImageData(W, H);
   for (let y = 0; y < H; y++) {
-    const along = Math.pow(Math.sin((y / (H - 1)) * Math.PI * 0.92 + 0.08), 1.6);
+    const along = Math.pow(
+      Math.sin((y / (H - 1)) * Math.PI * 0.92 + 0.08),
+      1.6,
+    );
     for (let x = 0; x < W; x++) {
       const dx = (x / (W - 1) - 0.5) * 2;
       const across = Math.pow(Math.max(0, 1 - dx * dx), 1.4);
@@ -390,7 +469,10 @@ export interface AboutCanvases {
 
 const cache = new Map<string, Promise<AboutCanvases>>();
 
-export function buildAboutCanvases(lite: boolean, portrait: boolean): Promise<AboutCanvases> {
+export function buildAboutCanvases(
+  lite: boolean,
+  portrait: boolean,
+): Promise<AboutCanvases> {
   const key = `${lite}-${portrait}`;
   let p = cache.get(key);
   if (!p) {
@@ -413,7 +495,14 @@ export function buildAboutCanvases(lite: boolean, portrait: boolean): Promise<Ab
       for (const b of BUILDINGS.filter((bb) => !(lite && bb.skipOnLite))) {
         const front = facadeCanvas(b.w, b.h, 46 * q, b.seed, b.lit, b.base);
         await tick();
-        const side = facadeCanvas(b.d, b.h, 30 * q, b.seed + 50, b.lit * 0.7, b.base - 6);
+        const side = facadeCanvas(
+          b.d,
+          b.h,
+          30 * q,
+          b.seed + 50,
+          b.lit * 0.7,
+          b.base - 6,
+        );
         await tick();
         walls.push({ front, side });
       }

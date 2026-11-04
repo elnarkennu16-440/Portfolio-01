@@ -41,6 +41,7 @@ import {
   makeProgram,
   mul,
   perspective,
+  rotateX,
   rotateY,
   rotateZ,
   scale3,
@@ -173,7 +174,11 @@ export function createAboutScene(
   canvas: HTMLCanvasElement,
   opts: { lite: boolean; input: { current: AboutInput } },
 ): AboutController | null {
-  const gl = canvas.getContext("webgl2", { antialias: true, alpha: false, powerPreference: "high-performance" });
+  const gl = canvas.getContext("webgl2", {
+    antialias: true,
+    alpha: false,
+    powerPreference: "high-performance",
+  });
   if (!gl) return null;
   const { lite, input } = opts;
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -187,7 +192,12 @@ export function createAboutScene(
   let t0 = -1;
   let built = false;
   let lastDraw = 0;
-  const cur = { mx: 0, my: 0, p: input.current.progress, look: input.current.dark ? 0 : 1 };
+  const cur = {
+    mx: 0,
+    my: 0,
+    p: input.current.progress,
+    look: input.current.dark ? 0 : 1,
+  };
 
   let program: WebGLProgram | null = null;
   let items: Item[] = [];
@@ -206,7 +216,11 @@ export function createAboutScene(
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
     gl.generateMipmap(gl.TEXTURE_2D);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(
+      gl.TEXTURE_2D,
+      gl.TEXTURE_MIN_FILTER,
+      gl.LINEAR_MIPMAP_LINEAR,
+    );
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     const wrap = repeat ? gl.REPEAT : gl.CLAMP_TO_EDGE;
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, wrap);
@@ -214,7 +228,11 @@ export function createAboutScene(
     const ext = gl.getExtension("EXT_texture_filter_anisotropic");
     if (ext) {
       const max = gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT) as number;
-      gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(lite ? 4 : 8, max));
+      gl.texParameterf(
+        gl.TEXTURE_2D,
+        ext.TEXTURE_MAX_ANISOTROPY_EXT,
+        Math.min(lite ? 4 : 8, max),
+      );
     }
     textures.push(t);
     return t;
@@ -245,21 +263,51 @@ export function createAboutScene(
   const prog = (t: number, delay: number, dur: number) => (t - delay) / dur;
 
   /** grows out of the ground (the floor hides the part that is still below it) */
-  const rise = (delay: number, dur: number, sink: number, base: Mat4 = ID) => (t: number): Frame | null => {
-    const p = prog(t, delay, dur);
-    if (p <= 0) return null;
-    return { m: mul(base, translate(0, -sink * (1 - easeOut(p)), 0)), fade: clamp01(p * 2.2) };
-  };
-  const fadeIn = (delay: number, dur: number, base: Mat4 = ID) => (t: number): Frame | null => {
-    const p = prog(t, delay, dur);
-    if (p <= 0) return null;
-    return { m: base, fade: smooth(p), alpha: smooth(p) };
-  };
+  type Base = Mat4 | (() => Mat4);
+  const baseOf = (b: Base) => (typeof b === "function" ? b() : b);
+  const rise =
+    (delay: number, dur: number, sink: number, base: Base = ID) =>
+    (t: number): Frame | null => {
+      const p = prog(t, delay, dur);
+      if (p <= 0) return null;
+      return {
+        m: mul(baseOf(base), translate(0, -sink * (1 - easeOut(p)), 0)),
+        fade: clamp01(p * 2.2),
+      };
+    };
+  const fadeIn =
+    (delay: number, dur: number, base: Base = ID) =>
+    (t: number): Frame | null => {
+      const p = prog(t, delay, dur);
+      if (p <= 0) return null;
+      return { m: baseOf(base), fade: smooth(p), alpha: smooth(p) };
+    };
+  /** how much an object should lean to face the camera (phones: the camera looks down on them) */
+  const facing = (objY: number, objZ: number, end: Pose) =>
+    (Math.atan2(end.eye[1] - objY, end.eye[2] - objZ) * 180) / Math.PI;
 
   /* ── build the whole scene ────────────────────────────────────────────── */
   function build(c: AboutCanvases) {
     program = makeProgram(gl!, VS, FS);
-    for (const n of ["uVP", "uLocal", "uEye", "uPoint", "uTex", "uUseTex", "uAlpha", "uFade", "uBg", "uFadeTo", "uFog", "uLook", "uPass", "uType", "uTypeOn", "uBlink", "uPointMode"]) {
+    for (const n of [
+      "uVP",
+      "uLocal",
+      "uEye",
+      "uPoint",
+      "uTex",
+      "uUseTex",
+      "uAlpha",
+      "uFade",
+      "uBg",
+      "uFadeTo",
+      "uFog",
+      "uLook",
+      "uPass",
+      "uType",
+      "uTypeOn",
+      "uBlink",
+      "uPointMode",
+    ]) {
       U[n] = gl!.getUniformLocation(program, n);
     }
     const wc = document.createElement("canvas");
@@ -272,8 +320,13 @@ export function createAboutScene(
     const glowT = tex(c.glow);
     const reflT = tex(c.reflection);
     items = [];
-    const add = (mb: MeshBuilder, texture: WebGLTexture | null, pass: Item["pass"], upd: Item["upd"], extra: Partial<Item> = {}) =>
-      items.push({ ...mesh(mb), tex: texture, pass, upd, ...extra });
+    const add = (
+      mb: MeshBuilder,
+      texture: WebGLTexture | null,
+      pass: Item["pass"],
+      upd: Item["upd"],
+      extra: Partial<Item> = {},
+    ) => items.push({ ...mesh(mb), tex: texture, pass, upd, ...extra });
 
     const T = TIMELINE;
     const lampX = LAMP.x;
@@ -297,18 +350,49 @@ export function createAboutScene(
     {
       const bb = BILLBOARD;
       const pb = portrait ? bb.portrait : null;
-      const base = mul(translate(pb ? pb.x : bb.x, 0, pb ? pb.z : bb.z), mul(rotateY(bb.yaw), pb ? scale3(pb.scale, pb.scale, pb.scale) : identity()));
-      const geo = buildBillboard();
+      const sc = pb ? pb.scale : 1;
+      const lift = pb ? pb.lift : 0;
+      const bx = pb ? pb.x : bb.x;
+      const bz = pb ? pb.z : bb.z;
+      const byaw = pb ? pb.yaw : bb.yaw;
+      // phones: the board leans back a little so it faces the camera (straight, not skewed)
+      const cy = (bb.yBottom + lift + bb.h / 2) * sc;
+      const tilt = pb ? facing(cy, bz, CAMERA.endPortrait) : 0;
+      const base = () =>
+        mul(
+          translate(bx, 0, bz),
+          mul(
+            rotateY(byaw),
+            mul(
+              around([0, cy, 0], rotateX(-tilt * smooth(cur.p))),
+              scale3(sc, sc, sc),
+            ),
+          ),
+        );
+      const geo = buildBillboard(lift);
       const r = rise(TIMELINE.billboard.delay, TIMELINE.billboard.dur, 7, base);
       add(geo.frame, null, 0, r);
       // the screen: dark while the board rises, then switches on (with a short flicker)
-      add(geo.panel, tex(c.board), 0, (t) => {
-        const f = r(t);
-        if (!f) return null;
-        const on = prog(t, TIMELINE.billboardOn, 0.9);
-        const flick = on < 0 ? 0 : on < 1 ? (Math.sin(on * 38) > -0.2 ? smooth(on) : 0.15) : 1;
-        return { m: f.m, fade: (f.fade ?? 1) * flick };
-      }, { fadeTo: [0.025, 0.025, 0.03] });
+      add(
+        geo.panel,
+        tex(c.board),
+        0,
+        (t) => {
+          const f = r(t);
+          if (!f) return null;
+          const on = prog(t, TIMELINE.billboardOn, 0.9);
+          const flick =
+            on < 0
+              ? 0
+              : on < 1
+                ? Math.sin(on * 38) > -0.2
+                  ? smooth(on)
+                  : 0.15
+                : 1;
+          return { m: f.m, fade: (f.fade ?? 1) * flick };
+        },
+        { fadeTo: [0.025, 0.025, 0.03] },
+      );
       add(geo.beams, null, 2, (t) => {
         const f = r(t);
         if (!f) return null;
@@ -339,33 +423,60 @@ export function createAboutScene(
       const sy = portrait ? SIGN.portrait.y : SIGN.y;
       const sw = portrait ? SIGN.portrait.w : SIGN.w;
       const sh = portrait ? SIGN.portrait.h : SIGN.h;
-      const geo = buildCommentSign(sw, sh, portrait ? SIGN.portrait.tailX : SIGN.tailX);
+      const geo = buildCommentSign(
+        sw,
+        sh,
+        portrait ? SIGN.portrait.tailX : SIGN.tailX,
+      );
       const tip = geo.tip;
       const sz = portrait ? SIGN.portrait.z : SIGN.z;
-      const place = mul(translate(sx, sy, sz), rotateY(SIGN.yaw));
+      const syaw = portrait ? SIGN.portrait.yaw : SIGN.yaw;
+      // phones: the sign faces the camera exactly (level, not tilted)
+      const stilt = portrait ? facing(sy, sz, CAMERA.endPortrait) : 0;
+      const place = () =>
+        mul(
+          translate(sx, sy, sz),
+          mul(rotateY(syaw), rotateX(-stilt * smooth(cur.p))),
+        );
       const sign = (t: number): Frame | null => {
         const p = prog(t, TIMELINE.sign.delay, TIMELINE.sign.dur);
         if (p <= 0) return null;
         const s = lerp(0.15, 1, easeOutBack(p));
         const bob = Math.sin(t * 0.8) * 0.05;
         const pop = around(tip, scale3(s, s, s));
-        return { m: mul(translate(0, bob, 0), mul(place, pop)), fade: clamp01(p * 2.4), alpha: clamp01(p * 2.4) };
+        return {
+          m: mul(translate(0, bob, 0), mul(place(), pop)),
+          fade: clamp01(p * 2.4),
+          alpha: clamp01(p * 2.4),
+        };
       };
       add(geo.body, null, 0, sign);
       add(geo.text, tex(c.sign.canvas), 1, sign, { typed: true });
-      add(buildSignPosts(sx, sy - sh / 2 - SIGN.tailLen * 0.2, sz, sw), null, 0, rise(TIMELINE.sign.delay, 1.0, 6));
+      add(
+        buildSignPosts(sx, sy - sh / 2 - SIGN.tailLen * 0.2, sz, sw),
+        null,
+        0,
+        rise(TIMELINE.sign.delay, 1.0, 6),
+      );
     }
 
     {
       const cat = buildCat();
       const cx = portrait ? CAT.portraitX : CAT.x;
       const cz = portrait ? CAT.portraitZ : CAT.z;
-      const k = CAT.scale;
-      const base = mul(translate(cx, 0, cz), mul(rotateY(CAT.yaw), scale3(k, k, k)));
+      const k = portrait ? CAT.portraitScale : CAT.scale;
+      const cyaw = portrait ? CAT.portraitYaw : CAT.yaw;
+      const base = mul(
+        translate(cx, 0, cz),
+        mul(rotateY(cyaw), scale3(k, k, k)),
+      );
       const appear = (t: number): Frame | null => {
         const p = prog(t, TIMELINE.cat.delay, TIMELINE.cat.dur);
         if (p <= 0) return null;
-        return { m: mul(base, translate(0, -0.5 * (1 - easeOut(p)), 0)), fade: smooth(p * 1.4) };
+        return {
+          m: mul(base, translate(0, -0.5 * (1 - easeOut(p)), 0)),
+          fade: smooth(p * 1.4),
+        };
       };
       add(cat.body, null, 0, appear);
       add(cat.head, null, 0, (t) => {
@@ -373,26 +484,48 @@ export function createAboutScene(
         if (!f) return null;
         const turn = Math.sin(t * 0.5) * 7 + Math.sin(t * 0.17) * 3;
         const tilt = Math.sin(t * 0.37 + 1) * 2.5;
-        return { m: mul(f.m, around(cat.headPivot, mul(rotateY(turn), rotateZ(tilt)))), fade: f.fade };
+        return {
+          m: mul(f.m, around(cat.headPivot, mul(rotateY(turn), rotateZ(tilt)))),
+          fade: f.fade,
+        };
       });
       // eyes: light up after the cat has appeared, blink now and then
-      add(cat.eyes, null, 0, (t) => {
-        const f = appear(t);
-        if (!f) return null;
-        const on = prog(t, TIMELINE.cat.delay + 0.9, 0.5);
-        if (on <= 0) return null;
-        const turn = Math.sin(t * 0.5) * 7 + Math.sin(t * 0.17) * 3;
-        const tilt = Math.sin(t * 0.37 + 1) * 2.5;
-        const ph = (t % 4.6) / 4.6;
-        const blink = ph > 0.94 ? Math.max(0.05, Math.abs(ph - 0.97) / 0.03) : 1;
-        const lid = around(cat.eyesPivot, scale3(1, blink, 1));
-        return { m: mul(f.m, mul(around(cat.headPivot, mul(rotateY(turn), rotateZ(tilt))), lid)), fade: smooth(on) };
-      }, { fadeTo: [0.02, 0.02, 0.02] });
+      add(
+        cat.eyes,
+        null,
+        0,
+        (t) => {
+          const f = appear(t);
+          if (!f) return null;
+          const on = prog(t, TIMELINE.cat.delay + 0.9, 0.5);
+          if (on <= 0) return null;
+          const turn = Math.sin(t * 0.5) * 7 + Math.sin(t * 0.17) * 3;
+          const tilt = Math.sin(t * 0.37 + 1) * 2.5;
+          const ph = (t % 4.6) / 4.6;
+          const blink =
+            ph > 0.94 ? Math.max(0.05, Math.abs(ph - 0.97) / 0.03) : 1;
+          const lid = around(cat.eyesPivot, scale3(1, blink, 1));
+          return {
+            m: mul(
+              f.m,
+              mul(
+                around(cat.headPivot, mul(rotateY(turn), rotateZ(tilt))),
+                lid,
+              ),
+            ),
+            fade: smooth(on),
+          };
+        },
+        { fadeTo: [0.02, 0.02, 0.02] },
+      );
       add(cat.tail, null, 0, (t) => {
         const f = appear(t);
         if (!f) return null;
         const sway = Math.sin(t * 1.1) * 6 + Math.sin(t * 0.43) * 3;
-        return { m: mul(f.m, around(cat.tailPivot, rotateZ(sway))), fade: f.fade };
+        return {
+          m: mul(f.m, around(cat.tailPivot, rotateZ(sway))),
+          fade: f.fade,
+        };
       });
     }
 
@@ -405,8 +538,15 @@ export function createAboutScene(
           const p = prog(t, TIMELINE.cars + i * 1.2, 0.8);
           if (p <= 0) return null;
           const range = 150;
-          const x = ((((cr.x0 + 75 + cr.dir * cr.speed * (t - TIMELINE.cars)) % range) + range) % range) - 75;
-          return { m: mul(translate(x, 0, cr.lane), scale3(flip, 1, 1)), fade: 1 };
+          const x =
+            ((((cr.x0 + 75 + cr.dir * cr.speed * (t - TIMELINE.cars)) % range) +
+              range) %
+              range) -
+            75;
+          return {
+            m: mul(translate(x, 0, cr.lane), scale3(flip, 1, 1)),
+            fade: 1,
+          };
         };
         add(car.body, null, 0, move);
         add(car.lights, null, 0, move);
@@ -417,12 +557,18 @@ export function createAboutScene(
     add(buildDust(lite ? DUST.liteCount : DUST.count), null, 3, (t) => {
       const p = prog(t, 0.8, 2);
       if (p <= 0) return null;
-      return { m: translate(0, Math.sin(t * 0.12) * 0.4, Math.cos(t * 0.09) * 0.3), alpha: smooth(p) };
+      return {
+        m: translate(0, Math.sin(t * 0.12) * 0.4, Math.cos(t * 0.09) * 0.3),
+        alpha: smooth(p),
+      };
     });
   }
 
   /* ── drawing ──────────────────────────────────────────────────────────── */
-  function poseFor(p: number, aspect: number): { eye: V3; target: V3; fov: number } {
+  function poseFor(
+    p: number,
+    aspect: number,
+  ): { eye: V3; target: V3; fov: number } {
     const end: Pose = portrait ? CAMERA.endPortrait : CAMERA.end;
     const a = CAMERA.start;
     const e = smooth(p);
@@ -431,8 +577,13 @@ export function createAboutScene(
     const base = lerp(a.fov, end.fov, e);
     // keep the horizontal view wide enough on narrow screens
     const minH = portrait ? CAMERA.minHFovPortrait : CAMERA.minHFov;
-    const need = (2 * Math.atan(Math.tan((minH * Math.PI) / 360) / aspect) * 180) / Math.PI;
-    const fov = Math.min(portrait ? CAMERA.maxFovPortrait : CAMERA.maxFov, Math.max(base, lerp(base, need, e)));
+    const need =
+      (2 * Math.atan(Math.tan((minH * Math.PI) / 360) / aspect) * 180) /
+      Math.PI;
+    const fov = Math.min(
+      portrait ? CAMERA.maxFovPortrait : CAMERA.maxFov,
+      Math.max(base, lerp(base, need, e)),
+    );
     // pointer parallax (only when we are close to the street)
     eye = [eye[0] + cur.mx * 0.4 * e, eye[1] - cur.my * 0.14 * e, eye[2]];
     target = [target[0] + cur.mx * 0.3 * e, target[1], target[2]];
@@ -468,7 +619,10 @@ export function createAboutScene(
 
     const aspect = W / H;
     const pose = poseFor(cur.p, aspect);
-    const vp = mul(perspective(pose.fov, aspect, CAMERA.near, CAMERA.far), lookAt(pose.eye, pose.target));
+    const vp = mul(
+      perspective(pose.fov, aspect, CAMERA.near, CAMERA.far),
+      lookAt(pose.eye, pose.target),
+    );
 
     g.useProgram(program);
     g.uniformMatrix4fv(U.uVP, false, vp);
@@ -506,7 +660,10 @@ export function createAboutScene(
       typeOn = 1;
     }
     const typing = !!layout && typeLine <= layout.lines.length;
-    const caret = typing && t > TIMELINE.sign.delay + 0.6 && Math.floor(t * 2.2) % 2 === 0 ? 1 : 0;
+    const caret =
+      typing && t > TIMELINE.sign.delay + 0.6 && Math.floor(t * 2.2) % 2 === 0
+        ? 1
+        : 0;
     g.uniform1f(U.uBlink, caret);
 
     for (let pass = 0; pass < 4; pass++) {
@@ -536,7 +693,8 @@ export function createAboutScene(
         g.uniform1f(U.uFade, pass === 0 ? fade : 1);
         g.uniform1f(U.uAlpha, pass === 0 ? 1 : alpha);
         g.uniform1f(U.uTypeOn, it.typed ? typeOn : 0);
-        if (it.typed) g.uniform4f(U.uType, typeLine, typeX, layout!.topUV, layout!.lineHUV);
+        if (it.typed)
+          g.uniform4f(U.uType, typeLine, typeX, layout!.topUV, layout!.lineHUV);
         g.bindVertexArray(it.vao);
         g.drawArrays(pass === 3 ? g.POINTS : g.TRIANGLES, 0, it.count);
       }
@@ -584,7 +742,8 @@ export function createAboutScene(
     window.clearTimeout(rt);
     rt = window.setTimeout(resize, 90);
   };
-  const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(onResize) : null;
+  const ro =
+    typeof ResizeObserver !== "undefined" ? new ResizeObserver(onResize) : null;
   ro?.observe(canvas.parentElement ?? canvas);
 
   const io =
@@ -650,8 +809,11 @@ export function createAboutScene(
 
   resize();
   type Idle = (cb: () => void, o?: { timeout: number }) => number;
-  const ric = (window as unknown as { requestIdleCallback?: Idle }).requestIdleCallback;
-  const idleTimer = ric ? ric(ensureBuilt, { timeout: 5000 }) : window.setTimeout(ensureBuilt, 2500);
+  const ric = (window as unknown as { requestIdleCallback?: Idle })
+    .requestIdleCallback;
+  const idleTimer = ric
+    ? ric(ensureBuilt, { timeout: 5000 })
+    : window.setTimeout(ensureBuilt, 2500);
 
   return {
     dispose() {
@@ -659,7 +821,9 @@ export function createAboutScene(
       cancelAnimationFrame(raf);
       window.clearTimeout(rt);
       window.clearTimeout(idleTimer);
-      const cic = (window as unknown as { cancelIdleCallback?: (n: number) => void }).cancelIdleCallback;
+      const cic = (
+        window as unknown as { cancelIdleCallback?: (n: number) => void }
+      ).cancelIdleCallback;
       cic?.(idleTimer);
       ro?.disconnect();
       io?.disconnect();

@@ -6,6 +6,7 @@ import logoImg from "../../assets/logo/KE-LOGO-.png";
 import { TechStackIcons } from "../../components/TechStackIcons/TechStackIcons";
 import { MobileProjectDescriptionModal } from "./mobileprojectdescriptionmodal";
 import { DesktopProjectDescriptionModal } from "./desktopprojectdescriptionmodal";
+import { DroppableLogoTile } from "./ProjectIconDrop";
 import styles from "./ViewAllProjects.module.css";
 
 interface ViewAllProjectsProps {
@@ -32,6 +33,64 @@ const PROJECT_DEFAULT_ICONS: Record<string, string> = {
   "project-04": "/images/projects/icons/Readcapai-Icon-Logo.png",
   "project-05": "/images/projects/icons/Abisomed-Icon-Logo.png",
   "project-06": "/images/projects/icons/Asensopos-Icon-Logo.png",
+};
+
+/**
+ * Cover photo of the toppled tower (left part of the front face).
+ * Uses the SAME project.imageUrl that the Overview modal shows, so every project's
+ * cover is linked automatically. Falls back to a clean placeholder if it is missing / fails.
+ * The project number sits on the photo as a small tag.
+ */
+const ProjectCover: React.FC<{
+  src?: string;
+  alt: string;
+  number: string;
+}> = ({ src, alt, number }) => {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
+  const hasImage = Boolean(src && src.trim() !== "") && !failed;
+
+  return (
+    <div className={styles.towerCover}>
+      {hasImage ? (
+        <img
+          src={src}
+          alt={alt}
+          className={styles.coverImg}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <div className={styles.coverPlaceholder}>
+          <svg
+            width="26"
+            height="26"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+          <span className={styles.coverPlaceholderText}>
+            PREVIEW COMING SOON
+          </span>
+        </div>
+      )}
+      <span className={styles.cardNumberMono}>{number}</span>
+    </div>
+  );
 };
 
 /**
@@ -121,18 +180,15 @@ const ProjectIcon: React.FC<{
     </svg>
   );
 
-  /* 3D box seen from the front (front face + thin top face + right side face).
-     The project logo sits on the FRONT face; on hover the whole box floats. */
+  /* The project logo sits on a small raised plate on the tower's front face
+     (same icon-fallback logic as before). On hover the plate lifts a little. */
   return (
-    <div className={styles.cubeFloat}>
-      <div className={styles.cubeBob}>
-        <span className={styles.cubeTop} aria-hidden="true" />
-        <span className={styles.cubeSide} aria-hidden="true" />
-        <span className={styles.cubeFront} aria-hidden="true" />
-        <span className={styles.cubeLogo}>{logo}</span>
-      </div>
-      <span className={styles.cubeShadow} aria-hidden="true" />
-    </div>
+    <DroppableLogoTile
+      className={styles.logoTile}
+      projectKey={projectNumber || projectId}
+    >
+      <span className={styles.logoGlyph}>{logo}</span>
+    </DroppableLogoTile>
   );
 };
 
@@ -294,8 +350,8 @@ export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
           </p>
         </div>
 
-        {/* Compact responsive grid:
-            Desktop: 3 columns, Tablet: 2 columns, Mobile: 2 smaller columns. */}
+        {/* Featured Works: each project is a toppled 3D tower, stacked one after another.
+            Same layout on desktop & mobile (cover left, content right); sizes scale down. */}
         <section
           className={styles.projectsGrid}
           aria-label="All works compact catalog"
@@ -316,8 +372,8 @@ export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
               <article
                 key={project.id}
                 data-project-card
-                className={`${styles.compactCard} ${
-                  floatingId === project.id ? styles.cardFloating : ""
+                className={`${styles.tower} ${
+                  floatingId === project.id ? styles.towerFloating : ""
                 }`}
                 onClick={() => {
                   // only on touch screens (no hover); on desktop the normal hover effect is used
@@ -331,127 +387,147 @@ export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
                   }
                 }}
               >
-                {/* Top Row inside Card: Project Number on Left, Live / GitHub Action Links on Right */}
-                <div className={styles.cardTopRow}>
-                  <span className={styles.cardNumberMono}>
-                    {project.number}
-                  </span>
+                {/* Soft ground shadow under the toppled tower */}
+                <span className={styles.towerGround} aria-hidden="true" />
 
-                  {(hasValidLive || hasValidRepo) && (
-                    <div
-                      className={styles.cardActions}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {hasValidLive && (
-                        <a
-                          href={project.liveUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={styles.actionIconBtn}
-                          aria-label={`Live Demo for ${project.title}`}
-                          title="Live Demo"
-                        >
-                          <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                          >
-                            <line x1="7" y1="17" x2="17" y2="7" />
-                            <polyline points="7 7 17 7 17 17" />
-                          </svg>
-                        </a>
-                      )}
+                {/* TOP FACE: the tower lies on its side, so its windows face up.
+                    The 2nd cell draws the seam between the cover and the content. */}
+                <div className={styles.towerTop} aria-hidden="true">
+                  <span />
+                  <span className={styles.towerTopSeam} />
+                </div>
 
-                      {hasValidRepo && (
-                        <a
-                          href={project.repoUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className={styles.actionIconBtn}
-                          aria-label={`GitHub Code for ${project.title}`}
-                          title="GitHub Repository"
-                        >
-                          <svg
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                            aria-hidden="true"
+                {/* END FACE (right side of the tower) */}
+                <span className={styles.towerSide} aria-hidden="true" />
+
+                {/* FRONT FACE: cover photo (left) + content (right) */}
+                <div className={styles.towerFront}>
+                  <ProjectCover
+                    src={project.imageUrl}
+                    alt={project.imageAlt || project.title}
+                    number={project.number}
+                  />
+
+                  <div className={styles.towerPanel}>
+                    {/* Logo (top-left of the content panel) */}
+                    <div className={styles.panelLogo}>
+                      <ProjectIcon
+                        src={project.iconUrl}
+                        projectNumber={project.number}
+                        projectId={project.id}
+                        title={project.title}
+                      />
+                    </div>
+
+                    {/* Live / GitHub action links (top-right of the content panel) */}
+                    {(hasValidLive || hasValidRepo) && (
+                      <div
+                        className={styles.cardActions}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {hasValidLive && (
+                          <a
+                            href={project.liveUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={styles.actionIconBtn}
+                            aria-label={`Live Demo for ${project.title}`}
+                            title="Live Demo"
                           >
-                            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-                          </svg>
-                        </a>
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              aria-hidden="true"
+                            >
+                              <line x1="7" y1="17" x2="17" y2="7" />
+                              <polyline points="7 7 17 7 17 17" />
+                            </svg>
+                          </a>
+                        )}
+
+                        {hasValidRepo && (
+                          <a
+                            href={project.repoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className={styles.actionIconBtn}
+                            aria-label={`GitHub Code for ${project.title}`}
+                            title="GitHub Repository"
+                          >
+                            <svg
+                              width="12"
+                              height="12"
+                              viewBox="0 0 24 24"
+                              fill="currentColor"
+                              aria-hidden="true"
+                            >
+                              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                            </svg>
+                          </a>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Main info: left aligned, same typography */}
+                    <div className={styles.cardBody}>
+                      <span className={styles.cardRoleYear}>
+                        {project.role} {project.year}
+                      </span>
+                      <h2 className={styles.cardTitle}>{project.title}</h2>
+                      <p className={styles.cardDescription}>
+                        {project.description}
+                      </p>
+                    </div>
+
+                    {/* Footer: Overview button (underline + arrow) and tech icons */}
+                    <div className={styles.panelFoot}>
+                      <button
+                        type="button"
+                        className={styles.cardOverviewBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedProjectForModal(project);
+                        }}
+                        aria-label={`View overview of ${project.title}`}
+                      >
+                        <span className={styles.cardOverviewLabel}>
+                          OVERVIEW
+                        </span>
+                        <svg
+                          className={styles.connectorArrow}
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.1"
+                          strokeLinecap="butt"
+                          strokeLinejoin="miter"
+                          aria-hidden="true"
+                        >
+                          <path d="M0 15.5H3.5L13.5 5.5" />
+                          <path d="M6.5 5.5H13.5V12.5" />
+                        </svg>
+                      </button>
+
+                      {/* Tech icons: animated, light-gray icons matching Works section (hidden on mobile via CSS) */}
+                      {project.tags && project.tags.length > 0 && (
+                        <div
+                          className={styles.cardTech}
+                          aria-label="Technologies used"
+                        >
+                          <div className={styles.cardTechInner}>
+                            <TechStackIcons tags={project.tags} />
+                          </div>
+                        </div>
                       )}
                     </div>
-                  )}
-                </div>
-
-                {/* Project icon tile (left aligned; gray by default, full real color on hover) */}
-                <div className={styles.cardIconWrap}>
-                  <div className={styles.cardIconBox}>
-                    <ProjectIcon
-                      src={project.iconUrl}
-                      projectNumber={project.number}
-                      projectId={project.id}
-                      title={project.title}
-                    />
                   </div>
                 </div>
-
-                {/* Card Main Info: left aligned, refined typography */}
-                <div className={styles.cardBody}>
-                  <span className={styles.cardRoleYear}>
-                    {project.role} {project.year}
-                  </span>
-                  <h2 className={styles.cardTitle}>{project.title}</h2>
-                  <p className={styles.cardDescription}>
-                    {project.description}
-                  </p>
-                </div>
-
-                {/* Overview Button: text + underline connected to an arrow (no pill / oval) */}
-                <button
-                  type="button"
-                  className={styles.cardOverviewBtn}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedProjectForModal(project);
-                  }}
-                  aria-label={`View overview of ${project.title}`}
-                >
-                  <span className={styles.cardOverviewLabel}>OVERVIEW</span>
-                  <svg
-                    className={styles.connectorArrow}
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.1"
-                    strokeLinecap="butt"
-                    strokeLinejoin="miter"
-                    aria-hidden="true"
-                  >
-                    <path d="M0 15.5H3.5L13.5 5.5" />
-                    <path d="M6.5 5.5H13.5V12.5" />
-                  </svg>
-                </button>
-
-                {/* Tech icons: animated, light-gray icons matching Works section (hidden on mobile via CSS) */}
-                {project.tags && project.tags.length > 0 && (
-                  <div
-                    className={styles.cardTech}
-                    aria-label="Technologies used"
-                  >
-                    <div className={styles.cardTechInner}>
-                      <TechStackIcons tags={project.tags} />
-                    </div>
-                  </div>
-                )}
               </article>
             );
           })}

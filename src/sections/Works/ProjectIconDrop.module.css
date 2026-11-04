@@ -1,0 +1,124 @@
+/* =========================================================================
+   ProjectIconDrop — styles ONLY for the "icon falls off the tower" effect.
+   Nothing here changes how the idle UI looks: every rule below is either
+   invisible while idle or only applies after the icon was knocked down.
+   ========================================================================= */
+
+/* Wrapper that stays in place (never moves) and keeps the icon's original slot. */
+.slot {
+  position: relative;
+  display: block;
+}
+
+/* The empty "socket" that shows where the icon belongs after it fell.
+   Hidden while idle, fades in once the icon starts dropping. */
+.slot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: rgba(0, 0, 0, 0.22);
+  box-shadow:
+    inset 0 3px 10px rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px var(--t-edge-soft, rgba(255, 255, 255, 0.1));
+  transition:
+    opacity 0.5s ease,
+    background-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.slot[data-phase="dropping"]::before,
+.slot[data-phase="fallen"]::before,
+.slot[data-phase="dragging"]::before,
+.slot[data-phase="healing"]::before {
+  opacity: 1;
+}
+
+/* while dragging the icon close to its socket: the socket lights up a little */
+.slot[data-near="true"]::before {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 3px 10px rgba(0, 0, 0, 0.45),
+    inset 0 0 0 1px var(--border-strong, rgba(255, 255, 255, 0.45));
+}
+
+/* Extra class on the icon tile (the visual class comes from ViewAllProjects.module.css) */
+.tile {
+  position: relative; /* anchor for the crack layer */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.tile img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* Layer that holds cracks / impact flash / heal sheen. Clipped to the tile. */
+.fx {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cracks {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  visibility: hidden;
+}
+
+.crackDark,
+.crackLight {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: butt;
+}
+
+.crackDark {
+  stroke: rgba(6, 7, 9, 0.92);
+  stroke-width: 1.5;
+}
+
+.crackLight {
+  stroke: rgba(255, 255, 255, 0.34);
+  stroke-width: 0.8;
+}
+
+.flash {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: 0;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.6),
+    rgba(255, 255, 255, 0) 72%
+  );
+}
+
+.sheen {
+  position: absolute;
+  inset: 0;
+  display: block;
+  opacity: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    105deg,
+    rgba(255, 255, 255, 0) 32%,
+    rgba(255, 255, 255, 0.65) 50%,
+    rgba(255, 255, 255, 0) 68%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot::before {
+    transition: none;
+  }
+}

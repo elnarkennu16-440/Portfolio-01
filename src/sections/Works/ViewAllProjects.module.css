@@ -194,156 +194,259 @@
   text-align: left;
 }
 
-/* Responsive compact grid: 3 columns desktop · 2 tablet · 2 on mobile */
+/* =========================================================================
+   FEATURED WORKS — TOPPLED 3D CITY TOWERS
+   Each project is a skyscraper lying on its side (like the 3D city hero):
+   - TOP face   : the building's windows (black & white, some lit)
+   - FRONT face : cover photo (left) + content (right)
+   - END face   : the right side of the building
+   Pure CSS (oblique projection with skew). Static — no looping animation,
+   only a smooth hover/tap lift. Grays / dark grays only, like the hero.
+   ========================================================================= */
+
+/* One tower per row, stacked (the page simply gets longer) */
 .projectsGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: clamp(0.9rem, 1.8vw, 1.25rem);
+  grid-template-columns: minmax(0, 1fr);
+  gap: clamp(2.1rem, 4.6vw, 3.4rem);
   width: 100%;
+  padding-top: 0.2rem;
 }
 
-@media (max-width: 960px) {
-  .projectsGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
+.tower {
+  /* depth of the box (oblique projection: depth goes up-right) */
+  --dy: clamp(12px, 2.3vw, 24px);
+  --dx: calc(
+    var(--dy) * 0.839
+  ); /* tan(40deg) — matches the skew angles below */
+  --cover: 36%; /* width of the cover-photo part of the tower */
 
-@media (max-width: 600px) {
-  .projectsGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.55rem;
-  }
-}
+  /* dark gray city palette (same family as the hero buildings) */
+  --t-top-a: #50535b;
+  --t-top-b: #3d4046;
+  --t-front-a: #31333a;
+  --t-front-b: #212327;
+  --t-side-a: #2a2c31;
+  --t-side-b: #17181b;
+  --t-edge: rgba(255, 255, 255, 0.2);
+  --t-edge-soft: rgba(255, 255, 255, 0.09);
+  --t-seam: rgba(255, 255, 255, 0.13);
+  --t-seam-top: rgba(0, 0, 0, 0.55);
+  --t-tile-a: #43464d;
+  --t-tile-b: #2a2c31;
+  --t-tile-extrude-1: #5a5d65;
+  --t-tile-extrude-2: #3b3e44;
+  --t-tile-extrude-3: #1a1b1e;
+  --t-ground: rgba(0, 0, 0, 0.65);
 
-/* Individual Compact Card — clean plain zoom-in, NO colored/gray glow */
-.compactCard {
   position: relative;
-  z-index: 0;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-hairline);
-  border-radius: 10px;
-  padding: 1.15rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
+  isolation: isolate;
+  padding-top: var(--dy);
+  padding-right: var(--dx);
   text-align: left;
   -webkit-tap-highlight-color: transparent;
-  transition:
-    transform 0.28s var(--ease-editorial),
-    background-color 0.28s var(--ease-editorial);
+  transition: transform 0.35s var(--ease-editorial);
 }
 
-/* Pointer devices: pure subtle zoom in, no colored box-shadow */
-@media (hover: hover) and (pointer: fine) {
-  .compactCard:hover {
-    z-index: 2;
-    transform: scale(1.025);
-    background-color: var(--bg-surface-elevated);
-  }
-
-  /* Floating box: lifts up and gently bobs, logo pops slightly out of the front face */
-  /* The box itself stays almost still; the LOGO leaves the front face and floats out
-     toward the viewer (down-left), while its shadow stays behind on the face. */
-  .compactCard:hover .cubeFloat {
-    transform: translate3d(0, -3px, 0);
-  }
-
-  .compactCard:hover .cubeLogo {
-    transform: translate3d(calc(var(--pop) * -1), var(--pop), 0) scale(1.16);
-    filter: drop-shadow(
-      calc(var(--pop) * 1.2) calc(var(--pop) * -1.2) 7px rgba(0, 0, 0, 0.6)
-    );
-  }
-
-  /* gentle "soul-like" drifting along the same diagonal */
-  .compactCard:hover .cubeLogo .cardIconImg {
-    animation: logoDrift 3s ease-in-out infinite;
-  }
-
-  .compactCard:hover .cubeShadow {
-    opacity: 0.4;
-    transform: translateX(-50%) scaleX(0.75);
-  }
-
-  /* Logo stays GRAY on hover (no color) but gets lighter / clearer, no glow */
-  .compactCard:hover .cardIconImg {
-    filter: grayscale(100%) contrast(1.05) brightness(1.2);
-    opacity: 1;
-  }
+[data-theme="light"] .tower {
+  --t-top-a: #d3d7dc;
+  --t-top-b: #bfc4cb;
+  --t-front-a: #f2f4f6;
+  --t-front-b: #d8dce1;
+  --t-side-a: #b9bec6;
+  --t-side-b: #9ea4ad;
+  --t-edge: rgba(0, 0, 0, 0.2);
+  --t-edge-soft: rgba(0, 0, 0, 0.1);
+  --t-seam: rgba(0, 0, 0, 0.14);
+  --t-seam-top: rgba(0, 0, 0, 0.3);
+  --t-tile-a: #ffffff;
+  --t-tile-b: #e2e5e9;
+  --t-tile-extrude-1: #ffffff;
+  --t-tile-extrude-2: #c9cdd3;
+  --t-tile-extrude-3: #a4a9b1;
+  --t-ground: rgba(20, 24, 32, 0.32);
 }
 
-/* Touch devices: clean zoom on tap, no glow */
-@media (hover: none) {
-  .compactCard:active {
-    transform: scale(1.015);
-    background-color: var(--bg-surface-elevated);
-  }
-
-  .compactCard:active .cubeFloat {
-    transform: translate3d(0, -3px, 0);
-  }
-
-  .compactCard:active .cubeLogo {
-    transform: translate3d(calc(var(--pop) * -1), var(--pop), 0) scale(1.14);
-    filter: drop-shadow(
-      calc(var(--pop) * 1.2) calc(var(--pop) * -1.2) 6px rgba(0, 0, 0, 0.6)
-    );
-  }
-
-  .compactCard:active .cardIconImg {
-    filter: grayscale(100%) contrast(1.05) brightness(1.2);
-    opacity: 1;
-  }
-}
-
-/* Touch screens: a tapped card STAYS in the hover look (logo keeps floating) */
-.cardFloating {
-  z-index: 2;
-  transform: scale(1.015);
-  background-color: var(--bg-surface-elevated);
-}
-
-.cardFloating .cubeFloat {
-  transform: translate3d(0, -3px, 0);
-}
-
-.cardFloating .cubeLogo {
-  transform: translate3d(calc(var(--pop) * -1), var(--pop), 0) scale(1.16);
-  filter: drop-shadow(
-    calc(var(--pop) * 1.2) calc(var(--pop) * -1.2) 7px rgba(0, 0, 0, 0.6)
+/* soft shadow the tower casts on the ground */
+.towerGround {
+  position: absolute;
+  z-index: -1;
+  left: 3%;
+  right: 0;
+  bottom: -14px;
+  height: 26px;
+  background: radial-gradient(
+    ellipse 50% 50% at 50% 35%,
+    var(--t-ground),
+    transparent 100%
   );
+  opacity: 0.85;
+  pointer-events: none;
+  transition:
+    opacity 0.35s var(--ease-editorial),
+    transform 0.35s var(--ease-editorial);
 }
 
-.cardFloating .cubeLogo .cardIconImg {
-  animation: logoDrift 3s ease-in-out infinite;
+/* ---- TOP FACE (windows) ------------------------------------------------ */
+.towerTop {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  width: calc(100% - var(--dx));
+  height: var(--dy);
+  display: grid;
+  grid-template-columns: var(--cover) minmax(0, 1fr);
+  transform-origin: 0 100%;
+  transform: skewX(-40deg);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22288%22 height=%2220%22 viewBox=%220 0 288 20%22 preserveAspectRatio=%22none%22%3E%3Crect x=%223%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%2215%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%2227%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%2239%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%2251%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%2263%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%2275%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%2325272c%22/%3E%3Crect x=%2287%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%2299%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22111%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22123%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%236a6d75%22/%3E%3Crect x=%22135%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%2325272c%22/%3E%3Crect x=%22147%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%236a6d75%22/%3E%3Crect x=%22159%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22171%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22183%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%236a6d75%22/%3E%3Crect x=%22195%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22207%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22219%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22231%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22243%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%2325272c%22/%3E%3Crect x=%22255%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%236a6d75%22/%3E%3Crect x=%22267%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22279%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%236a6d75%22/%3E%3Crect x=%223%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%2325272c%22/%3E%3Crect x=%2215%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%2325272c%22/%3E%3Crect x=%2227%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%236a6d75%22/%3E%3Crect x=%2239%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%2251%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%2263%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%2275%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%2287%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%2299%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22111%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22123%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22135%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%2325272c%22/%3E%3Crect x=%22147%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22159%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22171%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22183%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22195%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%2325272c%22/%3E%3Crect x=%22207%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%2325272c%22/%3E%3Crect x=%22219%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%2325272c%22/%3E%3Crect x=%22231%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%236a6d75%22/%3E%3Crect x=%22243%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22255%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22267%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%230c0d0f%22/%3E%3Crect x=%22279%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%2325272c%22/%3E%3C/svg%3E"),
+    linear-gradient(90deg, var(--t-top-a), var(--t-top-b));
+  background-size:
+    288px 100%,
+    100% 100%;
+  background-repeat: repeat-x, no-repeat;
+  box-shadow:
+    inset 0 1px 0 var(--t-edge),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.35);
+  pointer-events: none;
 }
 
-.cardFloating .cardIconImg {
-  filter: grayscale(100%) contrast(1.05) brightness(1.2);
-  opacity: 1;
+[data-theme="light"] .towerTop {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22288%22 height=%2220%22 viewBox=%220 0 288 20%22 preserveAspectRatio=%22none%22%3E%3Crect x=%223%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%2215%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%2227%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%2239%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%2251%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%2263%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%2275%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%234a4e56%22/%3E%3Crect x=%2287%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%2299%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22111%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22123%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%239298a1%22/%3E%3Crect x=%22135%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%234a4e56%22/%3E%3Crect x=%22147%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%239298a1%22/%3E%3Crect x=%22159%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22171%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22183%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%239298a1%22/%3E%3Crect x=%22195%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22207%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22219%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22231%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22243%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%234a4e56%22/%3E%3Crect x=%22255%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%239298a1%22/%3E%3Crect x=%22267%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22279%22 y=%223%22 width=%226%22 height=%225%22 fill=%22%239298a1%22/%3E%3Crect x=%223%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%234a4e56%22/%3E%3Crect x=%2215%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%234a4e56%22/%3E%3Crect x=%2227%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%239298a1%22/%3E%3Crect x=%2239%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%2251%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%2263%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%2275%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%2287%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%2299%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22111%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22123%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22135%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%234a4e56%22/%3E%3Crect x=%22147%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22159%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22171%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22183%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22195%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%234a4e56%22/%3E%3Crect x=%22207%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%234a4e56%22/%3E%3Crect x=%22219%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%234a4e56%22/%3E%3Crect x=%22231%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%239298a1%22/%3E%3Crect x=%22243%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22255%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22267%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%231b1d21%22/%3E%3Crect x=%22279%22 y=%2212%22 width=%226%22 height=%225%22 fill=%22%234a4e56%22/%3E%3C/svg%3E"),
+    linear-gradient(90deg, var(--t-top-a), var(--t-top-b));
 }
 
-.cardFloating .cubeShadow {
-  opacity: 0.4;
-  transform: translateX(-50%) scaleX(0.75);
+.towerTopSeam {
+  border-left: 1px solid var(--t-seam-top);
 }
 
-/* Top Row inside Card: Project Number on Left, Action Links on Right */
-.cardTopRow {
+/* ---- END FACE (right side) --------------------------------------------- */
+.towerSide {
+  position: absolute;
+  z-index: 1;
+  top: var(--dy);
+  right: 0;
+  bottom: 0;
+  width: var(--dx);
+  transform-origin: 0 0;
+  transform: skewY(-50deg);
+  background: linear-gradient(180deg, var(--t-side-a), var(--t-side-b));
+  box-shadow: inset -1px 0 0 var(--t-edge-soft);
+  pointer-events: none;
+}
+
+/* ---- FRONT FACE (cover + content) -------------------------------------- */
+.towerFront {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: var(--cover) minmax(0, 1fr);
+  min-height: clamp(214px, 21vw, 262px);
+  background: linear-gradient(160deg, var(--t-front-a), var(--t-front-b));
+  box-shadow:
+    inset 0 0 0 1px var(--t-edge-soft),
+    inset 0 1px 0 var(--t-edge),
+    0 14px 26px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* Cover photo (left part) */
+.towerCover {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  background-color: #0b0d10;
+}
+
+.coverImg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: grayscale(100%) contrast(1.08) brightness(0.92);
+  transition: filter 0.4s var(--ease-editorial);
+}
+
+/* gentle shading toward the seam so the photo sits "inside" the face */
+.towerCover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0) 68%, rgba(0, 0, 0, 0.3));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.coverPlaceholder {
+  position: absolute;
+  inset: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  min-height: 26px;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 8px;
+  text-align: center;
+  color: #7d818a;
 }
 
+.coverPlaceholderText {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7d818a;
+}
+
+/* Project number: small tag on the cover photo */
 .cardNumberMono {
+  position: absolute;
+  z-index: 1;
+  top: clamp(0.6rem, 1.4vw, 0.9rem);
+  left: clamp(0.6rem, 1.4vw, 0.9rem);
+  padding: 3px 7px;
+  border-radius: 4px;
+  background-color: rgba(10, 11, 13, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   font-family: var(--font-mono);
   font-size: 0.7rem;
   letter-spacing: var(--tracking-wider);
-  color: var(--text-muted);
+  line-height: 1.2;
+  color: #d4d7dc;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
+/* Content panel (right part) */
+.towerPanel {
+  position: relative;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "logo text"
+    "foot foot";
+  column-gap: clamp(0.9rem, 2.2vw, 1.6rem);
+  row-gap: clamp(0.8rem, 1.6vw, 1.15rem);
+  padding: clamp(1rem, 2.2vw, 1.6rem);
+  border-left: 1px solid var(--t-seam);
+}
+
+.panelLogo {
+  grid-area: logo;
+  align-self: start;
+}
+
+/* Live / GitHub icon buttons: top-right corner of the content panel */
 .cardActions {
+  position: absolute;
+  top: clamp(0.8rem, 1.8vw, 1.25rem);
+  right: clamp(0.8rem, 1.8vw, 1.25rem);
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -353,213 +456,94 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
-  background: transparent;
-  border: 1px solid var(--border-hairline);
+  background: rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--t-seam);
   color: var(--text-secondary);
   transition:
     color 0.25s var(--ease-editorial),
-    background-color 0.25s var(--ease-editorial);
+    background-color 0.25s var(--ease-editorial),
+    border-color 0.25s var(--ease-editorial);
   text-decoration: none;
 }
 
 .actionIconBtn:hover {
   background-color: var(--bg-surface-elevated);
+  border-color: var(--border-strong);
   color: var(--text-primary);
 }
 
-/* Project icon tile — left aligned */
-.cardIconWrap {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  margin: 0.15rem 0 0.35rem 0;
-}
+/* ---- Logo plate (flat square on the front face, slightly raised) ------- */
+.logoTile {
+  --logo: clamp(62px, 7.4vw, 86px);
 
-.cardIconBox {
-  /* 3D box palette (dark theme) */
-  --cube-front-a: #3a3d44;
-  --cube-front-b: #25272b;
-  --cube-top: #565961;
-  --cube-side: #1a1b1e;
-  --cube-rim: rgba(255, 255, 255, 0.16);
-  --cube-shadow: rgba(0, 0, 0, 0.6);
-  --pop: 11px; /* how far the logo floats out of the box (toward bottom-left) */
-
-  width: 112px;
-  height: 112px;
-  background-color: transparent;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-[data-theme="light"] .cardIconBox {
-  --cube-front-a: #f1f3f5;
-  --cube-front-b: #d9dce1;
-  --cube-top: #fbfcfd;
-  --cube-side: #b8bcc3;
-  --cube-rim: rgba(0, 0, 0, 0.14);
-  --cube-shadow: rgba(20, 24, 32, 0.35);
-}
-
-/* =========================================================================
-   PROJECT LOGO ON A 3D BOX (front view: front face + thin top + right side)
-   The logo image sits on the front face. All parts are plain CSS shapes.
-   ========================================================================= */
-.cubeFloat {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.5s var(--ease-editorial);
-  will-change: transform;
-}
-
-.cubeBob {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-/* top face: thin parallelogram leaning to the right */
-.cubeTop {
-  position: absolute;
-  left: 4%;
-  top: 4%;
-  width: 89%;
-  height: 17%;
-  background: var(--cube-top);
-  clip-path: polygon(0 100%, 19% 0, 100% 0, 81% 100%);
-}
-
-/* right side face: narrow parallelogram */
-.cubeSide {
-  position: absolute;
-  left: 76%;
-  top: 4%;
-  width: 17%;
-  height: 89%;
-  background: var(--cube-side);
-  clip-path: polygon(0 19%, 100% 0, 100% 81%, 0 100%);
-}
-
-/* front face */
-.cubeFront {
-  position: absolute;
-  left: 4%;
-  top: 21%;
-  width: 72%;
-  height: 72%;
+  width: var(--logo);
+  height: var(--logo);
   box-sizing: border-box;
-  background: linear-gradient(145deg, var(--cube-front-a), var(--cube-front-b));
-  border: 1px solid var(--cube-rim);
-}
-
-/* the project logo, centred on the front face */
-.cubeLogo {
-  position: absolute;
-  left: 4%;
-  top: 21%;
-  width: 72%;
-  height: 72%;
-  box-sizing: border-box;
-  padding: 9%;
+  padding: 11%;
   display: flex;
   align-items: center;
   justify-content: center;
-  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.4));
+  background: linear-gradient(145deg, var(--t-tile-a), var(--t-tile-b));
+  border: 1px solid var(--t-edge);
+  box-shadow:
+    1px -1px 0 var(--t-tile-extrude-1),
+    2px -2px 0 var(--t-tile-extrude-2),
+    3px -3px 0 var(--t-tile-extrude-3),
+    0 9px 14px -4px rgba(0, 0, 0, 0.5);
   transition:
-    transform 0.5s var(--ease-editorial),
-    filter 0.5s var(--ease-editorial);
+    transform 0.4s var(--ease-editorial),
+    box-shadow 0.4s var(--ease-editorial);
 }
 
-.cubeLogo .cardIconImg {
-  max-width: 100%;
-  max-height: 100%;
+.logoGlyph {
   width: 100%;
   height: 100%;
-  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.cubeLogo .cardPlaceholderIcon {
-  width: 55%;
-  height: 55%;
-}
-
-/* soft ground shadow that shrinks while the box floats */
-.cubeShadow {
-  position: absolute;
-  left: 50%;
-  bottom: -7px;
-  width: 78%;
-  height: 10px;
-  transform: translateX(-50%);
-  background: radial-gradient(
-    ellipse at center,
-    var(--cube-shadow),
-    transparent 70%
-  );
-  filter: blur(3px);
-  opacity: 0.7;
-  pointer-events: none;
-  transition:
-    opacity 0.5s var(--ease-editorial),
-    transform 0.5s var(--ease-editorial);
-}
-
-/* drifts a little further out and back along the down-left diagonal */
-@keyframes logoDrift {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0);
-  }
-  50% {
-    transform: translate3d(-4px, 4px, 0);
-  }
-}
-
-/* Icon image: Pure image icon without box/border, muted grayscale by default, vibrant real color on hover */
+/* Icon image: muted gray by default, lighter (still gray) on hover */
 .cardIconImg {
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
   display: block;
-  filter: grayscale(100%) contrast(1.1) brightness(0.85);
-  opacity: 0.85;
+  border-radius: 3px;
+  filter: grayscale(100%) contrast(1.1) brightness(0.9);
+  opacity: 0.9;
   transition:
     filter 0.3s var(--ease-editorial),
-    opacity 0.3s var(--ease-editorial),
-    transform 0.3s var(--ease-editorial);
+    opacity 0.3s var(--ease-editorial);
 }
 
-/* Minimalist SVG placeholder when custom icon image is missing (no letters) */
 .cardPlaceholderIcon {
+  width: 55%;
+  height: 55%;
   color: var(--text-muted);
   transition: color 0.25s ease;
 }
 
-.compactCard:hover .cardPlaceholderIcon {
-  color: var(--text-primary);
-}
-
-/* Card Body: small, left-aligned type with a tight hierarchy */
+/* ---- Text (same fonts as before, sized for the wider face) -------------- */
 .cardBody {
+  grid-area: text;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   text-align: left;
-  gap: 0.35rem;
-  flex: 1 1 auto;
+  gap: 0.4rem;
+  min-width: 0;
+  padding-right: 72px; /* keeps text clear of the action buttons */
 }
 
 .cardRoleYear {
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: clamp(0.62rem, 1vw, 0.7rem);
   color: var(--text-muted);
   letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
@@ -569,43 +553,55 @@
 
 .cardTitle {
   font-family: "Kaushan Script", "Caveat", cursive;
-  font-size: 0.92rem;
+  font-size: clamp(1rem, 1.75vw, 1.32rem);
   font-weight: 400;
   line-height: 1.3;
   color: var(--text-primary);
   margin: 0;
   letter-spacing: 0.01em;
   text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .cardDescription {
   font-family: var(--font-sans);
-  font-size: 0.74rem;
-  line-height: 1.5;
+  font-size: clamp(0.76rem, 1.2vw, 0.88rem);
+  line-height: 1.58;
   color: var(--text-secondary);
   margin: 0.1rem 0 0 0;
   text-align: left;
+  max-width: 64ch;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
-  line-clamp: 3;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-/* Overview button: plain text with an underline that connects into an arrow.
-   No pill / oval / background / animation. */
-.cardOverviewBtn {
-  margin-top: 0.4rem;
+/* ---- Footer row: Overview button + tech icons --------------------------- */
+.panelFoot {
+  grid-area: foot;
   display: flex;
   align-items: flex-end;
-  width: 100%;
+  flex-wrap: wrap;
+  gap: 0.8rem 1.6rem;
+  min-width: 0;
+}
+
+/* Overview button: plain text with an underline that connects into an arrow */
+.cardOverviewBtn {
+  display: flex;
+  align-items: flex-end;
+  flex: 0 1 15rem;
+  width: min(100%, 15rem);
+  margin: 0;
   padding: 0;
   border: none;
   border-radius: 0;
   background: transparent;
   color: var(--text-primary);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-weight: 500;
@@ -624,7 +620,6 @@
   outline-offset: 4px;
 }
 
-/* The underline runs under the word and meets the arrow's line */
 .cardOverviewLabel {
   flex: 1 1 auto;
   min-width: 0;
@@ -633,7 +628,6 @@
   line-height: 1.2;
 }
 
-/* One continuous stroke: horizontal line that bends up into an arrow head */
 .connectorArrow {
   display: block;
   flex-shrink: 0;
@@ -642,13 +636,14 @@
   overflow: visible;
 }
 
-/* Tech icons row */
+/* Tech icons: sit on the right of the footer row */
 .cardTech {
-  margin-top: 0.35rem;
-  padding-top: 0.65rem;
-  border-top: 1px solid var(--border-hairline);
+  flex: 1 1 11rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0 0 2px 0;
   display: flex;
-  justify-content: flex-start;
+  justify-content: flex-end;
   color: var(--text-muted);
 }
 
@@ -662,9 +657,86 @@
   max-width: 100%;
 }
 
+/* ---- Hover (mouse): the tower lifts a touch, cover brightens, logo pops --- */
+@media (hover: hover) and (pointer: fine) {
+  .tower:hover {
+    transform: translateY(-4px);
+  }
+
+  .tower:hover .towerGround {
+    opacity: 0.55;
+    transform: scaleX(0.96);
+  }
+
+  .tower:hover .coverImg {
+    filter: grayscale(100%) contrast(1.08) brightness(1.1);
+  }
+
+  .tower:hover .logoTile {
+    transform: translate3d(-2px, 2px, 0);
+    box-shadow:
+      1px -1px 0 var(--t-tile-extrude-1),
+      2px -2px 0 var(--t-tile-extrude-2),
+      4px -4px 0 var(--t-tile-extrude-3),
+      0 14px 18px -4px rgba(0, 0, 0, 0.55);
+  }
+
+  .tower:hover .cardIconImg {
+    filter: grayscale(100%) contrast(1.05) brightness(1.2);
+    opacity: 1;
+  }
+
+  .tower:hover .cardPlaceholderIcon {
+    color: var(--text-primary);
+  }
+}
+
+/* ---- Touch: a tapped tower STAYS in the hover look until you tap elsewhere -- */
+@media (hover: none) {
+  .tower:active {
+    transform: translateY(-2px);
+  }
+}
+
+.towerFloating {
+  transform: translateY(-3px);
+}
+
+.towerFloating .towerGround {
+  opacity: 0.55;
+  transform: scaleX(0.96);
+}
+
+.towerFloating .coverImg {
+  filter: grayscale(100%) contrast(1.08) brightness(1.1);
+}
+
+.towerFloating .logoTile {
+  transform: translate3d(-2px, 2px, 0);
+  box-shadow:
+    1px -1px 0 var(--t-tile-extrude-1),
+    2px -2px 0 var(--t-tile-extrude-2),
+    4px -4px 0 var(--t-tile-extrude-3),
+    0 14px 18px -4px rgba(0, 0, 0, 0.55);
+}
+
+.towerFloating .cardIconImg {
+  filter: grayscale(100%) contrast(1.05) brightness(1.2);
+  opacity: 1;
+}
+
+/* ---- Tablet / small laptop ---------------------------------------------- */
 @media (max-width: 960px) {
+  .tower {
+    --cover: 42%;
+  }
+
   .cardTechInner {
     zoom: 0.9;
+  }
+
+  .cardBody {
+    padding-right: 68px;
   }
 }
 
@@ -843,6 +915,90 @@
   }
 }
 
+/* ---- PHONES & SMALL TABLETS: same toppled tower, same width, but the cover photo
+   becomes a wide horizontal banner on TOP of the front face (full 16:9, never a thin
+   vertical strip). Logo + text + Overview stay below it. -------------------------- */
+@media (max-width: 720px) {
+  .projectsGrid {
+    gap: 1.9rem;
+  }
+
+  /* no vertical seam on the top face: the cover is above the content, not beside it */
+  .towerTop {
+    display: block;
+    background-size:
+      190px 100%,
+      100% 100%;
+  }
+
+  .towerTopSeam {
+    display: none;
+  }
+
+  .towerFront {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .towerCover {
+    aspect-ratio: 16 / 9;
+  }
+
+  .towerCover::after {
+    background: linear-gradient(
+      180deg,
+      rgba(0, 0, 0, 0) 70%,
+      rgba(0, 0, 0, 0.3)
+    );
+  }
+
+  /* content panel under the banner: logo on the left, text on the right */
+  .towerPanel {
+    position: static; /* so the action buttons anchor to the banner corner */
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "logo text"
+      "foot foot";
+    column-gap: 0.85rem;
+    row-gap: 0.75rem;
+    padding: 0.9rem 0.85rem 0.95rem;
+    border-left: none;
+    border-top: 1px solid var(--t-seam);
+  }
+
+  .logoTile {
+    --logo: 52px;
+  }
+
+  .cardBody {
+    padding-right: 0;
+    gap: 0.3rem;
+  }
+
+  /* Live / GitHub buttons: top-right corner of the banner (number tag is top-left) */
+  .cardActions {
+    top: 0.6rem;
+    right: 0.6rem;
+    gap: 0.3rem;
+  }
+
+  .actionIconBtn {
+    width: 28px;
+    height: 28px;
+    background: rgba(10, 11, 13, 0.72);
+    border-color: rgba(255, 255, 255, 0.18);
+    color: #d4d7dc;
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+
+  .cardNumberMono {
+    top: 0.6rem;
+    left: 0.6rem;
+  }
+}
+
 @media (max-width: 600px) {
   .mainContent {
     padding: 1.25rem 0.75rem 3.5rem;
@@ -863,85 +1019,44 @@
     line-height: 1.5;
   }
 
-  .projectsGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.55rem;
-  }
-
-  .compactCard {
-    padding: 0.8rem 0.7rem;
-    gap: 0.35rem;
-    border-radius: 11px;
-  }
-
-  .cardTopRow {
-    min-height: 20px;
-  }
-
+  /* Phone-only tweaks for the towers (fonts / spacing) */
   .cardNumberMono {
-    font-size: 0.62rem;
+    font-size: 0.6rem;
+    padding: 2px 6px;
   }
 
-  .actionIconBtn {
-    width: 22px;
-    height: 22px;
-    border-radius: 5px;
-  }
-
-  /* Pure enlarged image icon on mobile without line border / box */
-  .cardIconBox {
-    --pop: 8px;
-
-    width: 92px;
-    height: 92px;
-    background-color: transparent;
-    border: none;
-    padding: 0;
-    border-radius: 0;
-  }
-
-  .cardIconWrap {
-    margin: 0.1rem 0 0.25rem 0;
-  }
-
-  .cardBody {
-    gap: 0.25rem;
+  .coverPlaceholderText {
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
   }
 
   .cardRoleYear {
-    font-size: 0.56rem;
+    font-size: 0.58rem;
     letter-spacing: 0.03em;
     line-height: 1.25;
-    color: var(--text-muted);
   }
 
   .cardTitle {
-    font-size: 0.76rem;
-    font-weight: 400;
+    font-size: 0.95rem;
     line-height: 1.3;
-    color: var(--text-primary);
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
 
-  /* Hide description on mobile to keep card compact and clean (full details available via Overview modal) */
   .cardDescription {
-    display: none !important;
+    font-size: 0.74rem;
+    line-height: 1.5;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
   }
 
-  /* Hide moving/animated marquee tech icons on mobile to prevent crowding */
+  /* Hide moving/animated marquee tech icons on mobile to prevent crowding (as before) */
   .cardTech {
     display: none !important;
   }
 
-  /* Sleek mobile overview line-arrow button */
   .cardOverviewBtn {
-    margin-top: 0.35rem;
-    padding: 0;
-    font-size: 0.64rem;
+    flex: 1 1 100%;
+    width: 100%;
+    font-size: 0.66rem;
     letter-spacing: 0.06em;
   }
 
@@ -956,23 +1071,25 @@
 }
 
 @media (max-width: 400px) {
-  .projectsGrid {
-    gap: 0.45rem;
+  .logoTile {
+    --logo: 46px;
   }
 
-  .cardIconBox {
-    width: 80px;
-    height: 80px;
-    padding: 0;
+  .towerPanel {
+    padding: 0.75rem 0.7rem 0.8rem;
+    column-gap: 0.65rem;
   }
 
   .cardTitle {
+    font-size: 0.88rem;
+  }
+
+  .cardDescription {
     font-size: 0.7rem;
   }
 
   .cardOverviewBtn {
-    font-size: 0.6rem;
-    padding: 0;
+    font-size: 0.62rem;
   }
 }
 
@@ -1024,36 +1141,20 @@
   color: var(--text-primary);
 }
 
-/* Reduced motion: no zoom transitions */
+/* Reduced motion: no lift / transitions on the towers */
 @media (prefers-reduced-motion: reduce) {
-  .compactCard,
-  .cardIconBox {
+  .tower,
+  .towerGround,
+  .coverImg,
+  .logoTile,
+  .cardIconImg {
     transition: none !important;
   }
-  .compactCard:hover,
-  .compactCard:active,
-  .compactCard:hover .cardIconBox,
-  .compactCard:active .cardIconBox {
-    transform: none !important;
-  }
-  .cubeFloat,
-  .cubeLogo,
-  .cubeShadow {
-    transition: none !important;
-  }
-  .compactCard:hover .cubeFloat,
-  .compactCard:active .cubeFloat,
-  .compactCard:hover .cubeLogo,
-  .compactCard:active .cubeLogo {
-    transform: none !important;
-  }
-  .compactCard:hover .cubeLogo .cardIconImg,
-  .cardFloating .cubeLogo .cardIconImg {
-    animation: none !important;
-  }
-  .cardFloating,
-  .cardFloating .cubeFloat,
-  .cardFloating .cubeLogo {
+  .tower:hover,
+  .tower:active,
+  .towerFloating,
+  .tower:hover .logoTile,
+  .towerFloating .logoTile {
     transform: none !important;
   }
 }

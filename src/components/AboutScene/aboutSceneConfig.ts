@@ -31,10 +31,10 @@ export const CAMERA = {
   start: { eye: [-17, 25, 31], target: [1, 0.5, -4], fov: 38 } as Pose,
   end: { eye: [0, 1.8, 13.8], target: [0.6, 2.9, -5], fov: 50 } as Pose,
   /** phones / portrait: a little higher and wider so the billboard AND the cat fit */
-  endPortrait: { eye: [0.5, 7.4, 17], target: [0.6, 2.4, -3], fov: 74 } as Pose,
+  endPortrait: { eye: [0, 7.5, 21], target: [0, 2.8, -3], fov: 70 } as Pose,
   /** the horizontal field of view never goes below this (keeps both sides visible) */
   minHFov: 74,
-  minHFovPortrait: 56,
+  minHFovPortrait: 30,
   maxFov: 86,
   maxFovPortrait: 100,
   near: 0.1,
@@ -70,11 +70,63 @@ export interface Block {
   skipOnLite?: boolean;
 }
 export const BUILDINGS: Block[] = [
-  { x: -25, zFront: -9.5, w: 13.5, d: 9, h: 21, seed: 4, lit: 0.1, base: 34, delay: 0.25 },
-  { x: -10.5, zFront: -11.5, w: 9.5, d: 9, h: 25, seed: 8, lit: 0.17, base: 30, delay: 0.4 },
-  { x: -0.5, zFront: -12.5, w: 8, d: 9, h: 17, seed: 12, lit: 0.12, base: 28, delay: 0.55 },
-  { x: 8.2, zFront: -15, w: 9.5, d: 9, h: 30, seed: 16, lit: 0.07, base: 24, delay: 0.35, skipOnLite: true },
-  { x: 19, zFront: -18, w: 12, d: 9, h: 15, seed: 20, lit: 0.06, base: 22, delay: 0.7, skipOnLite: true },
+  {
+    x: -25,
+    zFront: -9.5,
+    w: 13.5,
+    d: 9,
+    h: 21,
+    seed: 4,
+    lit: 0.1,
+    base: 34,
+    delay: 0.25,
+  },
+  {
+    x: -10.5,
+    zFront: -11.5,
+    w: 9.5,
+    d: 9,
+    h: 25,
+    seed: 8,
+    lit: 0.17,
+    base: 30,
+    delay: 0.4,
+  },
+  {
+    x: -0.5,
+    zFront: -12.5,
+    w: 8,
+    d: 9,
+    h: 17,
+    seed: 12,
+    lit: 0.12,
+    base: 28,
+    delay: 0.55,
+  },
+  {
+    x: 8.2,
+    zFront: -15,
+    w: 9.5,
+    d: 9,
+    h: 30,
+    seed: 16,
+    lit: 0.07,
+    base: 24,
+    delay: 0.35,
+    skipOnLite: true,
+  },
+  {
+    x: 19,
+    zFront: -18,
+    w: 12,
+    d: 9,
+    h: 15,
+    seed: 20,
+    lit: 0.06,
+    base: 22,
+    delay: 0.7,
+    skipOnLite: true,
+  },
 ];
 
 /* ── GITHUB BILLBOARD (far sidewalk, left) ──────────────────────────────── */
@@ -87,7 +139,7 @@ export const BILLBOARD = {
   yaw: 12, // degrees, turned a little toward you
   contributions: 612,
   /** phones: moved + scaled so it sits above the sign */
-  portrait: { x: -2.4, z: -9.5, scale: 1.15 },
+  portrait: { x: 0, z: -9, scale: 1.9, lift: 1.5, yaw: 0 },
   /** the picture in /public — shown on the board (turned grey). Falls back to a drawn calendar. */
   image: "Github-Contribution.png",
 };
@@ -106,13 +158,22 @@ export const SIGN = {
   tailW: 0.95,
   yaw: -5,
   /** portrait / phones: taller bubble, more room for the text */
-  portrait: { x: 0.6, y: 2.7, z: 7, w: 9.6, h: 6.2, tailX: 0.9 },
+  portrait: { x: 0.2, y: 5.8, z: 3, w: 9.0, h: 5.2, tailX: 0.9, yaw: 0 },
   /** typing speed */
   charsPerSecond: 58,
 };
 
 /* ── CAT (near sidewalk, bottom right) ──────────────────────────────────── */
-export const CAT = { x: 4.3, z: 4.3, yaw: -26, scale: 1.5, portraitX: 1.9, portraitZ: 11.6 };
+export const CAT = {
+  x: 4.3,
+  z: 4.3,
+  yaw: -26,
+  scale: 1.5,
+  portraitX: 1.4,
+  portraitZ: 7.6,
+  portraitScale: 2.1,
+  portraitYaw: 0,
+};
 
 /* ── STREET LAMP + CARS + DUST ──────────────────────────────────────────── */
 export const LAMP = { x: -2.2, z: -5.6, h: 8.4 };
