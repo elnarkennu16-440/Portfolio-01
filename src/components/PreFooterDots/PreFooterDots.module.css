@@ -1,0 +1,17 @@
+/* Fills the banner background. No overlays, no vignette, no shadows. */
+.root {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* the canvas never captures touch, so page scrolling stays native */
+  pointer-events: none;
+}

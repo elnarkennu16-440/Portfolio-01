@@ -1,7 +1,7 @@
 .footer {
   position: relative;
   width: 100%;
-  background-color: #08080a;
+  background-color: #0b0b0d; /* same dark as the PreFooter banner */
   color: #eeeeec;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   padding-top: clamp(var(--space-12), 8vh, var(--space-20));
@@ -18,6 +18,9 @@
 }
 
 .inner {
+  /* sits above the dot background */
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   gap: clamp(var(--space-10), 6vh, var(--space-16));

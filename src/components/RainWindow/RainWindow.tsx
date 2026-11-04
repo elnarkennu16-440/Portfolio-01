@@ -1,5 +1,7 @@
 import React, { memo, useEffect, useRef, useState } from "react";
 import styles from "./RainWindow.module.css";
+import { getGravityBridge } from "../PreFooterDots/gravityBridge";
+import type { GravitySample } from "../PreFooterDots/gravityBridge";
 
 /* ────────────────────────────────────────────────────────────────────────────
  * RAIN WINDOW
@@ -81,6 +83,9 @@ const LAYERS = [
 ] as const;
 
 const WIND = 0.14; // horizontal drift per vertical px (rain leans "/")
+
+// how strongly the footer's gravity waves bend the rain (1 = same as the dots)
+const GRAVITY_PULL = 1.25;
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
@@ -281,8 +286,21 @@ const RainCanvas = memo(function RainCanvas() {
     };
 
     /* ── draw ───────────────────────────────────────────────────────────── */
+    const gSample: GravitySample = { x: 0, y: 0, h: 0 };
+
     const draw = () => {
       ctx.clearRect(0, 0, w, h);
+
+      // gravity waves from the footer dot field (idle = nothing to do)
+      const gb = getGravityBridge();
+      const gOn = !!gb && gb.active;
+      let gx0 = 0;
+      let gy0 = 0;
+      if (gOn) {
+        const r = canvas.getBoundingClientRect();
+        gx0 = r.left;
+        gy0 = r.top;
+      }
 
       if (stat) ctx.drawImage(stat, 0, 0, w, h);
 
@@ -296,8 +314,15 @@ const RainCanvas = memo(function RainCanvas() {
         const layer = layers[li];
         for (let i = 0; i < layer.length; i++) {
           const s = layer[i];
-          ctx.moveTo(s.x + s.l * WIND, s.y - s.l);
-          ctx.lineTo(s.x, s.y);
+          let ox = 0;
+          let oy = 0;
+          if (gOn && gb) {
+            gb.sample(gx0 + s.x, gy0 + s.y, gSample);
+            ox = gSample.x * GRAVITY_PULL;
+            oy = gSample.y * GRAVITY_PULL;
+          }
+          ctx.moveTo(s.x + s.l * WIND + ox, s.y - s.l + oy);
+          ctx.lineTo(s.x + ox, s.y + oy);
         }
         ctx.stroke();
       }
@@ -306,14 +331,19 @@ const RainCanvas = memo(function RainCanvas() {
       for (let i = 0; i < drops.length; i++) {
         const d = drops[i];
         if (d.trailA > 0.01 && d.y - d.trailY > 1) {
+          let tx = 0;
+          if (gOn && gb) {
+            gb.sample(gx0 + d.x, gy0 + d.y, gSample);
+            tx = gSample.x * GRAVITY_PULL;
+          }
           const g = ctx.createLinearGradient(0, d.trailY, 0, d.y);
           g.addColorStop(0, `rgba(${pal.tr},0)`);
           g.addColorStop(1, `rgba(${pal.tr},${0.12 * d.trailA})`);
           ctx.strokeStyle = g;
           ctx.lineWidth = Math.max(1, d.r * 0.36);
           ctx.beginPath();
-          ctx.moveTo(d.x, d.trailY);
-          ctx.lineTo(d.x, d.y);
+          ctx.moveTo(d.x + tx, d.trailY);
+          ctx.lineTo(d.x + tx, d.y);
           ctx.stroke();
         }
       }
@@ -321,7 +351,24 @@ const RainCanvas = memo(function RainCanvas() {
       // the gray beads (a little taller while sliding)
       for (let i = 0; i < drops.length; i++) {
         const d = drops[i];
-        drawBead(ctx, d.x, d.y, d.r, d.state === 1 ? 1.22 : 1.06, pal, 1);
+        let bx = 0;
+        let by = 0;
+        let br = 1;
+        if (gOn && gb) {
+          gb.sample(gx0 + d.x, gy0 + d.y, gSample);
+          bx = gSample.x * GRAVITY_PULL;
+          by = gSample.y * GRAVITY_PULL;
+          br = clamp(1 + gSample.h * 0.004, 0.8, 1.2); // sinks away / rises toward you
+        }
+        drawBead(
+          ctx,
+          d.x + bx,
+          d.y + by,
+          d.r * br,
+          d.state === 1 ? 1.22 : 1.06,
+          pal,
+          1,
+        );
       }
     };
 

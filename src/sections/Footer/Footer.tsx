@@ -2,6 +2,7 @@ import React from "react";
 import { siteContent } from "../../content/siteContent";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { RainWindow } from "../../components/RainWindow/RainWindow";
+import { FooterDots } from "../../components/FooterDots/FooterDots";
 import officialLogo from "../../assets/logo/KE-LOGO-.png";
 import styles from "./Footer.module.css";
 
@@ -41,6 +42,9 @@ export const Footer: React.FC<FooterProps> = ({
       className={`${styles.footer} ${isRevealed ? styles.isRevealed : ""}`}
       role="contentinfo"
     >
+      {/* gravity-wave dot background (same movement as the PreFooter) */}
+      <FooterDots />
+
       <div className={`container ${styles.inner}`}>
         {/* Top Grid: Rain Window on the Left, 2 Columns on the Right */}
         <div className={styles.topGrid}>

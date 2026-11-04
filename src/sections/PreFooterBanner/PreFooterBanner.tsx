@@ -1,7 +1,8 @@
 import React from "react";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { siteContent } from "../../content/siteContent";
-import { PreFooterScene } from "../../components/PreFooterScene/PreFooterScene";
+import { PreFooterDots } from "../../components/PreFooterDots/PreFooterDots";
+import prefooterImage from "../../assets/images/Prefooter-Background-Image.png";
 import styles from "./PreFooterBanner.module.css";
 
 type SubpageId = "experience" | "workflows" | "services";
@@ -90,6 +91,9 @@ export const PreFooterBanner: React.FC<PreFooterBannerProps> = ({
     threshold: 0.12,
   });
 
+  // The text block: the dot portrait keeps itself clear of it.
+  const textRef = React.useRef<HTMLDivElement>(null);
+
   // Opens the contact modal. If App.tsx did not pass `onOpenContact`, it triggers the
   // navbar's mail button (which opens the same modal); mailto is the last fallback.
   const handleMessage = () => {
@@ -126,19 +130,16 @@ export const PreFooterBanner: React.FC<PreFooterBannerProps> = ({
       className={`${styles.bannerSection} ${isRevealed ? styles.isRevealed : ""}`}
       aria-label="Profile and Work Inquiries"
     >
-      {/* 3D background: billboard + giant bottle pouring into a tanker truck.
-          The scene builds itself just before the banner scrolls into view and
-          pauses whenever the banner is off screen. */}
+      {/* 3D background: your portrait made of gray dots + a slow gravity wave
+          that follows the cursor. Pauses whenever the banner is off screen. */}
       <div className={styles.imageContainer} aria-hidden="true">
-        <PreFooterScene />
-        {/* Dark side for the text + seamless fades into the page and the footer */}
-        <div className={styles.vignetteOverlay} />
+        <PreFooterDots imageSrc={prefooterImage} textRef={textRef} />
       </div>
 
       {/* Responsive Content & Action Controls */}
       <div className={styles.contentFrame}>
         <div className={`container ${styles.inner}`}>
-          <div className={styles.leftGroup}>
+          <div className={styles.leftGroup} ref={textRef}>
             <h2
               className={styles.statement}
               aria-label={HEADLINE}

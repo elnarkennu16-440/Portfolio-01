@@ -14,7 +14,7 @@
   box-sizing: border-box;
 }
 
-/* Background layer: holds the 3D scene (canvas) + the vignette on top of it */
+/* Background layer: holds the dot-field canvas (PreFooterDots) */
 .imageContainer {
   position: absolute;
   inset: 0;
@@ -22,61 +22,6 @@
   height: 100%;
   z-index: 1;
   overflow: hidden;
-}
-
-/* Only darkens the text side and the top / bottom seams. The scene itself
-   (right side) stays clear. Strictly grayscale, no neon. */
-.vignetteOverlay {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background:
-    /* text side */
-    linear-gradient(
-      to right,
-      rgba(11, 11, 13, 0.9) 0%,
-      rgba(11, 11, 13, 0.62) 22%,
-      rgba(11, 11, 13, 0.12) 44%,
-      rgba(11, 11, 13, 0) 58%
-    ),
-    /* top seamless fade from canvas */
-    linear-gradient(
-        to bottom,
-        var(--bg-primary) 0%,
-        rgba(14, 14, 16, 0.45) 9%,
-        rgba(0, 0, 0, 0) 20%
-      ),
-    /* bottom seamless transition into footer */
-    linear-gradient(
-        to top,
-        #09090b 0%,
-        rgba(9, 9, 11, 0.6) 12%,
-        rgba(0, 0, 0, 0) 32%
-      );
-}
-
-[data-theme="light"] .vignetteOverlay {
-  background:
-    linear-gradient(
-      to right,
-      rgba(11, 11, 13, 0.9) 0%,
-      rgba(11, 11, 13, 0.62) 22%,
-      rgba(11, 11, 13, 0.12) 44%,
-      rgba(11, 11, 13, 0) 58%
-    ),
-    linear-gradient(
-      to bottom,
-      var(--bg-primary) 0%,
-      rgba(249, 249, 247, 0.55) 7%,
-      rgba(0, 0, 0, 0) 18%
-    ),
-    linear-gradient(
-      to top,
-      #141416 0%,
-      rgba(20, 20, 22, 0.6) 12%,
-      rgba(0, 0, 0, 0) 32%
-    );
 }
 
 /* Content Frame placed over the scene (bottom-left controls) */
@@ -256,31 +201,13 @@
 }
 
 /* =========================================================================
-   MOBILE: the 3D scene sits in the top part, text sits on the dark fade
-   at the bottom (the scene is positioned by PreFooterScene.tsx: see
-   MOBILE_CENTER_Y / MOBILE_FILL_Y at the top of that file)
+   MOBILE: the dot portrait sits in the top part, the text below it
+   (the portrait measures the text block and fits itself above it, see
+   components/PreFooterDots/dotField.ts)
    ========================================================================= */
 @media (max-width: 767px) {
   .bannerSection {
     min-height: clamp(36rem, 92svh, 46rem);
-  }
-
-  .vignetteOverlay,
-  [data-theme="light"] .vignetteOverlay {
-    background:
-      linear-gradient(
-        to top,
-        #0b0b0d 0%,
-        rgba(11, 11, 13, 0.94) 30%,
-        rgba(11, 11, 13, 0.55) 42%,
-        rgba(11, 11, 13, 0) 56%
-      ),
-      linear-gradient(
-        to bottom,
-        var(--bg-primary) 0%,
-        rgba(14, 14, 16, 0.45) 8%,
-        rgba(0, 0, 0, 0) 18%
-      );
   }
 
   .contentFrame {
@@ -300,7 +227,7 @@
 /* =========================================================================
    WAVE REVEAL (texts only) — same mask + tilt + stagger idea as the
    Capabilities titles. Starts when the section gets .isRevealed.
-   Nothing here touches the 3D scene, the vignette or the layout.
+   Nothing here touches the dot background or the layout.
    ========================================================================= */
 
 /* ---- headline: letters rise one by one ---- */
