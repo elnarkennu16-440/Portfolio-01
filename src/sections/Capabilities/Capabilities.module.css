@@ -6,6 +6,9 @@
   padding-bottom: clamp(var(--space-12), 6vh, var(--space-24));
   border-top: 1px solid var(--border-hairline);
   overflow: hidden;
+  overflow: clip; /* same look; lets the screen-sized dot layer stay in view (sticky) */
+  display: flow-root; /* keeps the layout exactly the same as with overflow: hidden */
+  isolation: isolate; /* the dot background sits behind the content */
   width: 100%;
 
   /* 3D capability icons — grey palette (dark theme, default) */

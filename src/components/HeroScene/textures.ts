@@ -9,6 +9,9 @@
 
 import { BUILDINGS, ROAD } from "./sceneConfig";
 
+/** the site theme. Dark = the original night scene, light = white world (see ThemeToggle) */
+export type SceneTheme = "dark" | "light";
+
 /** small deterministic random generator, so the windows never change between loads */
 export function rng(seed: number) {
   let a = seed >>> 0;
@@ -94,12 +97,13 @@ function streakTile(head: "down" | "up", strength: number): HTMLCanvasElement {
 /* ── ground (grid + soft pools of light) ────────────────────────────────── */
 export const GROUND = { x0: -1100, x1: 1100, y0: -2700, y1: 900 };
 
-function groundCanvas(d: number): HTMLCanvasElement {
+function groundCanvas(d: number, theme: SceneTheme): HTMLCanvasElement {
+  const light = theme === "light";
   const W = (GROUND.x1 - GROUND.x0) * d;
   const H = (GROUND.y1 - GROUND.y0) * d;
   const c = mk(W, H);
   const g = c.getContext("2d")!;
-  g.fillStyle = "#0c0c0e";
+  g.fillStyle = light ? "#ffffff" : "#0c0c0e";
   g.fillRect(0, 0, W, H);
   blob(
     g,
@@ -107,9 +111,9 @@ function groundCanvas(d: number): HTMLCanvasElement {
     (150 - GROUND.y0) * d,
     900 * d,
     1300 * d,
-    "rgba(60,60,66,0.5)",
+    light ? "rgba(0,0,0,0.045)" : "rgba(60,60,66,0.5)",
   );
-  g.strokeStyle = "rgba(255,255,255,0.07)";
+  g.strokeStyle = light ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.07)";
   g.lineWidth = Math.max(1, 1.4 * d);
   g.beginPath();
   for (let x = Math.ceil(GROUND.x0 / 120) * 120; x <= GROUND.x1; x += 120) {
@@ -121,7 +125,7 @@ function groundCanvas(d: number): HTMLCanvasElement {
     g.lineTo(W, (y - GROUND.y0) * d);
   }
   g.stroke();
-  grain(c, 6, 2);
+  grain(c, light ? 3 : 6, 2);
   return c;
 }
 
@@ -133,7 +137,9 @@ function streetCanvas(
   y1: number,
   d: number,
   seed: number,
+  theme: SceneTheme,
 ): HTMLCanvasElement {
+  const light = theme === "light";
   const W = (STREET.x1 - STREET.x0) * d;
   const H = (y1 - y0) * d;
   const c = mk(W, H);
@@ -144,9 +150,9 @@ function streetCanvas(
   const hw = ROAD.halfWidth;
 
   // sidewalks, then asphalt
-  g.fillStyle = "#2a2a2d";
+  g.fillStyle = light ? "#ececef" : "#2a2a2d";
   g.fillRect(0, 0, W, H);
-  g.fillStyle = "#18181b";
+  g.fillStyle = light ? "#bdbdc2" : "#18181b";
   g.fillRect(X(-hw), 0, hw * 2 * d, H);
 
   // worn tyre tracks in both lanes
@@ -158,9 +164,10 @@ function streetCanvas(
         X(lane + off + 16),
         0,
       );
-      gr.addColorStop(0, "rgba(255,255,255,0)");
-      gr.addColorStop(0.5, "rgba(255,255,255,0.045)");
-      gr.addColorStop(1, "rgba(255,255,255,0)");
+      const tr = light ? "0,0,0" : "255,255,255";
+      gr.addColorStop(0, `rgba(${tr},0)`);
+      gr.addColorStop(0.5, `rgba(${tr},${light ? 0.055 : 0.045})`);
+      gr.addColorStop(1, `rgba(${tr},0)`);
       g.fillStyle = gr;
       g.fillRect(X(lane + off - 16), 0, 32 * d, H);
     }
@@ -168,30 +175,30 @@ function streetCanvas(
 
   // kerb: dark gap + light edge
   for (const side of [-1, 1]) {
-    g.fillStyle = "rgba(0,0,0,0.55)";
+    g.fillStyle = light ? "rgba(0,0,0,0.3)" : "rgba(0,0,0,0.55)";
     g.fillRect(X(side * hw) - (side > 0 ? 0 : 6 * d), 0, 6 * d, H);
-    g.fillStyle = "rgba(255,255,255,0.22)";
+    g.fillStyle = light ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.22)";
     g.fillRect(X(side * (hw + 6)) - (side > 0 ? 0 : 2 * d), 0, 2 * d, H);
   }
 
   // paving joints on the sidewalks
-  g.fillStyle = "rgba(0,0,0,0.35)";
+  g.fillStyle = light ? "rgba(0,0,0,0.13)" : "rgba(0,0,0,0.35)";
   for (let y = Math.ceil(y0 / 60) * 60; y < y1; y += 60) {
     g.fillRect(0, Y(y), X(-hw - 8), Math.max(1, d));
     g.fillRect(X(hw + 8), Y(y), W - X(hw + 8), Math.max(1, d));
   }
 
   // road markings
-  g.fillStyle = "rgba(255,255,255,0.36)";
+  g.fillStyle = light ? "rgba(255,255,255,0.75)" : "rgba(255,255,255,0.36)";
   g.fillRect(X(-148), 0, 3 * d, H);
   g.fillRect(X(145), 0, 3 * d, H);
-  g.fillStyle = "rgba(255,255,255,0.74)";
+  g.fillStyle = light ? "rgba(255,255,255,0.95)" : "rgba(255,255,255,0.74)";
   for (let y = Math.floor(y0 / 150) * 150; y < y1; y += 150)
     g.fillRect(X(-3), Y(y), 6 * d, 66 * d);
 
   // zebra crossing
   if (ROAD.crosswalkY + ROAD.crosswalkLen > y0 && ROAD.crosswalkY < y1) {
-    g.fillStyle = "rgba(255,255,255,0.62)";
+    g.fillStyle = light ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.62)";
     for (let x = -hw + 34; x < hw - 34 - 20; x += 42)
       g.fillRect(X(x), Y(ROAD.crosswalkY), 20 * d, ROAD.crosswalkLen * d);
   }
@@ -204,11 +211,11 @@ function streetCanvas(
       r() * H,
       (14 + r() * 40) * d,
       (30 + r() * 90) * d,
-      `rgba(0,0,0,${0.18 + r() * 0.2})`,
+      `rgba(0,0,0,${(light ? 0.06 : 0.18) + r() * (light ? 0.1 : 0.2)})`,
     );
   }
 
-  grain(c, 17, seed + 1);
+  grain(c, light ? 9 : 17, seed + 1);
   return c;
 }
 
@@ -443,7 +450,7 @@ function boardCanvases(len: number, h: number, s: number) {
  *    canvas x → along the road (1 px = 0.5 world units), canvas y → across the road.
  *  The matching quad lives in glScene.ts (search "road paint"): keep both in sync
  *  (x -130..130, y 130..-650 → 260 × 780 units = 520 × 1560 px). */
-function roadTextCanvas(): HTMLCanvasElement {
+function roadTextCanvas(theme: SceneTheme): HTMLCanvasElement {
   const W = 1560;
   const H = 520;
   const c = mk(W, H);
@@ -454,7 +461,9 @@ function roadTextCanvas(): HTMLCanvasElement {
   g.font = `800 ${SIZE}px ${FONT}`;
   if ("letterSpacing" in g) g.letterSpacing = "14px";
   const cap = g.measureText("H").actualBoundingBoxAscent || SIZE * 0.7;
-  g.fillStyle = "rgba(255,255,255,0.9)";
+  /* dark mode: white paint · light mode: dark paint (white would vanish on the light road) */
+  g.fillStyle =
+    theme === "light" ? "rgba(22,22,26,0.82)" : "rgba(255,255,255,0.9)";
   g.textBaseline = "alphabetic";
 
   /* each word: where it starts along the road (px), how long it is (px) and the
@@ -475,10 +484,17 @@ function roadTextCanvas(): HTMLCanvasElement {
 }
 
 /* ── everything the scene needs (canvases, ready to upload to the GPU) ──── */
-export interface SceneCanvases {
+/** the pieces that look different in dark / light mode */
+export interface ThemeCanvases {
   ground: HTMLCanvasElement;
   streetNear: HTMLCanvasElement;
   streetFar: HTMLCanvasElement;
+  roadText: HTMLCanvasElement;
+}
+
+export interface SceneCanvases extends ThemeCanvases {
+  /** which theme the ground / street / road-text canvases above were drawn for */
+  theme: SceneTheme;
   walls: { right: HTMLCanvasElement; front: HTMLCanvasElement }[];
   top: HTMLCanvasElement;
   ao: HTMLCanvasElement;
@@ -487,20 +503,58 @@ export interface SceneCanvases {
   streakOut: HTMLCanvasElement;
   board: HTMLCanvasElement;
   boardText: HTMLCanvasElement;
-  roadText: HTMLCanvasElement;
 }
 
 export const STREET_SPLIT = -900; // near piece: y > split, far piece: y < split
 
-const cache = new Map<boolean, Promise<SceneCanvases>>();
+type SharedCanvases = Omit<SceneCanvases, keyof ThemeCanvases | "theme">;
 
-/** drawn once (shared if the component re-mounts), in small steps so the loader stays smooth */
-export function buildCanvases(
+const sharedCache = new Map<boolean, Promise<SharedCanvases>>();
+const themeCache = new Map<string, Promise<ThemeCanvases>>();
+
+/** ground + street + road paint for ONE theme (drawn once, cached; the other theme is
+ *  only drawn the first time the visitor switches) */
+export function buildThemeCanvases(
+  lite: boolean,
+  theme: SceneTheme,
+): Promise<ThemeCanvases> {
+  const key = `${lite ? 1 : 0}-${theme}`;
+  let p = themeCache.get(key);
+  if (!p) {
+    p = (async () => {
+      const q = lite ? 0.72 : 1;
+      const ground = groundCanvas(0.4 * q, theme);
+      await tick();
+      const streetNear = streetCanvas(
+        STREET_SPLIT,
+        ROAD.yNear,
+        1.15 * q,
+        21,
+        theme,
+      );
+      await tick();
+      const streetFar = streetCanvas(
+        ROAD.yFar,
+        STREET_SPLIT + 4,
+        0.5 * q,
+        22,
+        theme,
+      );
+      await tick();
+      const roadText = roadTextCanvas(theme);
+      return { ground, streetNear, streetFar, roadText };
+    })();
+    themeCache.set(key, p);
+  }
+  return p;
+}
+
+function buildSharedCanvases(
   lite: boolean,
   boardLen: number,
   boardH: number,
-): Promise<SceneCanvases> {
-  let p = cache.get(lite);
+): Promise<SharedCanvases> {
+  let p = sharedCache.get(lite);
   if (!p) {
     p = (async () => {
       const q = lite ? 0.72 : 1;
@@ -511,18 +565,11 @@ export function buildCanvases(
       const glow = radialTile("glow");
       const streakIn = streakTile("down", 1);
       const streakOut = streakTile("up", 0.62);
-      const roadText = roadTextCanvas();
       const { base: board, text: boardText } = boardCanvases(
         boardLen,
         boardH,
         lite ? 2 : 3,
       );
-      await tick();
-      const ground = groundCanvas(0.4 * q);
-      await tick();
-      const streetNear = streetCanvas(STREET_SPLIT, ROAD.yNear, 1.15 * q, 21);
-      await tick();
-      const streetFar = streetCanvas(ROAD.yFar, STREET_SPLIT + 4, 0.5 * q, 22);
       await tick();
       const walls: SceneCanvases["walls"] = [];
       for (const b of BUILDINGS.filter((bb) => !(lite && bb.skipOnLite))) {
@@ -547,9 +594,6 @@ export function buildCanvases(
         walls.push({ right, front });
       }
       return {
-        ground,
-        streetNear,
-        streetFar,
         walls,
         top,
         ao,
@@ -558,10 +602,24 @@ export function buildCanvases(
         streakOut,
         board,
         boardText,
-        roadText,
       };
     })();
-    cache.set(lite, p);
+    sharedCache.set(lite, p);
   }
   return p;
+}
+
+/** drawn once (shared if the component re-mounts), in small steps so the loader stays smooth.
+ *  `getTheme` is asked only when the shared part is done, so the theme is as fresh as possible. */
+export async function buildCanvases(
+  lite: boolean,
+  boardLen: number,
+  boardH: number,
+  getTheme: () => SceneTheme = () => "dark",
+): Promise<SceneCanvases> {
+  const shared = await buildSharedCanvases(lite, boardLen, boardH);
+  await tick();
+  const theme = getTheme();
+  const themed = await buildThemeCanvases(lite, theme);
+  return { ...shared, ...themed, theme };
 }

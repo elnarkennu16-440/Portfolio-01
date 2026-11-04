@@ -20,6 +20,7 @@ import {
   CAT,
   DUST,
   FOG,
+  FOG_LIGHT,
   LAMP,
   LOOKS,
   Pose,
@@ -118,6 +119,7 @@ uniform vec4 uType;
 uniform float uTypeOn;
 uniform float uBlink;
 uniform float uPointMode;
+uniform vec2 uRemap;
 in vec2 vUV;
 in vec4 vCol;
 in float vDist;
@@ -142,14 +144,17 @@ void main() {
     c = mix(c, vec4(0.93, 0.93, 0.95, 1.0), caret);
   }
 
-  // light look: lift the darks so the same scene reads as a pale grey street
-  if (vKind < 0.5) c.rgb = mix(c.rgb, c.rgb * 0.62 + 0.30, uLook);
+  // light look: ONLY the street + floor turn light (they carry their own remap: colour × x + y).
+  // Buildings, billboard, cat and sign are not touched, so they stay black / grey on the white world.
+  c.rgb = mix(c.rgb, c.rgb * uRemap.x + uRemap.y, uLook);
+  // floating dust: white on the night look, soft grey on the white look
+  if (uPass > 2.5) c.rgb = mix(c.rgb, vec3(0.42, 0.42, 0.47), uLook);
 
   float fog = smoothstep(uFog.x, uFog.y, vDist) * 0.92;
   vec3 rgb = mix(c.rgb, uBg, fog);
   rgb = mix(uFadeTo, rgb, uFade);
   float a = c.a * uAlpha;
-  if (uPass > 1.5) a *= mix(1.0, 0.3, uLook); // glow is quieter on the light look
+  if (uPass > 1.5 && uPass < 2.5) a *= mix(1.0, 0.7, uLook); // glow is a little quieter on the light look
   outColor = vec4(rgb, a);
 }`;
 
@@ -166,6 +171,8 @@ interface Item {
   pass: 0 | 1 | 2 | 3; // solid, see-through, additive glow, points
   fadeTo?: V3; // colour an item fades up from (default: the background)
   typed?: boolean;
+  /** light look colour remap (colour × x + y). Default [1, 0] = unchanged. */
+  remap?: [number, number];
   upd: (t: number) => Frame | null;
 }
 
@@ -309,6 +316,7 @@ export function createAboutScene(
       "uTypeOn",
       "uBlink",
       "uPointMode",
+      "uRemap",
     ]) {
       U[n] = gl!.getUniformLocation(program, n);
     }
@@ -335,8 +343,14 @@ export function createAboutScene(
     void lampX;
 
     /* floor + street */
-    add(buildFloor(), null, 0, fadeIn(T.ground.delay, T.ground.dur));
-    add(buildGround(), tex(c.ground), 0, fadeIn(T.ground.delay, T.ground.dur));
+    // light look: the plain floor becomes white, the street texture becomes light grey
+    // (dark sidewalk → near-white, dark asphalt → light grey, white markings stay white)
+    add(buildFloor(), null, 0, fadeIn(T.ground.delay, T.ground.dur), {
+      remap: [0, 1],
+    });
+    add(buildGround(), tex(c.ground), 0, fadeIn(T.ground.delay, T.ground.dur), {
+      remap: [2.1, 0.58],
+    });
 
     /* buildings */
     const blds = BUILDINGS.filter((b) => !(lite && b.skipOnLite));
@@ -406,7 +420,8 @@ export function createAboutScene(
     /* street lamp + wet reflection */
     {
       const lamp = buildLamp();
-      add(lamp.pole, null, 0, rise(1.2, 1.2, 9));
+      // light look: pole + lamp head get darker so they still show on white
+      add(lamp.pole, null, 0, rise(1.2, 1.2, 9), { remap: [0.55, 0] });
       const lampOn = (t: number): Frame | null => {
         const p = prog(t, TIMELINE.lampOn, 1.4);
         if (p <= 0) return null;
@@ -632,7 +647,11 @@ export function createAboutScene(
     g.uniformMatrix4fv(U.uVP, false, vp);
     g.uniform3f(U.uEye, pose.eye[0], pose.eye[1], pose.eye[2]);
     g.uniform3f(U.uBg, bg[0], bg[1], bg[2]);
-    g.uniform2f(U.uFog, FOG.start, FOG.end);
+    g.uniform2f(
+      U.uFog,
+      lerp(FOG.start, FOG_LIGHT.start, cur.look),
+      lerp(FOG.end, FOG_LIGHT.end, cur.look),
+    );
     g.uniform1f(U.uLook, cur.look);
     g.uniform1i(U.uTex, 0);
     g.uniform1f(U.uPoint, Math.max(1.5, (canvas.width / W) * 2.2));
@@ -677,7 +696,9 @@ export function createAboutScene(
       } else {
         g.enable(g.BLEND);
         g.depthMask(false);
-        g.blendFunc(g.SRC_ALPHA, pass === 1 ? g.ONE_MINUS_SRC_ALPHA : g.ONE);
+        // glow (pass 2) is additive; see-through (1) and dust (3) use normal blending so the
+        // dust stays visible on the white look (white-on-white additive would vanish)
+        g.blendFunc(g.SRC_ALPHA, pass === 2 ? g.ONE : g.ONE_MINUS_SRC_ALPHA);
       }
       g.uniform1f(U.uPass, pass);
       g.uniform1f(U.uPointMode, pass === 3 ? 1 : 0);
@@ -692,6 +713,8 @@ export function createAboutScene(
         g.activeTexture(g.TEXTURE0);
         g.bindTexture(g.TEXTURE_2D, it.tex ?? white);
         g.uniform1f(U.uUseTex, it.tex ? 1 : 0);
+        const rm = it.remap ?? [1, 0];
+        g.uniform2f(U.uRemap, rm[0], rm[1]);
         const ft = it.fadeTo ?? bg;
         g.uniform3f(U.uFadeTo, ft[0], ft[1], ft[2]);
         g.uniform1f(U.uFade, pass === 0 ? fade : 1);

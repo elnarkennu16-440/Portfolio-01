@@ -521,3 +521,31 @@
     animation: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT MODE (the site's default = no data-theme="dark", same rule as
+   ThemeToggle / AboutScene).
+   The 3D scene turns white (see glScene.ts), so here:
+     • the dark shade / vignette layer is switched OFF (no black edges at all)
+     • the section is white
+     • the copy turns dark so it stays readable on the white scene
+   Dark mode is untouched: everything above still applies there.
+   ═══════════════════════════════════════════════════════════════════════════ */
+:global(html:not([data-theme="dark"])) .heroSection {
+  --ink: #ffffff;
+  --hero-bg: #ffffff;
+  --hero-fg: #111113;
+  --hero-fg-dim: rgba(17, 17, 19, 0.74);
+  --hero-fg-faint: rgba(17, 17, 19, 0.56);
+  --hero-fg-hover: rgba(17, 17, 19, 0.6);
+  --hero-statement: rgba(17, 17, 19, 0.92);
+  --hero-line: rgba(0, 0, 0, 0.08);
+  --hero-underline: rgba(17, 17, 19, 0.4);
+  --hero-outline: rgba(17, 17, 19, 0.6);
+  --hero-cue-line: rgba(17, 17, 19, 0.18);
+}
+
+/* no vignette / haze / dark floor in light mode */
+:global(html:not([data-theme="dark"])) .shade {
+  display: none;
+}

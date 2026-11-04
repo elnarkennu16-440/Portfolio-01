@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Download, ExternalLink, FileText, X } from "lucide-react";
 import { ThemeToggle } from "../../components/ThemeToggle/ThemeToggle";
+import { SectionDots } from "../../components/SectionDots/SectionDots";
 import type { Theme } from "../../hooks/useTheme";
 import logoImg from "../../assets/logo/KE-LOGO-.png";
 import styles from "./Resume.module.css";
@@ -131,6 +132,9 @@ export const Resume: React.FC<ResumeProps> = ({
       aria-label="Resume"
       data-theme={theme}
     >
+      {/* 3D gravity-wave dot background (same movement as the rest of the site) */}
+      <SectionDots mode="scroller" />
+
       {/* ── Top Navbar: icon only (left) · theme + X (right) ─────────────── */}
       <header className={styles.header}>
         <div className={styles.headerInner}>

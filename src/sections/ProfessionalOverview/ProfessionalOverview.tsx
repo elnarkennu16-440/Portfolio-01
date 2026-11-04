@@ -6,6 +6,7 @@ import React, {
   useState,
 } from "react";
 import { siteContent } from "../../content/siteContent";
+import { SectionDots } from "../../components/SectionDots/SectionDots";
 import styles from "./ProfessionalOverview.module.css";
 
 type SubpageId = "experience" | "workflows" | "services";
@@ -279,9 +280,13 @@ export const ProfessionalOverview: React.FC<ProfessionalOverviewProps> = ({
       aria-labelledby="professional-overview-heading"
     >
       <div ref={stickyRef} className={styles.sticky}>
-        {/* Big faint words in the background — they drift slower than the slides (parallax) */}
+        {/* 3D gravity-wave dot background (same movement as the PreFooter / Footer) */}
+        <SectionDots mode="fill" />
+
+        {/* Big faint words in the background — they drift slower than the slides (parallax).
+            data-dot-mask: SectionDots draws this word as waving dots. */}
         <div className={styles.ghost} aria-hidden="true">
-          <div ref={ghostRef} className={styles.ghostText}>
+          <div ref={ghostRef} className={styles.ghostText} data-dot-mask="">
             {ghostText}
           </div>
         </div>

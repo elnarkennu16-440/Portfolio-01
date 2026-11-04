@@ -6,6 +6,7 @@ import {
   CapabilityIconDefs,
   CapabilityIconKey,
 } from "./CapabilityIcons";
+import { SectionDots } from "../../components/SectionDots/SectionDots";
 import styles from "./Capabilities.module.css";
 
 /* ── Wave reveal for the section title + intro text ───────────────────── */
@@ -144,11 +145,18 @@ export const Capabilities: React.FC = () => {
       className={`${styles.capabilitiesSection} ${isRevealed ? styles.isRevealed : ""}`}
       aria-label="Technical Capabilities"
     >
+      {/* 3D gravity-wave dot background (same movement as the PreFooter / Footer) */}
+      <SectionDots mode="viewport" />
+
       {/* Shared gradients for the 3D capability icons (invisible, takes no space) */}
       <CapabilityIconDefs />
 
-      {/* Faint Background Watermark */}
-      <div className={`ghostWatermark ${styles.watermark}`} aria-hidden="true">
+      {/* Faint Background Watermark (data-dot-mask: drawn as waving dots by SectionDots) */}
+      <div
+        className={`ghostWatermark ${styles.watermark}`}
+        aria-hidden="true"
+        data-dot-mask=""
+      >
         {capabilities.faintWatermark}
       </div>
 

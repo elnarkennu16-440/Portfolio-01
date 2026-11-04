@@ -15,7 +15,9 @@ export const ABOUT_TEXT =
 /* ── LOOKS: must match About.module.css (--about-bg) so canvas + section blend ── */
 export const LOOKS = {
   dark: { bg: [0x12, 0x12, 0x14] as V3 }, // #121214
-  light: { bg: [0xe6, 0xe6, 0xe9] as V3 }, // #e6e6e9
+  /* light look = the Hero's light look: a literal white world (street, floor, sky) with
+     the buildings / billboard / cat / sign staying black-grey. Set --about-bg (light) to #ffffff too. */
+  light: { bg: [0xff, 0xff, 0xff] as V3 }, // #ffffff
 };
 
 /* ── CAMERA ─────────────────────────────────────────────────────────────── */
@@ -43,6 +45,8 @@ export const CAMERA = {
 
 /* ── FOG / DEPTH ────────────────────────────────────────────────────────── */
 export const FOG = { start: 28, end: 105 };
+/** light look: the haze starts later, so the black buildings stay black instead of going milky */
+export const FOG_LIGHT = { start: 44, end: 130 };
 
 /* ── STREET ─────────────────────────────────────────────────────────────── */
 export const STREET = {

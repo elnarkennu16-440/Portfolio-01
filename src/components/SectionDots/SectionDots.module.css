@@ -1,0 +1,58 @@
+/* Background layer only. It sits BEHIND the content (z-index: -1), so the host
+   section / stage needs its own stacking context (see the one-line CSS notes
+   in the paste guide). No overlays, no shadows, no vignette. */
+
+/* mode="fill": covers the parent */
+.fill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.fillArea {
+  position: absolute;
+  inset: 0;
+}
+
+/* mode="scroller": a screen-sized layer inside a full-screen page that scrolls by itself.
+   It stays pinned at the top of that scroll area, and its negative bottom margin makes
+   it take NO space, so the page layout does not move. */
+.scroller {
+  position: sticky;
+  top: 0;
+  flex: 0 0 auto;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  margin-bottom: -100vh;
+  margin-bottom: -100dvh;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+/* mode="viewport": a screen-sized layer that stays in view while a tall section scrolls */
+.wrap {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.sticky {
+  position: sticky;
+  top: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100lvh;
+  overflow: hidden;
+}
+
+.canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}

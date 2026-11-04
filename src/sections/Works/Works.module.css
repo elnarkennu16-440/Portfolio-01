@@ -13,6 +13,8 @@
   --stack-radius: clamp(18px, 3.2vw, 44px);
   border-radius: var(--stack-radius) var(--stack-radius) 0 0;
   overflow: hidden;
+  overflow: clip; /* same look; lets the screen-sized dot layer stay in view (sticky) */
+  display: flow-root; /* keeps the layout exactly the same as with overflow: hidden */
   width: 100%;
 }
 

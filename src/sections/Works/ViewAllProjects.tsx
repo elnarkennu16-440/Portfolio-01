@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { siteContent, ProjectItem } from "../../content/siteContent";
 import { ThemeToggle } from "../../components/ThemeToggle/ThemeToggle";
+import { SectionDots } from "../../components/SectionDots/SectionDots";
 import type { Theme } from "../../hooks/useTheme";
 import logoImg from "../../assets/logo/KE-LOGO-.png";
 import { TechStackIcons } from "../../components/TechStackIcons/TechStackIcons";
@@ -282,6 +283,9 @@ export const ViewAllProjects: React.FC<ViewAllProjectsProps> = ({
 
   return (
     <div ref={containerRef} className={styles.pageContainer}>
+      {/* 3D gravity-wave dot background (same movement as the rest of the site) */}
+      <SectionDots mode="scroller" />
+
       {/* Subtle background atmosphere */}
       <div className={styles.backgroundAtmosphere} aria-hidden="true" />
 

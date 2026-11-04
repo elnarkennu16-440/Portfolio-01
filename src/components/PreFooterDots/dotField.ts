@@ -36,7 +36,25 @@ export interface DotFieldOptions {
   theme?: "dark" | "auto";
   /** Let the RainWindow read the waves (footer only). */
   publishGravity?: boolean;
+  /** Element that gives the canvas size (default: host). Used by the viewport-sized sections. */
+  area?: HTMLElement;
+  /** Lower pixel-ratio cap for big sections (default 2). */
+  maxDpr?: number;
+  /** Turn the big background word (element with data-dot-mask inside host) into waving dots. */
+  mask?: boolean;
+  /** Dot strength of that word, 0..1 (default 0.22). */
+  maskTone?: number;
+  /** A full-screen sub page (Resume, All Works): while it is open, the dot fields of the page behind it pause. */
+  overlay?: boolean;
 }
+
+/* ───── full-screen sub pages pause the page behind them ───── */
+let overlayCount = 0;
+const overlayListeners = new Set<() => void>();
+const changeOverlay = (delta: number) => {
+  overlayCount = Math.max(0, overlayCount + delta);
+  overlayListeners.forEach((fn) => fn());
+};
 
 export interface DotField {
   destroy: () => void;
@@ -46,6 +64,7 @@ export interface DotField {
 
 const MOBILE_BREAKPOINT = 768; // same breakpoint as the CSS
 const MAX_DPR = 2; // sharp, but never heavier than 2x
+const MAX_CANVAS_PIXELS = 5500000; // keeps tall / huge areas light on memory
 const MAX_DOTS = 46000; // hard safety cap for weak GPUs
 const HEX_ROW = 0.8660254; // hex packing: row distance / dot distance
 
@@ -82,13 +101,25 @@ uniform float uTime;
 uniform float uFocal;
 uniform float uSlide;
 uniform float uReveal;
+uniform sampler2D uMask;
+uniform vec4 uMaskRect;
+uniform float uMaskOn;
+uniform float uMaskTone;
 varying float vGray;
 varying float vAlpha;
 
 void main() {
   float h = aWave.x;
   vec2 slope = aWave.yz;
-  float tone = aTone * uReveal;
+  // big background word (text mask): the dots under the letters light up
+  float m = 0.0;
+  if (uMaskOn > 0.5) {
+    vec2 uv = (aBase - uMaskRect.xy) / uMaskRect.zw;
+    if (uv.x >= 0.0 && uv.x <= 1.0 && uv.y >= 0.0 && uv.y <= 1.0) {
+      m = texture2D(uMask, uv).a;
+    }
+  }
+  float tone = max(aTone * uReveal, m * uMaskTone);
 
   // very slow ambient swell so the sheet never looks dead
   float swell = (sin(aBase.x * 0.0105 + uTime * 0.30) +
@@ -408,6 +439,13 @@ export function createDotField(opts: DotFieldOptions): DotField {
     theme = "dark",
     publishGravity = false,
   } = opts;
+  const area = opts.area ?? host;
+  const maxDpr = opts.maxDpr ?? MAX_DPR;
+  const maskTone = opts.maskTone ?? 0.22;
+  const isOverlay = !!opts.overlay;
+  const maskEl = opts.mask
+    ? host.querySelector<HTMLElement>("[data-dot-mask]")
+    : null;
   const hasImage = !!imageSrc;
 
   const gl = canvas.getContext("webgl", {
@@ -427,6 +465,8 @@ export function createDotField(opts: DotFieldOptions): DotField {
   let program: WebGLProgram | null = null;
   let staticBuf: WebGLBuffer | null = null;
   let waveBuf: WebGLBuffer | null = null;
+  let maskTex: WebGLTexture | null = null;
+  let vtf = false;
   const U: Record<string, WebGLUniformLocation | null> = {};
   const A: Record<string, number> = {};
 
@@ -465,6 +505,11 @@ export function createDotField(opts: DotFieldOptions): DotField {
   let acc = 0;
   let time = 0;
   let light = false;
+  let maskOn = false;
+  let maskKey = "";
+  let maskHiddenByUs = false;
+  let maskPrevVisibility = "";
+  const mRect = { x: 0, y: 0, w: 1, h: 1, on: false };
   let rectL = 0;
   let rectT = 0;
   let reveal = reduced ? 1 : 0;
@@ -506,6 +551,10 @@ export function createDotField(opts: DotFieldOptions): DotField {
       "uSlide",
       "uReveal",
       "uLight",
+      "uMask",
+      "uMaskRect",
+      "uMaskOn",
+      "uMaskTone",
     ]) {
       U[name] = gl.getUniformLocation(p, name);
     }
@@ -514,6 +563,24 @@ export function createDotField(opts: DotFieldOptions): DotField {
     }
     staticBuf = gl.createBuffer();
     waveBuf = gl.createBuffer();
+    vtf = (gl.getParameter(gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) as number) > 0;
+    maskTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, maskTex);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      1,
+      1,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      new Uint8Array(4),
+    );
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.disable(gl.DEPTH_TEST);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
@@ -521,17 +588,166 @@ export function createDotField(opts: DotFieldOptions): DotField {
     return true;
   };
 
+  /* ---------- big background word -> texture ---------- */
+
+  const showMaskEl = () => {
+    if (maskEl && maskHiddenByUs) {
+      maskEl.style.visibility = maskPrevVisibility;
+      maskHiddenByUs = false;
+    }
+  };
+
+  const setMaskOff = () => {
+    maskOn = false;
+    maskKey = "";
+    mRect.on = false;
+    showMaskEl();
+  };
+
+  const buildMask = () => {
+    if (!maskEl || !glReady || !vtf || !maskTex) {
+      setMaskOff();
+      return;
+    }
+    const w = maskEl.offsetWidth;
+    const h = maskEl.offsetHeight;
+    if (w < 4 || h < 4) {
+      setMaskOff();
+      return;
+    }
+    const cs = window.getComputedStyle(maskEl);
+    let text = maskEl.textContent ?? "";
+    if (!/pre/.test(cs.whiteSpace)) text = text.replace(/\s+/g, " ").trim();
+    if (cs.textTransform === "uppercase") text = text.toUpperCase();
+    else if (cs.textTransform === "lowercase") text = text.toLowerCase();
+    if (!text) {
+      setMaskOff();
+      return;
+    }
+
+    const key = [
+      w,
+      h,
+      text,
+      cs.fontFamily,
+      cs.fontWeight,
+      cs.fontStyle,
+      cs.fontSize,
+      cs.letterSpacing,
+      cs.lineHeight,
+      cs.textAlign,
+      cs.paddingLeft,
+      cs.paddingTop,
+    ].join("|");
+    if (maskOn && key === maskKey) return;
+
+    const scale = Math.min(0.5, 4096 / w, 2048 / h);
+    const cw = Math.max(1, Math.round(w * scale));
+    const ch = Math.max(1, Math.round(h * scale));
+    const c = document.createElement("canvas");
+    c.width = cw;
+    c.height = ch;
+    const g = c.getContext("2d");
+    if (!g) {
+      setMaskOff();
+      return;
+    }
+    g.setTransform(scale, 0, 0, scale, 0, 0);
+    const fs = parseFloat(cs.fontSize) || 16;
+    g.font = `${cs.fontStyle} ${cs.fontWeight} ${fs}px ${cs.fontFamily}`;
+    g.fillStyle = "#ffffff";
+    g.textBaseline = "alphabetic";
+
+    const ls = parseFloat(cs.letterSpacing) || 0;
+    const native =
+      typeof (g as unknown as { letterSpacing?: unknown }).letterSpacing ===
+      "string";
+    if (native)
+      (g as unknown as { letterSpacing: string }).letterSpacing = `${ls}px`;
+
+    const mt = g.measureText("Hg");
+    const fa = mt.fontBoundingBoxAscent || fs * 0.8;
+    const fd = mt.fontBoundingBoxDescent || fs * 0.2;
+    let lh = parseFloat(cs.lineHeight);
+    if (!isFinite(lh)) lh = fa + fd;
+    const pl = parseFloat(cs.paddingLeft) || 0;
+    const pr = parseFloat(cs.paddingRight) || 0;
+    const pt = parseFloat(cs.paddingTop) || 0;
+    const baseline = pt + (lh - (fa + fd)) / 2 + fa;
+
+    let tw = 0;
+    if (native) {
+      tw = g.measureText(text).width;
+    } else {
+      for (const chr of Array.from(text)) tw += g.measureText(chr).width + ls;
+    }
+    let x = pl;
+    if (cs.textAlign === "center") x = (w - tw) / 2;
+    else if (cs.textAlign === "right" || cs.textAlign === "end")
+      x = w - pr - tw;
+
+    if (native) {
+      g.fillText(text, x, baseline);
+    } else {
+      let cx = x;
+      for (const chr of Array.from(text)) {
+        g.fillText(chr, cx, baseline);
+        cx += g.measureText(chr).width + ls;
+      }
+    }
+
+    gl.bindTexture(gl.TEXTURE_2D, maskTex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    maskKey = key;
+    maskOn = true;
+    // the dots now draw this word, so the plain text steps aside
+    if (!maskHiddenByUs) {
+      maskPrevVisibility = maskEl.style.visibility;
+      maskEl.style.visibility = "hidden";
+      maskHiddenByUs = true;
+    }
+  };
+
+  /** Where the word is on screen right now (follows scroll, parallax, reveal transforms). */
+  const updateMaskRect = () => {
+    if (!maskOn || !maskEl) {
+      mRect.on = false;
+      return;
+    }
+    const ar = area.getBoundingClientRect();
+    const mr = maskEl.getBoundingClientRect();
+    if (mr.width < 2 || mr.height < 2) {
+      mRect.on = false;
+      return;
+    }
+    mRect.x = mr.left - ar.left - W / 2;
+    mRect.y = mr.top - ar.top - H / 2;
+    mRect.w = mr.width;
+    mRect.h = mr.height;
+    mRect.on = true;
+  };
+
   /* ---------- build the dot grid ---------- */
 
   const rebuild = () => {
     if (destroyed || !glReady || !program) return;
 
-    const w = host.clientWidth;
-    const h = host.clientHeight;
+    const w = area.clientWidth;
+    const h = area.clientHeight;
     if (w < 2 || h < 2) return;
 
     const text = textEl ? measureInside(textEl, host) : null;
-    const ratio = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+    let ratio = Math.min(window.devicePixelRatio || 1, maxDpr);
+    if (w * h * ratio * ratio > MAX_CANVAS_PIXELS) {
+      ratio = Math.max(0.75, Math.sqrt(MAX_CANVAS_PIXELS / (w * h)));
+    }
     const key = [
       w,
       h,
@@ -629,6 +845,8 @@ export function createDotField(opts: DotFieldOptions): DotField {
     gl.bindBuffer(gl.ARRAY_BUFFER, waveBuf);
     gl.bufferData(gl.ARRAY_BUFFER, wave, gl.DYNAMIC_DRAW);
 
+    buildMask();
+    updateMaskRect();
     draw();
   };
 
@@ -636,7 +854,10 @@ export function createDotField(opts: DotFieldOptions): DotField {
     if (rebuildRaf || destroyed) return;
     rebuildRaf = requestAnimationFrame(() => {
       rebuildRaf = 0;
+      buildMask();
       rebuild();
+      updateMaskRect();
+      if (!running) draw();
     });
   };
 
@@ -795,6 +1016,12 @@ export function createDotField(opts: DotFieldOptions): DotField {
     gl.uniform1f(U.uSlide, SLIDE);
     gl.uniform1f(U.uReveal, reveal);
     gl.uniform1f(U.uLight, light ? 1 : 0);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, maskTex);
+    gl.uniform1i(U.uMask, 0);
+    gl.uniform4f(U.uMaskRect, mRect.x, mRect.y, mRect.w, mRect.h);
+    gl.uniform1f(U.uMaskOn, mRect.on ? 1 : 0);
+    gl.uniform1f(U.uMaskTone, maskTone);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, staticBuf);
     gl.enableVertexAttribArray(A.aBase);
@@ -863,8 +1090,10 @@ export function createDotField(opts: DotFieldOptions): DotField {
       acc = 0;
     }
 
+    updateMaskRect();
+
     if (bridge) {
-      const r = host.getBoundingClientRect();
+      const r = area.getBoundingClientRect();
       rectL = r.left;
       rectT = r.top;
       bridge.active = !settled;
@@ -888,8 +1117,14 @@ export function createDotField(opts: DotFieldOptions): DotField {
   };
 
   const updateRunning = () => {
+    const covered = !isOverlay && overlayCount > 0; // a sub page is open on top of this one
     const should =
-      visible && !document.hidden && glReady && !destroyed && !reduced;
+      visible &&
+      !covered &&
+      !document.hidden &&
+      glReady &&
+      !destroyed &&
+      !reduced;
     if (should && !running) {
       running = true;
       last = performance.now();
@@ -902,10 +1137,14 @@ export function createDotField(opts: DotFieldOptions): DotField {
     }
   };
 
+  const onOverlayChange = () => updateRunning();
+  if (isOverlay) changeOverlay(1);
+  else overlayListeners.add(onOverlayChange);
+
   /* ---------- pointer ---------- */
 
   const local = (e: PointerEvent) => {
-    const r = host.getBoundingClientRect();
+    const r = area.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
 
@@ -957,8 +1196,23 @@ export function createDotField(opts: DotFieldOptions): DotField {
   io.observe(host);
 
   const ro = new ResizeObserver(scheduleRebuild);
-  ro.observe(host);
+  ro.observe(area);
+  if (area !== host) ro.observe(host);
   if (textEl) ro.observe(textEl);
+  if (maskEl) ro.observe(maskEl);
+
+  // reduced motion: no loop, but the word must still follow the page while scrolling
+  let scrollRaf = 0;
+  const onScrollStatic = () => {
+    if (scrollRaf || !reduced || !maskOn) return;
+    scrollRaf = requestAnimationFrame(() => {
+      scrollRaf = 0;
+      updateMaskRect();
+      draw();
+    });
+  };
+  if (reduced && maskEl)
+    window.addEventListener("scroll", onScrollStatic, { passive: true });
 
   const onVisibility = () => updateRunning();
   const onResize = () => scheduleRebuild();
@@ -971,10 +1225,12 @@ export function createDotField(opts: DotFieldOptions): DotField {
   const onLost = (e: Event) => {
     e.preventDefault();
     glReady = false;
+    setMaskOff();
     updateRunning();
   };
   const onRestored = () => {
     layoutKey = "";
+    maskKey = "";
     if (initGL()) {
       rebuild();
       updateRunning();
@@ -1031,10 +1287,16 @@ export function createDotField(opts: DotFieldOptions): DotField {
       canvas.removeEventListener("webglcontextrestored", onRestored);
       if (img) img.onload = null;
       if (mo) mo.disconnect();
+      if (isOverlay) changeOverlay(-1);
+      else overlayListeners.delete(onOverlayChange);
+      if (scrollRaf) cancelAnimationFrame(scrollRaf);
+      window.removeEventListener("scroll", onScrollStatic);
+      showMaskEl();
       if (bridge) setGravityBridge(null);
       if (glReady) {
         if (staticBuf) gl.deleteBuffer(staticBuf);
         if (waveBuf) gl.deleteBuffer(waveBuf);
+        if (maskTex) gl.deleteTexture(maskTex);
         if (program) gl.deleteProgram(program);
       }
       glReady = false;

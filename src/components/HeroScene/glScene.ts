@@ -7,6 +7,14 @@
  *
  * The camera maths is identical to the old CSS version (same yaw / tilt /
  * perspective), so the angle you liked is unchanged.
+ *
+ * ATMOSPHERE: the old white smoke layers are gone. The air now holds a few
+ * small white dots floating/falling slowly (like light snow), real 3D points
+ * drawn by their own tiny shader (see SNOW below).
+ *
+ * THEME: the scene follows the site theme (ThemeToggle fires "kennu:themechange"
+ * and sets data-theme). Dark = original night scene. Light = white world, black
+ * KENNU, buildings / billboard stay grey-black.
  * ──────────────────────────────────────────────────────────────────────────── */
 
 import {
@@ -24,7 +32,11 @@ import {
   STREET,
   STREET_SPLIT,
   SceneCanvases,
+  SceneTheme,
+  ThemeCanvases,
   buildCanvases,
+  buildThemeCanvases,
+  rng,
 } from "./textures";
 import {
   Mat4,
@@ -55,7 +67,31 @@ export interface SceneController {
   dispose(): void;
 }
 
-const BG: V3 = [9 / 255, 9 / 255, 10 / 255];
+/** background / far-fog colour per theme (light = literal white) */
+const BG: Record<SceneTheme, V3> = {
+  dark: [9 / 255, 9 / 255, 10 / 255],
+  light: [1, 1, 1],
+};
+const bgCss = (th: SceneTheme) => (th === "light" ? "#ffffff" : "#09090a");
+
+/** same event name ThemeToggle dispatches (keep in sync with THEME_CHANGE_EVENT there) */
+const THEME_EVENT = "kennu:themechange";
+
+/** which theme the page is in right now (ThemeToggle's CSS uses [data-theme="dark"]) */
+function readTheme(): SceneTheme {
+  const el = document.documentElement;
+  const v =
+    el.getAttribute("data-theme") ?? document.body?.getAttribute("data-theme");
+  if (v === "dark" || v === "light") return v;
+  if (el.classList.contains("dark")) return "dark";
+  return "light"; // no attribute = the CSS default, which is the light state
+}
+
+/** brightness multiplier per theme (light mode lifts the dark concrete a little so the
+ *  black KENNU stays readable in front of it; lamps / posts get darker on white) */
+const WALL_GAIN: Record<SceneTheme, number> = { dark: 1, light: 1.65 };
+const LAMP_GAIN: Record<SceneTheme, number> = { dark: 1, light: 0.55 };
+const BOARD_GAIN: Record<SceneTheme, number> = { dark: 1, light: 0.85 };
 
 /* ── shaders ────────────────────────────────────────────────────────────── */
 const VS = `#version 300 es
@@ -69,6 +105,7 @@ uniform vec3 uOffset;
 uniform float uZScale;
 uniform vec3 uCam;   // perspective distance, anchor x, anchor y (css px)
 uniform vec2 uView;  // stage size (css px)
+uniform vec2 uUV;    // slow texture drift (used by the fog)
 out vec2 vUV;
 out vec4 vCol;
 out float vW;
@@ -82,7 +119,7 @@ void main() {
   vec2 s = vec2(uCam.y, uCam.z) + q.xy / w;
   vec2 ndc = vec2(s.x / uView.x * 2.0 - 1.0, 1.0 - s.y / uView.y * 2.0);
   gl_Position = vec4(ndc * w, w - 0.1, w);
-  vUV = aUV;
+  vUV = aUV + uUV;
   vCol = aCol;
   vW = w;
   vExtra = aExtra;
@@ -96,8 +133,8 @@ uniform float uAlpha;
 uniform float uFade;
 uniform vec3 uBg;
 uniform vec2 uFog;
-uniform float uSheen;
 uniform float uWipe;
+uniform float uGain;
 in vec2 vUV;
 in vec4 vCol;
 in float vW;
@@ -106,11 +143,7 @@ out vec4 outColor;
 void main() {
   vec4 c = vCol;
   if (uUseTex > 0.5) c *= texture(uTex, vUV);
-  // light sweep across the white letter faces
-  if (vExtra.x > 0.5) {
-    float d = abs(vExtra.y - uSheen);
-    c.rgb += smoothstep(150.0, 0.0, d) * 0.55;
-  }
+  c.rgb *= uGain;
   // billboard text wipes in left → right, line after line
   if (uWipe < 1.5) {
     float th = uWipe * 1.45 - vUV.y * 0.3;
@@ -120,6 +153,80 @@ void main() {
   vec3 rgb = mix(c.rgb, uBg, fog);
   rgb = mix(uBg, rgb, uFade);
   outColor = vec4(rgb, c.a * uAlpha);
+}`;
+
+/* ── SNOW: a few small dots floating in the air ────────────────────────────
+ * Real 3D points: they share the scene camera (same model matrix / perspective),
+ * so they sit in the street's depth, hide behind buildings and move with the
+ * pointer / scroll. Fall + sway is computed on the GPU (no JS per frame).
+ *  count      → how many flakes (keep it LOW: it should feel like light snow)
+ *  size       → dot size range in world px (before camera scale)
+ *  fall       → slow fall speed range (world px / second)
+ * ──────────────────────────────────────────────────────────────────────── */
+const SNOW = {
+  count: 170,
+  countLite: 70,
+  x0: -1000,
+  x1: 1000,
+  y0: -2450,
+  y1: 650,
+  z0: 8, // lowest height a flake reaches
+  z1: 640, // highest
+  sizeMin: 3,
+  sizeMax: 8,
+  fallMin: 6,
+  fallMax: 16,
+};
+/** dot colour per theme: white on the night scene, soft grey on the white scene */
+const SNOW_COLOR: Record<SceneTheme, V3> = {
+  dark: [1, 1, 1],
+  light: [0.42, 0.42, 0.47],
+};
+
+const SNOW_VS = `#version 300 es
+precision highp float;
+layout(location=0) in vec3 aBase;
+layout(location=1) in vec4 aPar;   // size, alpha, phase, fall speed
+uniform mat4 uModel;
+uniform vec3 uCam;   // perspective distance, anchor x, anchor y (css px)
+uniform vec2 uView;  // stage size (css px)
+uniform float uK;    // camera scale
+uniform float uPx;   // device pixels per css px
+uniform float uT;    // seconds (0 when reduced motion)
+uniform vec2 uZ;     // lowest / highest flake height
+out float vA;
+void main() {
+  float ph = aPar.z;
+  float zr = uZ.y - uZ.x;
+  float zz = mod(aBase.z - uZ.x - aPar.w * uT, zr);   // slow fall, wraps around
+  vec3 p = aBase;
+  p.z = uZ.x + zz;
+  float fq = 0.25 + fract(ph * 7.31) * 0.3;
+  p.x += sin(uT * fq + ph * 6.2831) * 26.0;           // gentle sway
+  p.y += cos(uT * fq * 0.8 + ph * 9.0) * 18.0;
+  // fade near the top / bottom of the air column so the wrap is never seen
+  float edge = smoothstep(0.0, 70.0, zz) * (1.0 - smoothstep(zr - 70.0, zr, zz));
+  vec3 q = (uModel * vec4(p, 1.0)).xyz;
+  float w = 1.0 - q.z / uCam.x;
+  vec2 s = vec2(uCam.y, uCam.z) + q.xy / w;
+  vec2 ndc = vec2(s.x / uView.x * 2.0 - 1.0, 1.0 - s.y / uView.y * 2.0);
+  gl_Position = vec4(ndc * w, w - 0.1, w);
+  gl_PointSize = max(aPar.x * uK / w * uPx, 1.5 * uPx);
+  float tw = 0.78 + 0.22 * sin(uT * 1.3 + ph * 40.0);
+  float far = 1.0 - smoothstep(2.0, 3.2, w);          // dots thin out far up the road
+  vA = aPar.y * edge * tw * far;
+}`;
+
+const SNOW_FS = `#version 300 es
+precision highp float;
+uniform vec3 uColor;
+uniform float uAlpha;
+in float vA;
+out vec4 outColor;
+void main() {
+  float r = length(gl_PointCoord * 2.0 - 1.0);
+  float a = smoothstep(1.0, 0.35, r);                 // small soft round dot
+  outColor = vec4(uColor, a * vA * uAlpha);
 }`;
 
 /* ── helpers ────────────────────────────────────────────────────────────── */
@@ -133,6 +240,13 @@ interface Anim {
   delay: number;
   dur: number;
 }
+/** GPU textures that exist once per theme */
+interface ThemeTex {
+  ground: WebGLTexture;
+  near: WebGLTexture;
+  far: WebGLTexture;
+  roadText: WebGLTexture;
+}
 interface Item {
   mesh: { vao: WebGLVertexArrayObject; count: number };
   tex: WebGLTexture | null;
@@ -142,7 +256,19 @@ interface Item {
   zs?: Anim;
   wipe?: Anim;
   alpha?: number;
+  /** texture drift in uv units per second (fog) */
+  drift?: [number, number];
+  /** own distance-fog range (the white mist must not be swallowed by the dark far fog) */
+  fog?: [number, number];
   streak?: { x: number; dir: 1 | -1; dur: number; delay: number };
+  /** only drawn while this theme is showing */
+  theme?: SceneTheme;
+  /** ground / street / road paint: the texture is picked per theme at draw time */
+  themed?: keyof ThemeTex;
+  /** opacity per theme (overrides `alpha`) */
+  alphaBy?: Record<SceneTheme, number>;
+  /** brightness multiplier per theme */
+  gain?: Record<SceneTheme, number>;
 }
 
 /* ── controller ─────────────────────────────────────────────────────────── */
@@ -171,6 +297,19 @@ export function createScene(
   const cur = { mx: 0, my: 0 };
 
   let program: WebGLProgram | null = null;
+  let snow: {
+    program: WebGLProgram;
+    vao: WebGLVertexArrayObject;
+    count: number;
+  } | null = null;
+  const SU: Record<string, WebGLUniformLocation | null> = {};
+  /* theme: `theme` = what the page wants, `shown` = what is on screen (its
+     textures are ready). They only differ for a moment, the first time the
+     visitor switches theme and the other set of textures is still being drawn. */
+  let theme: SceneTheme = readTheme();
+  let shown: SceneTheme = theme;
+  let sets: Partial<Record<SceneTheme, ThemeTex>> = {};
+  let loadingTheme: SceneTheme | null = null;
   let items: Item[] = [];
   let textures: WebGLTexture[] = [];
   let buffers: WebGLBuffer[] = [];
@@ -244,8 +383,9 @@ export function createScene(
       "uFade",
       "uBg",
       "uFog",
-      "uSheen",
+      "uUV",
       "uWipe",
+      "uGain",
     ]) {
       U[n] = gl!.getUniformLocation(program, n);
     }
@@ -256,10 +396,11 @@ export function createScene(
     wg.fillRect(0, 0, 2, 2);
     white = tex(wc);
 
+    shown = c.theme;
+    uploadTheme(c.theme, c);
+    paintHost(shown);
+
     const T = {
-      ground: tex(c.ground),
-      near: tex(c.streetNear),
-      far: tex(c.streetFar),
       top: tex(c.top, true),
       ao: tex(c.ao),
       glow: tex(c.glow),
@@ -267,7 +408,6 @@ export function createScene(
       sOut: tex(c.streakOut),
       board: tex(c.board),
       boardText: tex(c.boardText),
-      roadText: tex(c.roadText),
     };
     items = [];
     const add = (
@@ -280,15 +420,15 @@ export function createScene(
     {
       const m = new MeshBuilder();
       m.flat(GROUND.x0, GROUND.y0, GROUND.x1, GROUND.y1, 0, col(255));
-      add(m, T.ground, { fade: { delay: 0.05, dur: 1.5 } });
+      add(m, null, { themed: "ground", fade: { delay: 0.05, dur: 1.5 } });
 
       const n = new MeshBuilder();
       n.flat(STREET.x0, STREET_SPLIT, STREET.x1, ROAD.yNear, 1.5, col(255));
-      add(n, T.near, { fade: { delay: 0.05, dur: 1.5 } });
+      add(n, null, { themed: "near", fade: { delay: 0.05, dur: 1.5 } });
 
       const f = new MeshBuilder();
       f.flat(STREET.x0, ROAD.yFar, STREET.x1, STREET_SPLIT + 4, 1.5, col(255));
-      add(f, T.far, { fade: { delay: 0.05, dur: 1.5 } });
+      add(f, null, { themed: "far", fade: { delay: 0.05, dur: 1.5 } });
     }
 
     /* buildings */
@@ -315,7 +455,7 @@ export function createScene(
         ],
         col(255),
       );
-      add(right, tex(wall.right), { rise });
+      add(right, tex(wall.right), { rise, gain: WALL_GAIN });
 
       const front = new MeshBuilder();
       const yf = b.y + b.d;
@@ -334,7 +474,7 @@ export function createScene(
         ],
         col(255),
       );
-      add(front, tex(wall.front), { rise });
+      add(front, tex(wall.front), { rise, gain: WALL_GAIN });
 
       const top = new MeshBuilder();
       const tile = 256;
@@ -367,7 +507,7 @@ export function createScene(
           gv((f * 1.9 + 10) / 160),
         );
       });
-      add(top, T.top, { rise });
+      add(top, T.top, { rise, gain: WALL_GAIN });
     });
 
     /* lamps */
@@ -397,7 +537,10 @@ export function createScene(
         col(255),
         col(255),
       );
-      add(m, null, { rise: { delay: 1.5 + i * 0.1, dur: 1.2, sink: 60 } });
+      add(m, null, {
+        rise: { delay: 1.5 + i * 0.1, dur: 1.2, sink: 60 },
+        gain: LAMP_GAIN,
+      });
     });
 
     /* KENNU */
@@ -407,9 +550,12 @@ export function createScene(
     WORD.text.split("").forEach((ch, gi) => {
       const g = GLYPHS[ch];
       const left = off * Uu;
-      const m = new MeshBuilder();
-      glyphMesh(m, g.pts, left, Uu);
-      add(m, null, { zs: { delay: 1.05 + gi * 0.14, dur: 1.2 } });
+      /* one mesh per theme (white letters in dark mode, black in light mode) */
+      (["dark", "light"] as SceneTheme[]).forEach((th) => {
+        const m = new MeshBuilder();
+        glyphMesh(m, g.pts, left, Uu, th);
+        add(m, null, { theme: th, zs: { delay: 1.05 + gi * 0.14, dur: 1.2 } });
+      });
       glyphRuns.push({ left, width: g.w * Uu });
       off += g.w + WORD.gap;
     });
@@ -472,7 +618,7 @@ export function createScene(
           col(255),
         );
       });
-      add(solid, null, { rise });
+      add(solid, null, { rise, gain: BOARD_GAIN });
 
       const face = new MeshBuilder();
       const xf = bb.x + bb.thick;
@@ -512,7 +658,12 @@ export function createScene(
         WORD.yStart + 60,
       );
       shade(bb.x - 90, bb.y - 60, bb.x + 130, bb.y + bb.len + 60);
-      add(m, T.ao, { pass: 1, fade: { delay: 0.5, dur: 1.6 } });
+      add(m, T.ao, {
+        pass: 1,
+        // heavy black patches in the night scene, only a soft grey shadow on white
+        alphaBy: { dark: 1, light: 0.22 },
+        fade: { delay: 0.5, dur: 1.6 },
+      });
     }
 
     /* light pools: under the street lamps and on the billboard lamps */
@@ -541,7 +692,12 @@ export function createScene(
           [1, 1, 1, 0.55],
         );
       });
-      add(m, T.glow, { pass: 2, fade: { delay: 2.2, dur: 1.8 } });
+      // additive light: invisible on white, so it is skipped in light mode
+      add(m, T.glow, {
+        pass: 2,
+        alphaBy: { dark: 1, light: 0 },
+        fade: { delay: 2.2, dur: 1.8 },
+      });
     }
 
     /* "ELNAR" painted on the road */
@@ -567,33 +723,95 @@ export function createScene(
         ],
         col(255),
       );
-      add(m, T.roadText, { pass: 1, fade: { delay: 2.3, dur: 1.4 } });
+      add(m, null, {
+        themed: "roadText",
+        pass: 1,
+        fade: { delay: 2.3, dur: 1.4 },
+      });
     }
 
     /* traffic light-streaks */
     const streaks = lite ? STREAKS.filter((_, i) => i % 2 === 0) : STREAKS;
     streaks.forEach((s) => {
-      const m = new MeshBuilder();
-      m.quad(
-        [
-          [s.x - 11, 0, 4],
-          [s.x + 11, 0, 4],
-          [s.x + 11, s.len, 4],
-          [s.x - 11, s.len, 4],
-        ],
-        [
-          [0, 0],
-          [1, 0],
-          [1, 1],
-          [0, 1],
-        ],
-        col(255),
-      );
-      add(m, s.dir === 1 ? T.sIn : T.sOut, {
-        pass: 2,
-        streak: { x: s.x, dir: s.dir, dur: s.dur, delay: s.delay },
+      /* dark mode: glowing white streaks (additive) · light mode: soft dark streaks */
+      (["dark", "light"] as SceneTheme[]).forEach((th) => {
+        const m = new MeshBuilder();
+        m.quad(
+          [
+            [s.x - 11, 0, 4],
+            [s.x + 11, 0, 4],
+            [s.x + 11, s.len, 4],
+            [s.x - 11, s.len, 4],
+          ],
+          [
+            [0, 0],
+            [1, 0],
+            [1, 1],
+            [0, 1],
+          ],
+          th === "dark" ? col(255) : col(28),
+        );
+        add(m, s.dir === 1 ? T.sIn : T.sOut, {
+          theme: th,
+          pass: th === "dark" ? 2 : 1,
+          alpha: th === "dark" ? 1 : 0.55,
+          streak: { x: s.x, dir: s.dir, dur: s.dur, delay: s.delay },
+        });
       });
     });
+
+    /* floating snow dots (replaces the old white mist) */
+    buildSnow();
+
+    /* make sure the theme the page wants is the one on screen */
+    applyTheme(theme);
+  }
+
+  /** the snow: one small point cloud, positions are random but fixed (seeded) */
+  function buildSnow() {
+    const g = gl!;
+    const n = lite ? SNOW.countLite : SNOW.count;
+    const r = rng(913);
+    const data = new Float32Array(n * 7);
+    for (let i = 0; i < n; i++) {
+      const o = i * 7;
+      data[o] = SNOW.x0 + r() * (SNOW.x1 - SNOW.x0);
+      data[o + 1] = SNOW.y0 + r() * (SNOW.y1 - SNOW.y0);
+      data[o + 2] = SNOW.z0 + r() * (SNOW.z1 - SNOW.z0);
+      data[o + 3] =
+        SNOW.sizeMin + Math.pow(r(), 2) * (SNOW.sizeMax - SNOW.sizeMin);
+      data[o + 4] = 0.45 + r() * 0.5; // opacity
+      data[o + 5] = r(); // phase
+      data[o + 6] = SNOW.fallMin + r() * (SNOW.fallMax - SNOW.fallMin);
+    }
+    const prog = makeProgram(g, SNOW_VS, SNOW_FS);
+    for (const nm of [
+      "uModel",
+      "uCam",
+      "uView",
+      "uK",
+      "uPx",
+      "uT",
+      "uZ",
+      "uColor",
+      "uAlpha",
+    ]) {
+      SU[nm] = g.getUniformLocation(prog, nm);
+    }
+    const buf = g.createBuffer()!;
+    g.bindBuffer(g.ARRAY_BUFFER, buf);
+    g.bufferData(g.ARRAY_BUFFER, data, g.STATIC_DRAW);
+    const vao = g.createVertexArray()!;
+    g.bindVertexArray(vao);
+    const f = 4;
+    g.enableVertexAttribArray(0);
+    g.vertexAttribPointer(0, 3, g.FLOAT, false, 7 * f, 0);
+    g.enableVertexAttribArray(1);
+    g.vertexAttribPointer(1, 4, g.FLOAT, false, 7 * f, 3 * f);
+    g.bindVertexArray(null);
+    buffers.push(buf);
+    vaos.push(vao);
+    snow = { program: prog, vao, count: n };
   }
 
   /** one letter: front face (triangulated outline) + a lit side wall for every edge */
@@ -602,7 +820,9 @@ export function createScene(
     pts: [number, number][],
     left: number,
     Uu: number,
+    th: SceneTheme,
   ) {
+    const light = th === "light";
     const P = pts.map(([x, y]) => [left + x * Uu, y * Uu] as V2); // [u along word, v down]
     const world = (u: number, v: number, w: number): V3 => [
       WORD.x + w,
@@ -611,6 +831,7 @@ export function createScene(
     ];
     const faceCol = (v: number): RGBA => {
       const t = v / WORD.cap; // 0 at the top of the letter, 1 at the bottom
+      if (light) return col(40 - 22 * t); // black letters (a touch lighter on top)
       const n =
         t < 0.45
           ? 246 + (230 - 246) * (t / 0.45)
@@ -647,7 +868,7 @@ export function createScene(
       const ny = (area > 0 ? -dx : dx) / len;
       if (!(nx <= 0.25 || ny <= -0.25)) continue; // walls that face away are never seen
       const diffuse = Math.max(0, nx * -0.34 + ny * -0.94);
-      const lum = 30 + 150 * diffuse;
+      const lum = light ? 20 + 105 * diffuse : 30 + 150 * diffuse;
       m.quad(
         [
           world(u1, v1, 0),
@@ -686,7 +907,8 @@ export function createScene(
     );
 
     g.viewport(0, 0, canvas.width, canvas.height);
-    g.clearColor(BG[0], BG[1], BG[2], 1);
+    const bg = BG[shown];
+    g.clearColor(bg[0], bg[1], bg[2], 1);
     g.clear(g.COLOR_BUFFER_BIT | g.DEPTH_BUFFER_BIT);
     if (t < 0) return;
 
@@ -694,16 +916,12 @@ export function createScene(
     g.uniformMatrix4fv(U.uModel, false, model);
     g.uniform3f(U.uCam, cam.persp, cam.ax, cam.ay);
     g.uniform2f(U.uView, W, H);
-    g.uniform3f(U.uBg, BG[0], BG[1], BG[2]);
+    g.uniform3f(U.uBg, bg[0], bg[1], bg[2]);
     g.uniform2f(U.uFog, 1.0, 1.75);
     g.uniform1i(U.uTex, 0);
     g.enable(g.DEPTH_TEST);
     g.depthFunc(g.LEQUAL);
     g.disable(g.CULL_FACE);
-
-    // one light sweep along the letters, then rest
-    const sw = t - 2.6;
-    const sheen = sw < 0 ? -1e5 : ((sw % 9) / 1.7) * 1500 - 200;
 
     for (let pass = 0; pass < 3; pass++) {
       if (pass === 0) {
@@ -717,12 +935,13 @@ export function createScene(
       }
       for (const it of items) {
         if (it.pass !== pass) continue;
+        if (it.theme && it.theme !== shown) continue;
         let offZ = 0;
         let offY = 0;
         let zs = 1;
         let f = 1;
         let wipe = 2;
-        let alpha = it.alpha ?? 1;
+        let alpha = it.alphaBy ? it.alphaBy[shown] : (it.alpha ?? 1);
 
         if (it.rise) {
           const p = prog(t, it.rise);
@@ -747,18 +966,28 @@ export function createScene(
           const ph = ((((t + s.delay) / s.dur) % 1) + 1) % 1;
           offY = s.dir === 1 ? -2400 + ph * 3100 : 700 - ph * 3100;
           const edge = Math.min(1, ph / 0.1, (1 - ph) / 0.1);
-          alpha = clamp01(edge) * clamp01((t - 2.6) / 1.0);
+          alpha = clamp01(edge) * clamp01((t - 2.6) / 1.0) * (it.alpha ?? 1);
           if (alpha <= 0.001) continue;
         }
 
-        const useTex = it.tex ? 1 : 0;
+        if (pass > 0 && alpha * f <= 0.001) continue;
+        const tx = it.themed ? (sets[shown]?.[it.themed] ?? null) : it.tex;
+        const useTex = tx ? 1 : 0;
+        g.uniform2f(
+          U.uFog,
+          it.fog ? it.fog[0] : 1.0,
+          it.fog ? it.fog[1] : 1.75,
+        );
         g.activeTexture(g.TEXTURE0);
-        g.bindTexture(g.TEXTURE_2D, it.tex ?? white);
+        g.bindTexture(g.TEXTURE_2D, tx ?? white);
+        g.uniform1f(U.uGain, it.gain ? it.gain[shown] : 1);
         g.uniform1f(U.uUseTex, useTex);
         g.uniform3f(U.uOffset, 0, offY, offZ);
         g.uniform1f(U.uZScale, zs);
         g.uniform1f(U.uWipe, wipe);
-        g.uniform1f(U.uSheen, sheen);
+        // fog: the texture slides very slowly (wrapped, so the numbers stay small)
+        const dr = it.drift && !reduced ? it.drift : null;
+        g.uniform2f(U.uUV, dr ? (dr[0] * t) % 1 : 0, dr ? (dr[1] * t) % 1 : 0);
         if (pass === 0) {
           g.uniform1f(U.uFade, f);
           g.uniform1f(U.uAlpha, 1);
@@ -768,6 +997,28 @@ export function createScene(
         }
         g.bindVertexArray(it.mesh.vao);
         g.drawArrays(g.TRIANGLES, 0, it.mesh.count);
+      }
+    }
+    /* snow: drawn last, behind nothing, hidden only by solid buildings / letters */
+    if (snow) {
+      const sIn = reduced ? 1 : clamp01((t - 2.2) / 2.6);
+      if (sIn > 0.001) {
+        const sc = SNOW_COLOR[shown];
+        g.useProgram(snow.program);
+        g.uniformMatrix4fv(SU.uModel, false, model);
+        g.uniform3f(SU.uCam, cam.persp, cam.ax, cam.ay);
+        g.uniform2f(SU.uView, W, H);
+        g.uniform1f(SU.uK, cam.k);
+        g.uniform1f(SU.uPx, canvas.width / W);
+        g.uniform1f(SU.uT, reduced ? 0 : t);
+        g.uniform2f(SU.uZ, SNOW.z0, SNOW.z1);
+        g.uniform3f(SU.uColor, sc[0], sc[1], sc[2]);
+        g.uniform1f(SU.uAlpha, sIn);
+        g.enable(g.BLEND);
+        g.blendFunc(g.SRC_ALPHA, g.ONE_MINUS_SRC_ALPHA);
+        g.depthMask(false);
+        g.bindVertexArray(snow.vao);
+        g.drawArrays(g.POINTS, 0, snow.count);
       }
     }
     g.bindVertexArray(null);
@@ -840,11 +1091,82 @@ export function createScene(
   canvas.addEventListener("webglcontextlost", onLost);
   canvas.addEventListener("webglcontextrestored", onRestored);
 
+  /* ── theme (dark / light) ─────────────────────────────────────────────── */
+  const host = canvas.parentElement;
+  /** the hero stage gets the theme colour too, so nothing dark flashes before the first frame */
+  function paintHost(th: SceneTheme) {
+    if (host) host.style.background = bgCss(th);
+  }
+  paintHost(theme);
+
+  function uploadTheme(th: SceneTheme, c: ThemeCanvases) {
+    sets[th] = {
+      ground: tex(c.ground),
+      near: tex(c.streetNear),
+      far: tex(c.streetFar),
+      roadText: tex(c.roadText),
+    };
+  }
+
+  function redraw() {
+    if (reduced) draw(performance.now()); // static scene: no loop running
+    start();
+  }
+
+  /** switch the scene to `next` (draws the other theme's textures the first time only) */
+  function applyTheme(next: SceneTheme) {
+    theme = next;
+    if (!program) return; // not built yet: build() calls this again at its end
+    if (sets[next]) {
+      if (shown !== next) {
+        shown = next;
+        paintHost(shown);
+        redraw();
+      }
+      return;
+    }
+    if (loadingTheme === next) return;
+    loadingTheme = next;
+    buildThemeCanvases(lite, next)
+      .then((c) => {
+        if (loadingTheme === next) loadingTheme = null;
+        if (disposed || !program) return;
+        if (!sets[next]) uploadTheme(next, c);
+        if (theme === next) {
+          shown = next;
+          paintHost(shown);
+          redraw();
+        }
+      })
+      .catch(() => {
+        if (loadingTheme === next) loadingTheme = null;
+      });
+  }
+
+  const onThemeEvent = (e: Event) => {
+    const d = (e as CustomEvent<string>).detail;
+    applyTheme(d === "dark" || d === "light" ? d : readTheme());
+  };
+  window.addEventListener(THEME_EVENT, onThemeEvent);
+  /* also watch the attribute itself: it changes a moment before the event,
+     which keeps the canvas in step with the page during the theme transition */
+  const mo =
+    typeof MutationObserver !== "undefined"
+      ? new MutationObserver(() => applyTheme(readTheme()))
+      : null;
+  const moOpts = { attributes: true, attributeFilter: ["data-theme", "class"] };
+  mo?.observe(document.documentElement, moOpts);
+  if (document.body) mo?.observe(document.body, moOpts);
+
   function release() {
     textures.forEach((x) => gl!.deleteTexture(x));
     buffers.forEach((x) => gl!.deleteBuffer(x));
     vaos.forEach((x) => gl!.deleteVertexArray(x));
     if (program) gl!.deleteProgram(program);
+    if (snow) gl!.deleteProgram(snow.program);
+    snow = null;
+    sets = {};
+    loadingTheme = null;
     textures = [];
     buffers = [];
     vaos = [];
@@ -853,7 +1175,7 @@ export function createScene(
   }
 
   /* textures are drawn during the loader; the reveal waits for them */
-  buildCanvases(lite, BILLBOARD.len, BILLBOARD.h)
+  buildCanvases(lite, BILLBOARD.len, BILLBOARD.h, () => theme)
     .then((c) => {
       if (disposed) return;
       canvases = c;
@@ -888,6 +1210,9 @@ export function createScene(
       ro?.disconnect();
       io?.disconnect();
       document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener(THEME_EVENT, onThemeEvent);
+      mo?.disconnect();
+      if (host) host.style.background = "";
       canvas.removeEventListener("webglcontextlost", onLost);
       canvas.removeEventListener("webglcontextrestored", onRestored);
       release();

@@ -9,6 +9,7 @@ import { siteContent, ProjectItem } from "../../content/siteContent";
 import { useScrollReveal } from "../../hooks/useScrollReveal";
 import { getPlaceholderDebugAttr } from "../../utils/debugContent";
 import { TechStackIcons } from "../../components/TechStackIcons/TechStackIcons";
+import { SectionDots } from "../../components/SectionDots/SectionDots";
 import styles from "./Works.module.css";
 
 // Must match the expand/collapse transition time in Works.module.css (.moreProjects)
@@ -511,8 +512,15 @@ export const Works: React.FC<WorksProps> = ({ onOpenAllProjects }) => {
       aria-label="Works"
       data-debug-content={getPlaceholderDebugAttr(works.status)}
     >
-      {/* Faint Background Watermark */}
-      <div className={`ghostWatermark ${styles.watermark}`} aria-hidden="true">
+      {/* 3D gravity-wave dot background (same movement as the PreFooter / Footer) */}
+      <SectionDots mode="viewport" />
+
+      {/* Faint Background Watermark (data-dot-mask: drawn as waving dots by SectionDots) */}
+      <div
+        className={`ghostWatermark ${styles.watermark}`}
+        aria-hidden="true"
+        data-dot-mask=""
+      >
         {works.faintWatermark}
       </div>
 
