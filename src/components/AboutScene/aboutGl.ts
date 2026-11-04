@@ -15,6 +15,8 @@ import {
   BUILDINGS,
   CAMERA,
   CARS,
+  CARS_PORTRAIT_SCALE,
+  CARS_RANGE,
   CAT,
   DUST,
   FOG,
@@ -537,14 +539,16 @@ export function createAboutScene(
         const move = (t: number): Frame | null => {
           const p = prog(t, TIMELINE.cars + i * 1.2, 0.8);
           if (p <= 0) return null;
-          const range = 150;
+          const range = CARS_RANGE;
           const x =
-            ((((cr.x0 + 75 + cr.dir * cr.speed * (t - TIMELINE.cars)) % range) +
+            ((((cr.x0 + range / 2 + cr.dir * cr.speed * (t - TIMELINE.cars)) %
+              range) +
               range) %
               range) -
-            75;
+            range / 2;
+          const k = portrait ? CARS_PORTRAIT_SCALE : 1;
           return {
-            m: mul(translate(x, 0, cr.lane), scale3(flip, 1, 1)),
+            m: mul(translate(x, 0, cr.lane), scale3(flip * k, k, k)),
             fade: 1,
           };
         };
