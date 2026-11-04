@@ -179,8 +179,8 @@ export const CAT = {
 export const LAMP = { x: -2.2, z: -5.6, h: 8.4 };
 /* speed is in metres per second: 12 ≈ 43 km/h, 15 ≈ 54 km/h (city traffic, similar pace to the Hero streaks) */
 export const CARS = [
-  { lane: -3.5, dir: -1, speed: 12, x0: 34, len: 4.4, tone: 5 },
-  { lane: 0.9, dir: 1, speed: 15, x0: -30, len: 4.6, tone: 8 },
+  { lane: -3.5, dir: -1, speed: 16, x0: 34, len: 4.4, tone: 5 },
+  { lane: 0.9, dir: 1, speed: 20, x0: -30, len: 4.6, tone: 8 },
 ];
 /** length of the loop a car drives before it comes around again (metres) */
 export const CARS_RANGE = 110;
