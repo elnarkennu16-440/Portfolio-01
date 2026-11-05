@@ -106,14 +106,59 @@ uniform float uZScale;
 uniform vec3 uCam;   // perspective distance, anchor x, anchor y (css px)
 uniform vec2 uView;  // stage size (css px)
 uniform vec2 uUV;    // slow texture drift (used by the fog)
+uniform float uWave;     // 1 only for the ground (land); the street, buildings, billboard, KENNU never move
+uniform vec4 uWell;      // cursor "mass": x, y, depth, sigma (scene units)
+uniform vec4 uRip[12];   // ripples: x, y, age (s), strength
+uniform float uSlide;    // how far the land slides toward the cursor
+uniform vec4 uBld[7];    // footprints the land must not move under: x0, y0, x1, y1
 out vec2 vUV;
 out vec4 vCol;
 out float vW;
 out vec2 vExtra;
+out float vGlow;
+
+/* the land stays still under the street, the sidewalks, the buildings and the billboard posts */
+float landMask(vec2 q) {
+  float m = smoothstep(250.0, 360.0, abs(q.x));
+  for (int i = 0; i < 7; i++) {
+    vec4 b = uBld[i];
+    vec2 dd = max(max(b.xy - q, q - b.zw), vec2(0.0));
+    m *= smoothstep(0.0, 130.0, length(dd));
+  }
+  return m;
+}
+
+/* height of the land at (x, y): a soft well under the cursor + slow expanding rings */
+float landH(vec2 q) {
+  vec2 d = q - uWell.xy;
+  float h = -uWell.z * exp(-dot(d, d) / (2.0 * uWell.w * uWell.w));
+  for (int i = 0; i < 12; i++) {
+    vec4 r = uRip[i];
+    if (r.w > 0.001) {
+      float f = length(q - r.xy) - 300.0 * r.z;
+      h += r.w * 70.0 * exp(-r.z * 0.85) * exp(-(f * f) / (2.0 * 160.0 * 160.0)) * cos(f / 160.0 * 1.7);
+    }
+  }
+  return h;
+}
+
 void main() {
   vec3 p = aPos;
   p.z *= uZScale;
   p += uOffset;
+  float glow = 0.0;
+  if (uWave > 0.5) {
+    float mk = landMask(p.xy);
+    if (mk > 0.001) {
+      float h0 = landH(p.xy);
+      float gx = landH(p.xy + vec2(40.0, 0.0)) - landH(p.xy - vec2(40.0, 0.0));
+      float gy = landH(p.xy + vec2(0.0, 40.0)) - landH(p.xy - vec2(0.0, 40.0));
+      p.xy -= vec2(gx, gy) / 80.0 * uSlide * mk;                // downhill = toward the cursor (magnet)
+      p.z += (h0 > 0.0 ? h0 * 0.35 : h0) * mk;                  // sinks away from you, rises only a little
+      glow = clamp(abs(h0) * mk / 60.0, 0.0, 1.0);
+    }
+  }
+  vGlow = glow;
   vec3 q = (uModel * vec4(p, 1.0)).xyz;
   float w = 1.0 - q.z / uCam.x;
   vec2 s = vec2(uCam.y, uCam.z) + q.xy / w;
@@ -135,15 +180,18 @@ uniform vec3 uBg;
 uniform vec2 uFog;
 uniform float uWipe;
 uniform float uGain;
+uniform float uGlowK;   // how much the land lights up (dark) / darkens (light) where it is bent
 in vec2 vUV;
 in vec4 vCol;
 in float vW;
 in vec2 vExtra;
+in float vGlow;
 out vec4 outColor;
 void main() {
   vec4 c = vCol;
   if (uUseTex > 0.5) c *= texture(uTex, vUV);
   c.rgb *= uGain;
+  c.rgb *= 1.0 + vGlow * uGlowK;
   // billboard text wipes in left → right, line after line
   if (uWipe < 1.5) {
     float th = uWipe * 1.45 - vUV.y * 0.3;
@@ -269,7 +317,53 @@ interface Item {
   alphaBy?: Record<SceneTheme, number>;
   /** brightness multiplier per theme */
   gain?: Record<SceneTheme, number>;
+  /** the land: bends with the cursor (gravity waves) */
+  wave?: boolean;
 }
+
+/** screen point (css px) → point on the ground plane z = 0 (inverse of the camera maths in the shader) */
+function unprojectGround(
+  M: Mat4,
+  persp: number,
+  ax: number,
+  ay: number,
+  sx: number,
+  sy: number,
+): [number, number] {
+  const a = M[0];
+  const b = M[4];
+  const c = M[1];
+  const d = M[5];
+  const bx = M[12];
+  const by = M[13];
+  const det = a * d - b * c || 1e-9;
+  let w = 1;
+  let x = 0;
+  let y = 0;
+  for (let i = 0; i < 8; i++) {
+    const rx = (sx - ax) * w - bx;
+    const ry = (sy - ay) * w - by;
+    x = (d * rx - b * ry) / det;
+    y = (-c * rx + a * ry) / det;
+    const qz = M[2] * x + M[6] * y + M[14];
+    w = 1 - qz / persp;
+  }
+  return [x, y];
+}
+
+/* ── LAND WAVES (gravity) — tweak freely ─────────────────────────────────
+ * Only the ground (the grid squares) moves. The street, sidewalks, buildings,
+ * billboard, lamps, KENNU and the snow never do. */
+const WAVE_RIPPLES = 12; // must match uRip[12] in the shader
+const WAVE_DEPTH = 80; // how deep the land sinks under the cursor (scene units)
+const WAVE_SIGMA = 240; // width of that dip
+const WAVE_SLIDE = 105; // how far the lines slide toward the cursor (magnet feel)
+const WAVE_GLIDE = 7; // cursor smoothing (higher = quicker, lower = softer)
+const WAVE_LIFE = 4.5; // seconds a ripple lives
+const WAVE_LIMIT = 3200; // keeps the pointer position inside a sane range
+const WAVE_GLOW: Record<SceneTheme, number> = { dark: 1.9, light: -0.3 };
+const GROUND_CELL = 50; // size of one piece of the ground mesh (the waves bend these)
+const GROUND_CELL_LITE = 80;
 
 /* ── controller ─────────────────────────────────────────────────────────── */
 export function createScene(
@@ -295,6 +389,42 @@ export function createScene(
   let W = 1;
   let H = 1;
   const cur = { mx: 0, my: 0 };
+
+  /* land waves: pointer over the hero + the ripples it drops */
+  const wIn = {
+    px: 0,
+    py: 0,
+    hover: false,
+    kicks: [] as { x: number; y: number }[],
+  };
+  const ripBuf = new Float32Array(WAVE_RIPPLES * 4); // x, y, age, strength
+  const rips = Array.from({ length: WAVE_RIPPLES }, () => ({
+    x: 0,
+    y: 0,
+    born: -1e9,
+    amp: 0,
+  }));
+  let ripNext = 0;
+  const wv = {
+    x: 0,
+    y: 0,
+    lx: 0,
+    ly: 0,
+    has: false,
+    amt: 0,
+    lastEmit: -9,
+    lastNow: 0,
+  };
+  const bldRects = new Float32Array(7 * 4).fill(1e5); // footprints the land must not move under
+  const emitRipple = (x: number, y: number, amp: number, nowS: number) => {
+    const r = rips[ripNext];
+    ripNext = (ripNext + 1) % WAVE_RIPPLES;
+    r.x = x;
+    r.y = y;
+    r.born = nowS;
+    r.amp = amp;
+  };
+  const clampW = (v: number) => Math.max(-WAVE_LIMIT, Math.min(WAVE_LIMIT, v));
 
   let program: WebGLProgram | null = null;
   let snow: {
@@ -386,6 +516,12 @@ export function createScene(
       "uUV",
       "uWipe",
       "uGain",
+      "uWave",
+      "uWell",
+      "uRip",
+      "uSlide",
+      "uBld",
+      "uGlowK",
     ]) {
       U[n] = gl!.getUniformLocation(program, n);
     }
@@ -418,9 +554,42 @@ export function createScene(
 
     /* ground + street */
     {
+      /* same flat ground and same texture as before, just cut into small pieces
+         (the gravity waves bend the pieces; with no waves it looks identical) */
       const m = new MeshBuilder();
-      m.flat(GROUND.x0, GROUND.y0, GROUND.x1, GROUND.y1, 0, col(255));
-      add(m, null, { themed: "ground", fade: { delay: 0.05, dur: 1.5 } });
+      const cell = lite ? GROUND_CELL_LITE : GROUND_CELL;
+      const nx = Math.ceil((GROUND.x1 - GROUND.x0) / cell);
+      const ny = Math.ceil((GROUND.y1 - GROUND.y0) / cell);
+      const gw = GROUND.x1 - GROUND.x0;
+      const gh = GROUND.y1 - GROUND.y0;
+      for (let j = 0; j < ny; j++) {
+        const ya = GROUND.y0 + (gh * j) / ny;
+        const yb = GROUND.y0 + (gh * (j + 1)) / ny;
+        for (let i = 0; i < nx; i++) {
+          const xa = GROUND.x0 + (gw * i) / nx;
+          const xb = GROUND.x0 + (gw * (i + 1)) / nx;
+          m.quad(
+            [
+              [xa, ya, 0],
+              [xb, ya, 0],
+              [xb, yb, 0],
+              [xa, yb, 0],
+            ],
+            [
+              [i / nx, j / ny],
+              [(i + 1) / nx, j / ny],
+              [(i + 1) / nx, (j + 1) / ny],
+              [i / nx, (j + 1) / ny],
+            ],
+            col(255),
+          );
+        }
+      }
+      add(m, null, {
+        themed: "ground",
+        fade: { delay: 0.05, dur: 1.5 },
+        wave: true,
+      });
 
       const n = new MeshBuilder();
       n.flat(STREET.x0, STREET_SPLIT, STREET.x1, ROAD.yNear, 1.5, col(255));
@@ -433,6 +602,18 @@ export function createScene(
 
     /* buildings */
     const blds = BUILDINGS.filter((b) => !(lite && b.skipOnLite));
+    bldRects.fill(1e5);
+    blds.slice(0, 6).forEach((b, i) => {
+      bldRects[i * 4] = b.x - 20;
+      bldRects[i * 4 + 1] = b.y - 20;
+      bldRects[i * 4 + 2] = b.x + b.w + 20;
+      bldRects[i * 4 + 3] = b.y + b.d + 20;
+    });
+    // billboard posts / board
+    bldRects[24] = BILLBOARD.x - 60;
+    bldRects[25] = BILLBOARD.y - 40;
+    bldRects[26] = BILLBOARD.x + BILLBOARD.thick + 40;
+    bldRects[27] = BILLBOARD.y + BILLBOARD.len + 40;
     blds.forEach((b, i) => {
       const [t, r, f] = b.tone;
       const rise = { delay: b.delay, dur: 1.4, sink: 160 };
@@ -913,11 +1094,80 @@ export function createScene(
     g.clear(g.COLOR_BUFFER_BIT | g.DEPTH_BUFFER_BIT);
     if (t < 0) return;
 
+    /* ── land waves: cursor → point on the ground, a soft well that follows it,
+       and ripples dropped while it moves / when you click or tap ── */
+    const nowS = now / 1000;
+    const dtW = Math.min(0.1, Math.max(0, nowS - wv.lastNow));
+    wv.lastNow = nowS;
+    if (!reduced && wIn.hover) {
+      const gp = unprojectGround(
+        model,
+        cam.persp,
+        cam.ax,
+        cam.ay,
+        wIn.px,
+        wIn.py,
+      );
+      const gx = clampW(gp[0]);
+      const gy = clampW(gp[1]);
+      if (!wv.has || wv.amt < 0.05) {
+        wv.x = wv.lx = gx;
+        wv.y = wv.ly = gy;
+        wv.has = true;
+      }
+      const f = 1 - Math.exp(-dtW * WAVE_GLIDE);
+      wv.x += (gx - wv.x) * f;
+      wv.y += (gy - wv.y) * f;
+      wv.amt += (1 - wv.amt) * (1 - Math.exp(-dtW * 4));
+      const moved = Math.hypot(wv.x - wv.lx, wv.y - wv.ly);
+      if (moved > 110 && nowS - wv.lastEmit > 0.26) {
+        emitRipple(wv.x, wv.y, 0.22 + Math.min(0.3, moved / 1200), nowS);
+        wv.lx = wv.x;
+        wv.ly = wv.y;
+        wv.lastEmit = nowS;
+      }
+    } else {
+      wv.amt *= Math.exp(-dtW * 2.5);
+      if (wv.amt < 0.004) wv.amt = 0;
+    }
+    if (wIn.kicks.length) {
+      const list = wIn.kicks.splice(0, 3);
+      if (!reduced) {
+        for (const k of list) {
+          const gp = unprojectGround(
+            model,
+            cam.persp,
+            cam.ax,
+            cam.ay,
+            k.x,
+            k.y,
+          );
+          emitRipple(clampW(gp[0]), clampW(gp[1]), 1, nowS);
+        }
+      }
+    }
+    let waveLive = wv.amt > 0;
+    for (let i = 0; i < WAVE_RIPPLES; i++) {
+      const r = rips[i];
+      const age = nowS - r.born;
+      const live = r.amp > 0 && age >= 0 && age < WAVE_LIFE;
+      ripBuf[i * 4] = r.x;
+      ripBuf[i * 4 + 1] = r.y;
+      ripBuf[i * 4 + 2] = live ? age : 0;
+      ripBuf[i * 4 + 3] = live ? r.amp : 0;
+      if (live) waveLive = true;
+    }
+
     g.useProgram(program);
     g.uniformMatrix4fv(U.uModel, false, model);
     g.uniform3f(U.uCam, cam.persp, cam.ax, cam.ay);
     g.uniform2f(U.uView, W, H);
     g.uniform3f(U.uBg, bg[0], bg[1], bg[2]);
+    g.uniform1f(U.uSlide, WAVE_SLIDE);
+    g.uniform4f(U.uWell, wv.x, wv.y, WAVE_DEPTH * wv.amt, WAVE_SIGMA);
+    g.uniform4fv(U.uRip, ripBuf);
+    g.uniform4fv(U.uBld, bldRects);
+    g.uniform1f(U.uGlowK, WAVE_GLOW[shown]);
     g.uniform2f(U.uFog, 1.0, 1.75);
     g.uniform1i(U.uTex, 0);
     g.enable(g.DEPTH_TEST);
@@ -985,6 +1235,7 @@ export function createScene(
         g.uniform1f(U.uUseTex, useTex);
         g.uniform3f(U.uOffset, 0, offY, offZ);
         g.uniform1f(U.uZScale, zs);
+        g.uniform1f(U.uWave, it.wave && waveLive ? 1 : 0);
         g.uniform1f(U.uWipe, wipe);
         // fog: the texture slides very slowly (wrapped, so the numbers stay small)
         const dr = it.drift && !reduced ? it.drift : null;
@@ -1077,6 +1328,42 @@ export function createScene(
     if (visible) start();
   };
   document.addEventListener("visibilitychange", onVis);
+
+  /* land waves: pointer position over the hero (mouse hover, or a tap / touch) and
+     clicks / taps that drop a stronger pulse. Passive listeners: scrolling is never blocked. */
+  const waveHost =
+    (canvas.closest("section") as HTMLElement | null) ?? canvas.parentElement;
+  const waveLocal = (e: PointerEvent) => {
+    const r = (canvas.parentElement ?? canvas).getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+  const onWaveMove = (e: PointerEvent) => {
+    if (e.pointerType === "touch") return;
+    const p = waveLocal(e);
+    wIn.px = p.x;
+    wIn.py = p.y;
+    wIn.hover = true;
+  };
+  const onWaveDown = (e: PointerEvent) => {
+    const p = waveLocal(e);
+    wIn.px = p.x;
+    wIn.py = p.y;
+    wIn.hover = true;
+    if (wIn.kicks.length < 6) wIn.kicks.push({ x: p.x, y: p.y });
+  };
+  const onWaveEnd = (e: PointerEvent) => {
+    if (e.pointerType !== "mouse") wIn.hover = false;
+  };
+  const onWaveLeave = () => {
+    wIn.hover = false;
+  };
+  if (waveHost && !reduced) {
+    waveHost.addEventListener("pointermove", onWaveMove, { passive: true });
+    waveHost.addEventListener("pointerdown", onWaveDown, { passive: true });
+    waveHost.addEventListener("pointerup", onWaveEnd, { passive: true });
+    waveHost.addEventListener("pointercancel", onWaveEnd, { passive: true });
+    waveHost.addEventListener("pointerleave", onWaveLeave, { passive: true });
+  }
 
   /* if the GPU resets the context (rare), rebuild everything */
   const onLost = (e: Event) => {
@@ -1249,6 +1536,13 @@ export function createScene(
       ro?.disconnect();
       io?.disconnect();
       document.removeEventListener("visibilitychange", onVis);
+      if (waveHost) {
+        waveHost.removeEventListener("pointermove", onWaveMove);
+        waveHost.removeEventListener("pointerdown", onWaveDown);
+        waveHost.removeEventListener("pointerup", onWaveEnd);
+        waveHost.removeEventListener("pointercancel", onWaveEnd);
+        waveHost.removeEventListener("pointerleave", onWaveLeave);
+      }
       window.removeEventListener(THEME_EVENT, onThemeEvent);
       mo?.disconnect();
       if (host) host.style.background = "";

@@ -113,7 +113,7 @@ function groundCanvas(d: number, theme: SceneTheme): HTMLCanvasElement {
     1300 * d,
     light ? "rgba(0,0,0,0.045)" : "rgba(60,60,66,0.5)",
   );
-  g.strokeStyle = light ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.07)";
+  g.strokeStyle = light ? "rgba(0,0,0,0.085)" : "rgba(255,255,255,0.115)"; // grid a touch more visible (was 0.06 / 0.07)
   g.lineWidth = Math.max(1, 1.4 * d);
   g.beginPath();
   for (let x = Math.ceil(GROUND.x0 / 120) * 120; x <= GROUND.x1; x += 120) {

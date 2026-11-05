@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createDotField } from "./dotField";
 import styles from "./PreFooterDots.module.css";
 
@@ -14,6 +14,9 @@ interface PreFooterDotsProps {
  * soft 3D gravity-wave that follows the cursor / touch.
  * It fills its parent (position: absolute; inset: 0) and never blocks clicks:
  * pointer events are listened to on the surrounding <section>.
+ *
+ * WebGL context rule (phones allow very few live contexts): the context is only
+ * created while this banner is near the screen, and handed back when it is far away.
  */
 export const PreFooterDots: React.FC<PreFooterDotsProps> = ({
   imageSrc,
@@ -21,8 +24,28 @@ export const PreFooterDots: React.FC<PreFooterDotsProps> = ({
 }) => {
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [active, setActive] = useState(false);
 
   useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setActive(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        const e = entries[entries.length - 1];
+        setActive(e.isIntersecting);
+      },
+      { rootMargin: "600px 0px 600px 0px" },
+    );
+    io.observe(root);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!active) return;
     const root = rootRef.current;
     const canvas = canvasRef.current;
     if (!root || !canvas) return;
@@ -34,12 +57,17 @@ export const PreFooterDots: React.FC<PreFooterDotsProps> = ({
       textEl: textRef?.current ?? null,
       imageSrc,
     });
-    return () => field.destroy();
-  }, [imageSrc, textRef]);
+    return () => {
+      field.destroy();
+      /* free the GPU context now; a new canvas element is made next time */
+      const g = canvas.getContext("webgl") as WebGLRenderingContext | null;
+      g?.getExtension("WEBGL_lose_context")?.loseContext();
+    };
+  }, [active, imageSrc, textRef]);
 
   return (
     <div ref={rootRef} className={styles.root} aria-hidden="true">
-      <canvas ref={canvasRef} className={styles.canvas} />
+      {active && <canvas ref={canvasRef} className={styles.canvas} />}
     </div>
   );
 };

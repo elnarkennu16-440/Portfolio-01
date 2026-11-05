@@ -283,7 +283,8 @@ function buildLumMap(img: HTMLImageElement): LumMap | null {
   let px: Uint8ClampedArray;
   try {
     px = ctx.getImageData(0, 0, w, h).data;
-  } catch {
+  } catch (err) {
+    console.error("[dotField] could not read the image pixels:", err);
     return null;
   }
 
@@ -494,7 +495,12 @@ export function createDotField(opts: DotFieldOptions): DotField {
     premultipliedAlpha: true,
     powerPreference: "high-performance",
   }) as WebGLRenderingContext | null;
-  if (!gl) return { destroy: () => undefined };
+  if (!gl) {
+    console.error(
+      "[dotField] WebGL is not available: the dot background is skipped.",
+    );
+    return { destroy: () => undefined };
+  }
 
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -1321,7 +1327,9 @@ export function createDotField(opts: DotFieldOptions): DotField {
   document.addEventListener("visibilitychange", onVisibility);
   window.addEventListener("resize", onResize, { passive: true });
   if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(scheduleRebuild).catch(() => undefined);
+    document.fonts.ready
+      .then(scheduleRebuild)
+      .catch((err) => console.error("[dotField] fonts.ready failed:", err));
   }
 
   const onLost = (e: Event) => {
