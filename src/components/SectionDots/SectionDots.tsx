@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createDotField } from "../PreFooterDots/dotField";
 import styles from "./SectionDots.module.css";
 
@@ -35,7 +35,32 @@ export const SectionDots: React.FC<SectionDotsProps> = ({
   const areaRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  /* A phone browser allows only a handful of live WebGL contexts at once (about 8 on
+     Android Chrome); when a new one is created beyond that, the OLDEST context is
+     killed. The oldest one is the hero, so its 3D street went blank. Every dot field
+     used to open its context at page load. Now it only holds one while its section is
+     near the screen, and gives it back when it is far away. */
+  const [active, setActive] = useState(false);
   useEffect(() => {
+    const outer = outerRef.current;
+    if (!outer) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setActive(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        const e = entries[entries.length - 1];
+        setActive(e.isIntersecting);
+      },
+      { rootMargin: "600px 0px 600px 0px" },
+    );
+    io.observe(outer);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!active) return;
     const outer = outerRef.current;
     const area = areaRef.current;
     const canvas = canvasRef.current;
@@ -54,8 +79,14 @@ export const SectionDots: React.FC<SectionDotsProps> = ({
       overlay: mode === "scroller",
       landHole,
     });
-    return () => field.destroy();
-  }, [mode, landHole]);
+    return () => {
+      field.destroy();
+      /* free the GPU context right now (not "some day" when the canvas is garbage
+         collected). The canvas element is thrown away, a new one is made next time. */
+      const g = canvas.getContext("webgl") as WebGLRenderingContext | null;
+      g?.getExtension("WEBGL_lose_context")?.loseContext();
+    };
+  }, [active, mode, landHole]);
 
   if (mode === "fill" || mode === "scroller") {
     return (
@@ -65,7 +96,7 @@ export const SectionDots: React.FC<SectionDotsProps> = ({
         aria-hidden="true"
       >
         <div ref={areaRef} className={styles.fillArea}>
-          <canvas ref={canvasRef} className={styles.canvas} />
+          {active && <canvas ref={canvasRef} className={styles.canvas} />}
         </div>
       </div>
     );
@@ -74,7 +105,7 @@ export const SectionDots: React.FC<SectionDotsProps> = ({
   return (
     <div ref={outerRef} className={styles.wrap} aria-hidden="true">
       <div ref={areaRef} className={styles.sticky}>
-        <canvas ref={canvasRef} className={styles.canvas} />
+        {active && <canvas ref={canvasRef} className={styles.canvas} />}
       </div>
     </div>
   );

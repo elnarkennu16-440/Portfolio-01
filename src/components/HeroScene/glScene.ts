@@ -1083,6 +1083,7 @@ export function createScene(
     e.preventDefault();
     cancelAnimationFrame(raf);
     raf = 0;
+    paintHost(readTheme()); // the canvas goes blank: show the page's own theme colour behind it
   };
   const onRestored = () => {
     release();
