@@ -1,0 +1,451 @@
+/* ────────────────────────────────────────────────────────────────────────────
+ * SKYLINE SCENE — 3D "graph" of buildings (CSS 3D, no libraries).
+ * Black / grey / white only, same palette as the Hero street.
+ *
+ * PERFORMANCE RULES (same as HeroScene — do not undo them):
+ *  • Only `transform` and `opacity` are ever animated.
+ *  • No filter / blur / backdrop-filter / box-shadow animation / SVG filters.
+ *  • Anything that holds 3D children (transform-style: preserve-3d) has NO
+ *    opacity / filter / clip-path / overflow. Those live on leaf elements.
+ *  • Windows and ground are pre-drawn bitmaps (skylineTextures.ts).
+ *  • Floating motion is paused whenever the scene is off screen.
+ * The camera transform is written by SkylineScene.tsx (JS).
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+@import url("https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap");
+
+.stage {
+  --ease: var(--ease-editorial, cubic-bezier(0.16, 1, 0.3, 1));
+  --brush: "Kaushan Script", "Caveat", cursive;
+  --persp: 3200;
+  --yaw: 46;
+  --tilt: 58;
+  --ls: 1.6;
+  --stem-x: 24px; /* where the line under a quote sits, from the card's right edge */
+
+  /* LIGHT (the site default) */
+  --top-a: #8e8e94;
+  --top-b: #6c6c72;
+  --front: #4a4a4f;
+  --right: #66666c;
+  --roof-a: #8a8a90;
+  --roof-b: #5a5a60;
+  --ink: #0b0b0c;
+  --ink-soft: rgba(11, 11, 12, 0.62);
+  --line: rgba(11, 11, 12, 0.78);
+  --card-bg: rgba(255, 255, 255, 0.97);
+  --card-line: rgba(11, 11, 12, 0.16);
+  --ao: rgba(0, 0, 0, 0.3);
+  --road-text: rgba(11, 11, 12, 0.7);
+
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  min-height: 440px;
+  max-height: 920px;
+  overflow: hidden;
+  contain: layout paint style;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* DARK (ThemeToggle sets data-theme="dark" on <html>) */
+:global(html[data-theme="dark"]) .stage,
+:global(html.dark) .stage,
+:global(body[data-theme="dark"]) .stage {
+  --top-a: #5c5c61;
+  --top-b: #3e3e43;
+  --front: #232326;
+  --right: #34343a;
+  --roof-a: #606066;
+  --roof-b: #3a3a3f;
+  --ink: #ffffff;
+  --ink-soft: rgba(255, 255, 255, 0.62);
+  --line: rgba(255, 255, 255, 0.85);
+  --card-bg: rgba(14, 14, 16, 0.96);
+  --card-line: rgba(255, 255, 255, 0.16);
+  --ao: rgba(0, 0, 0, 0.8);
+  --road-text: rgba(255, 255, 255, 0.78);
+}
+
+/* ── camera ──────────────────────────────────────────────────────────────── */
+.camera {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  perspective: calc(var(--persp) * 1px);
+  pointer-events: none;
+}
+.rig {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-style: preserve-3d;
+  will-change: transform;
+  transform: scale3d(0.6, 0.6, 0.6) rotateX(58deg) rotateZ(46deg);
+}
+
+/* ── ground ──────────────────────────────────────────────────────────────── */
+.ground,
+.ao {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  transform-origin: 0 0;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+.ao {
+  background: radial-gradient(
+    ellipse farthest-side at 50% 50%,
+    var(--ao) 52%,
+    rgba(0, 0, 0, 0) 100%
+  );
+}
+.ground,
+.ao,
+.axis,
+.roadText {
+  opacity: 0;
+}
+.stage[data-ready="true"] .ground {
+  animation: fadeIn 1.4s ease-out 0.05s forwards;
+}
+.stage[data-ready="true"] .ao {
+  animation: fadeIn 1.6s ease-out 0.5s forwards;
+}
+
+/* ── buildings ───────────────────────────────────────────────────────────── */
+.bld,
+.roofBox {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  transform-style: preserve-3d;
+  transform-origin: 0 0 0;
+}
+.bld {
+  transform: translate3d(var(--x), var(--y), 0) scale3d(1, 1, 1);
+}
+.stage:not([data-ready="true"]) .bld {
+  visibility: hidden;
+}
+.stage[data-ready="true"] .bld {
+  animation: grow 1.5s var(--ease) var(--delay, 0s) backwards;
+}
+@keyframes grow {
+  from {
+    transform: translate3d(var(--x), var(--y), 0) scale3d(1, 1, 0.02);
+  }
+  to {
+    transform: translate3d(var(--x), var(--y), 0) scale3d(1, 1, 1);
+  }
+}
+
+.faceTop,
+.faceFront,
+.faceRight {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  transform-origin: 0 0;
+  box-sizing: border-box;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+.faceTop {
+  background-image: linear-gradient(135deg, var(--top-a), var(--top-b));
+}
+.faceFront {
+  background-color: var(--front);
+}
+.faceRight {
+  background-color: var(--right);
+}
+/* roof machinery: plain colours, no windows */
+.roofFace.faceTop {
+  background-image: linear-gradient(135deg, var(--roof-a), var(--roof-b));
+}
+.roofFace.faceFront {
+  background-color: var(--front);
+  background-image: none;
+}
+.roofFace.faceRight {
+  background-color: var(--right);
+  background-image: none;
+}
+
+/* ── arrows ──────────────────────────────────────────────────────────────── */
+.growth,
+.axis {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  transform-origin: 0 0;
+}
+.growthLine,
+.axisLine {
+  position: absolute;
+  left: 0;
+  display: block;
+  width: var(--len);
+  transform-origin: 0 50%;
+  background: var(--line);
+}
+.growthLine {
+  top: -2px;
+  height: 4px;
+  transform: scaleX(0);
+}
+.axisLine {
+  top: -2px;
+  height: 4px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--line) 0 34px,
+    transparent 34px 60px
+  );
+}
+.growthHead,
+.axisHead {
+  position: absolute;
+  display: block;
+  width: 0;
+  height: 0;
+  left: var(--len);
+  border-left: 44px solid var(--line);
+  border-top: 20px solid transparent;
+  border-bottom: 20px solid transparent;
+  top: -20px;
+  opacity: 0;
+}
+.stage[data-ready="true"] .growthLine {
+  animation: draw 1.8s var(--ease) var(--delay, 0s) forwards;
+}
+.stage[data-ready="true"] .growthHead {
+  animation: fadeIn 0.5s ease-out calc(var(--delay, 0s) + 1.5s) forwards;
+}
+.stage[data-ready="true"] .axis {
+  animation: fadeIn 1.4s ease-out var(--delay, 0s) forwards;
+}
+.stage[data-ready="true"] .axisHead {
+  opacity: 1;
+}
+@keyframes draw {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.roadText {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  font-weight: 800;
+  font-size: 46px;
+  line-height: 1;
+  letter-spacing: 0.22em;
+  white-space: nowrap;
+  color: var(--road-text);
+}
+.stage[data-ready="true"] .roadText {
+  animation: fadeIn 1.4s ease-out var(--delay, 0s) forwards;
+}
+
+/* ── floating quotes + words (billboards: they always face the screen) ───── */
+.label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  transform: translate3d(var(--lx), var(--ly), var(--lz))
+    rotateZ(calc(var(--yaw) * -1deg)) rotateX(calc(var(--tilt) * -1deg))
+    scale(var(--ls)) translate(calc(-100% + var(--stem-x)), -100%);
+  pointer-events: none;
+}
+/* the little words have no stem: they are centred on their point */
+.chipWrap {
+  transform: translate3d(var(--lx), var(--ly), var(--lz))
+    rotateZ(calc(var(--yaw) * -1deg)) rotateX(calc(var(--tilt) * -1deg))
+    scale(var(--ls)) translate(-50%, -50%);
+}
+.labelIn {
+  opacity: 0;
+  transform: translateY(18px);
+}
+.stage[data-ready="true"] .labelIn {
+  animation: labelIn 1s var(--ease) var(--delay, 0s) forwards;
+}
+@keyframes labelIn {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.labelBob {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  animation: bob var(--bob, 6s) ease-in-out infinite alternate;
+}
+.stage[data-active="false"] .labelBob {
+  animation-play-state: paused;
+}
+@keyframes bob {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-9px);
+  }
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
+  width: 214px;
+  padding: 11px 14px 12px;
+  border: 1px solid var(--card-line);
+  background: var(--card-bg);
+  color: var(--ink);
+  text-align: left;
+}
+.tag {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  color: var(--ink-soft);
+}
+.title {
+  font-family: var(--brush);
+  font-weight: 400;
+  font-size: 21px;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.text {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+.stem {
+  display: block;
+  width: 1px;
+  height: 56px;
+  margin-right: calc(var(--stem-x) - 0.5px);
+  background: linear-gradient(var(--line), transparent);
+}
+
+.chipWrap .labelBob {
+  align-items: center;
+}
+.chip {
+  display: block;
+  padding: 6px 12px;
+  border: 1px solid var(--card-line);
+  background: var(--card-bg);
+  color: var(--ink-soft);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* faint film grain, one static layer */
+.grain {
+  position: absolute;
+  inset: 0;
+  display: block;
+  pointer-events: none;
+  opacity: 0.35;
+  background-image: radial-gradient(
+    rgba(128, 128, 128, 0.18) 1px,
+    transparent 1.2px
+  );
+  background-size: 6px 6px;
+}
+
+@keyframes fadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── phones ──────────────────────────────────────────────────────────────── */
+@media (max-width: 999px) {
+  .stage {
+    aspect-ratio: 1280 / 1536;
+    min-height: 0;
+    max-height: 860px;
+  }
+  .stage {
+    --stem-x: 61px; /* centred on phones so nothing is cut at the left edge */
+  }
+  .card {
+    width: 122px;
+    padding: 7px 9px 8px;
+    gap: 2px;
+  }
+  .title {
+    font-size: 15px;
+  }
+  .text {
+    display: none;
+  }
+  .tag {
+    font-size: 8px;
+  }
+  .stem {
+    height: 34px;
+  }
+  .chip {
+    font-size: 8px;
+    padding: 4px 8px;
+  }
+  .chipWrap,
+  .noMobile {
+    display: none;
+  }
+  .roadText {
+    font-size: 40px;
+  }
+}
+
+/* ── reduced motion: show the finished scene, no movement ────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .ground,
+  .ao,
+  .axis,
+  .roadText,
+  .labelIn,
+  .growthHead {
+    opacity: 1 !important;
+    animation: none !important;
+  }
+  .labelIn {
+    transform: none !important;
+  }
+  .growthLine {
+    transform: none !important;
+    animation: none !important;
+  }
+  .bld {
+    animation: none !important;
+    visibility: visible !important;
+  }
+  .labelBob {
+    animation: none !important;
+  }
+}

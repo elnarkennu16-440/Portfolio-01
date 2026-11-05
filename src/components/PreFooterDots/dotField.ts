@@ -22,6 +22,8 @@
  */
 
 import { setGravityBridge } from "./gravityBridge";
+import { LAND_HOLE_EVENT, getLandHole } from "./holeBridge";
+import type { LandHole } from "./holeBridge";
 import type { GravityBridge, GravitySample } from "./gravityBridge";
 
 export interface DotFieldOptions {
@@ -44,6 +46,8 @@ export interface DotFieldOptions {
   mask?: boolean;
   /** Dot strength of that word, 0..1 (default 0.22). */
   maskTone?: number;
+  /** Hide the dots over the "land" of the Highlight 3D scene (see holeBridge.ts). */
+  landHole?: boolean;
   /** A full-screen sub page (Resume, All Works): while it is open, the dot fields of the page behind it pause. */
   overlay?: boolean;
 }
@@ -105,12 +109,43 @@ uniform sampler2D uMask;
 uniform vec4 uMaskRect;
 uniform float uMaskOn;
 uniform float uMaskTone;
+uniform float uHoleOn;
+uniform mat2 uHoleA;
+uniform vec2 uHoleB;
+uniform vec2 uHoleC;
+uniform vec4 uHoleP;   // e, perspective, anchor x, anchor y
+uniform vec4 uHoleG;   // land ellipse on the ground: cx, cy, rx, ry
+uniform vec4 uHoleR;   // 3D stage rectangle inside this field (css px)
+uniform float uHoleS;  // strength 0..1
 varying float vGray;
 varying float vAlpha;
 
 void main() {
   float h = aWave.x;
   vec2 slope = aWave.yz;
+
+  // the land of the 3D scene: dots disappear exactly over it, in the scene's own 3D view
+  float keep = 1.0;
+  if (uHoleOn > 0.5) {
+    vec2 sp = aBase + uHalf - uHoleR.xy;
+    if (sp.x > 0.0 && sp.y > 0.0 && sp.x < uHoleR.z && sp.y < uHoleR.w) {
+      vec2 u = sp - uHoleP.zw;
+      float k00 = uHoleA[0][0] + u.x * uHoleC.x / uHoleP.y;
+      float k10 = uHoleA[0][1] + u.y * uHoleC.x / uHoleP.y;
+      float k01 = uHoleA[1][0] + u.x * uHoleC.y / uHoleP.y;
+      float k11 = uHoleA[1][1] + u.y * uHoleC.y / uHoleP.y;
+      vec2 rhs = u * (1.0 - uHoleP.x / uHoleP.y) - uHoleB;
+      float det = k00 * k11 - k01 * k10;
+      if (abs(det) > 1e-6) {
+        vec2 g = vec2(k11 * rhs.x - k01 * rhs.y, -k10 * rhs.x + k00 * rhs.y) / det;
+        float d = length((g - uHoleG.xy) / uHoleG.zw);
+        float hole = 1.0 - smoothstep(0.55, 1.0, d);
+        float edge = min(min(sp.x, sp.y), min(uHoleR.z - sp.x, uHoleR.w - sp.y));
+        hole *= smoothstep(0.0, 28.0, edge);
+        keep = 1.0 - hole * uHoleS;
+      }
+    }
+  }
   // big background word (text mask): the dots under the letters light up
   float m = 0.0;
   if (uMaskOn > 0.5) {
@@ -148,6 +183,7 @@ void main() {
   float bump = clamp(h / 40.0, -1.0, 1.0);
   float diam = uSpacing * mix(0.20, 0.86, shape) * (0.9 + 0.2 * aSeed);
   diam *= 1.0 + bump * 0.28;
+  diam *= mix(0.45, 1.0, keep);
   diam = max(diam, uMinDiam);
   gl_PointSize = max(diam * persp * uDpr, 1.5);
 
@@ -160,7 +196,8 @@ void main() {
   float gray = mix(0.27, 0.93, shape);
   gray = gray * (0.72 + 0.28 * lit) + wave * 0.30 + bump * 0.10;
   vGray = clamp(gray, 0.0, 1.0);
-  vAlpha = clamp(mix(0.62, 1.0, shape) + wave * 0.30, 0.0, 1.0);
+  vAlpha = clamp(mix(0.62, 1.0, shape) + wave * 0.30, 0.0, 1.0) * keep;
+  if (keep < 0.02) gl_Position = vec4(2.0, 2.0, 2.0, 1.0); // fully hidden: off screen
 }
 `;
 
@@ -443,6 +480,7 @@ export function createDotField(opts: DotFieldOptions): DotField {
   const maxDpr = opts.maxDpr ?? MAX_DPR;
   const maskTone = opts.maskTone ?? 0.22;
   const isOverlay = !!opts.overlay;
+  const useHole = !!opts.landHole;
   const maskEl = opts.mask
     ? host.querySelector<HTMLElement>("[data-dot-mask]")
     : null;
@@ -555,6 +593,14 @@ export function createDotField(opts: DotFieldOptions): DotField {
       "uMaskRect",
       "uMaskOn",
       "uMaskTone",
+      "uHoleOn",
+      "uHoleA",
+      "uHoleB",
+      "uHoleC",
+      "uHoleP",
+      "uHoleG",
+      "uHoleR",
+      "uHoleS",
     ]) {
       U[name] = gl.getUniformLocation(p, name);
     }
@@ -586,6 +632,41 @@ export function createDotField(opts: DotFieldOptions): DotField {
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
     glReady = true;
     return true;
+  };
+
+  /* ---------- land hole (Highlight scene) ---------- */
+
+  const holeState: {
+    on: boolean;
+    lh: LandHole | null;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  } = {
+    on: false,
+    lh: null,
+    x: 0,
+    y: 0,
+    w: 1,
+    h: 1,
+  };
+
+  const updateHole = () => {
+    if (!useHole) return;
+    const lh = getLandHole();
+    if (!lh || lh.strength < 0.003) {
+      holeState.on = false;
+      return;
+    }
+    const sr = lh.stage.getBoundingClientRect();
+    const ar = area.getBoundingClientRect();
+    holeState.lh = lh;
+    holeState.x = sr.left - ar.left;
+    holeState.y = sr.top - ar.top;
+    holeState.w = sr.width;
+    holeState.h = sr.height;
+    holeState.on = sr.width > 2 && sr.height > 2;
   };
 
   /* ---------- big background word -> texture ---------- */
@@ -847,6 +928,7 @@ export function createDotField(opts: DotFieldOptions): DotField {
 
     buildMask();
     updateMaskRect();
+    updateHole();
     draw();
   };
 
@@ -1022,6 +1104,18 @@ export function createDotField(opts: DotFieldOptions): DotField {
     gl.uniform4f(U.uMaskRect, mRect.x, mRect.y, mRect.w, mRect.h);
     gl.uniform1f(U.uMaskOn, mRect.on ? 1 : 0);
     gl.uniform1f(U.uMaskTone, maskTone);
+    const hs = holeState;
+    const lh = hs.on ? hs.lh : null;
+    gl.uniform1f(U.uHoleOn, lh ? 1 : 0);
+    if (lh) {
+      gl.uniformMatrix2fv(U.uHoleA, false, lh.a);
+      gl.uniform2f(U.uHoleB, lh.b[0], lh.b[1]);
+      gl.uniform2f(U.uHoleC, lh.c[0], lh.c[1]);
+      gl.uniform4f(U.uHoleP, lh.e, lh.persp, lh.ax, lh.ay);
+      gl.uniform4f(U.uHoleG, lh.cx, lh.cy, lh.rx, lh.ry);
+      gl.uniform4f(U.uHoleR, hs.x, hs.y, hs.w, hs.h);
+      gl.uniform1f(U.uHoleS, lh.strength);
+    }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, staticBuf);
     gl.enableVertexAttribArray(A.aBase);
@@ -1091,6 +1185,7 @@ export function createDotField(opts: DotFieldOptions): DotField {
     }
 
     updateMaskRect();
+    updateHole();
 
     if (bridge) {
       const r = area.getBoundingClientRect();
@@ -1214,6 +1309,13 @@ export function createDotField(opts: DotFieldOptions): DotField {
   if (reduced && maskEl)
     window.addEventListener("scroll", onScrollStatic, { passive: true });
 
+  // the scene tells us when the land changes while nothing is animating
+  const onHoleEvent = () => {
+    updateHole();
+    if (!running) draw();
+  };
+  if (useHole) window.addEventListener(LAND_HOLE_EVENT, onHoleEvent);
+
   const onVisibility = () => updateRunning();
   const onResize = () => scheduleRebuild();
   document.addEventListener("visibilitychange", onVisibility);
@@ -1291,6 +1393,7 @@ export function createDotField(opts: DotFieldOptions): DotField {
       else overlayListeners.delete(onOverlayChange);
       if (scrollRaf) cancelAnimationFrame(scrollRaf);
       window.removeEventListener("scroll", onScrollStatic);
+      window.removeEventListener(LAND_HOLE_EVENT, onHoleEvent);
       showMaskEl();
       if (bridge) setGravityBridge(null);
       if (glReady) {

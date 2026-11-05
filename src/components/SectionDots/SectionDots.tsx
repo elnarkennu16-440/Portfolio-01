@@ -16,6 +16,8 @@ interface SectionDotsProps {
    * Put <SectionDots /> as the FIRST child of the section / stage / sub page.
    */
   mode?: "fill" | "viewport" | "scroller";
+  /** Highlight section only: hide the dots over the 3D scene's land (see holeBridge.ts). */
+  landHole?: boolean;
 }
 
 /**
@@ -27,6 +29,7 @@ interface SectionDotsProps {
  */
 export const SectionDots: React.FC<SectionDotsProps> = ({
   mode = "viewport",
+  landHole = false,
 }) => {
   const outerRef = useRef<HTMLDivElement>(null);
   const areaRef = useRef<HTMLDivElement>(null);
@@ -49,9 +52,10 @@ export const SectionDots: React.FC<SectionDotsProps> = ({
       mask: true,
       maxDpr: 1.5,
       overlay: mode === "scroller",
+      landHole,
     });
     return () => field.destroy();
-  }, [mode]);
+  }, [mode, landHole]);
 
   if (mode === "fill" || mode === "scroller") {
     return (

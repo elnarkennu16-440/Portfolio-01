@@ -12,6 +12,7 @@ import { About } from "./sections/About/About";
 import { Works } from "./sections/Works/Works";
 import { ViewAllProjects } from "./sections/Works/ViewAllProjects";
 import { Capabilities } from "./sections/Capabilities/Capabilities";
+import { Highlight } from "./sections/Highlight/Highlight";
 import { ProfessionalOverview } from "./sections/ProfessionalOverview/ProfessionalOverview";
 import { Experience } from "./sections/ProfessionalOverview/Experience/Experience";
 import { Workflows } from "./sections/ProfessionalOverview/Workflows/Workflows";
@@ -298,6 +299,9 @@ export default function App() {
 
           {/* Capabilities Section */}
           <Capabilities />
+
+          {/* EXTRA: 3D skyline showcase */}
+          <Highlight />
 
           {/* PROFESIONAL OVERVIEW (Replaces Process) */}
           <ProfessionalOverview onOpenSubpage={handleOpenSubpage} />

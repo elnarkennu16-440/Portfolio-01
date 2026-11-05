@@ -1,0 +1,165 @@
+@import url("https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap");
+
+/* ────────────────────────────────────────────────────────────────────────────
+ * HIGHLIGHT SECTION — extra showcase between Capabilities and Professional
+ * Overview. Colours come from the page's own text colour (currentColor), so it
+ * follows your dark / light theme. To use a specific token instead, set
+ * --hl-fg below, e.g.  --hl-fg: var(--text);
+ * ──────────────────────────────────────────────────────────────────────────── */
+
+.section {
+  /* --hl-fg: var(--text); */
+  position: relative;
+  isolation: isolate; /* the dot background sits behind everything in this section */
+  padding: clamp(72px, 9vw, 104px) 0 clamp(24px, 4vw, 40px);
+  color: var(--hl-fg, inherit);
+}
+
+.inner {
+  width: 100%;
+  box-sizing: border-box;
+  padding-inline: clamp(20px, 4vw, 52px);
+}
+
+.title {
+  max-width: 13em;
+  margin: 0;
+  font-family: "Kaushan Script", "Brush Script MT", cursive;
+  font-size: clamp(34px, 4.6vw, 56px);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: 0;
+}
+
+.lead {
+  max-width: 46ch;
+  margin: 16px 0 0;
+  font-size: clamp(14px, 1.2vw, 16px);
+  line-height: 1.6;
+  opacity: 0.62;
+}
+
+/* ── the list of notes (numbers match the chips floating on the towers) ──── */
+.stageWrap {
+  position: relative;
+}
+
+/* same list look on every screen: number on the left, title + sentence on the
+   right, thin line between the rows (no boxes) */
+.legend {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.legendItem {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: 14px;
+  row-gap: 2px;
+  padding: 12px 0;
+  border-top: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+}
+.legendNum {
+  grid-row: 1 / span 2;
+  padding-top: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  opacity: 0.55;
+}
+.legendTitle {
+  font-size: 14px;
+  font-weight: 750;
+}
+.legendText {
+  grid-column: 2;
+  font-size: 12.5px;
+  line-height: 1.45;
+  opacity: 0.62;
+}
+
+/* tablets: two columns so the list stays short */
+@media (min-width: 641px) {
+  .legend {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 36px;
+  }
+}
+
+/* wide screens: the title sits top-left, the list right under it (same left
+   column, normal flow, so they can never overlap), and the 3D stage fills the
+   whole section height behind / beside them. The scene shifts right to make
+   room (see wideLeft in highlightConfig.ts), so the section fits the browser
+   window. Sizes follow the window height too, so short windows stay tidy.
+   Falls back to the plain stacked layout without WebGL. */
+@media (min-width: 1100px) {
+  .section:not(.noGl) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    row-gap: 24px;
+    padding-top: 88px;
+    padding-bottom: 20px;
+  }
+  .section:not(.noGl) .head {
+    grid-area: 1 / 1;
+    align-self: start;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .section:not(.noGl) .head > * {
+    pointer-events: auto;
+  }
+  .section:not(.noGl) .stageBox {
+    grid-area: 1 / 1 / 3 / 2;
+  }
+  .section:not(.noGl) .legendBox {
+    grid-area: 2 / 1;
+    align-self: end;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .section:not(.noGl) .legend {
+    width: min(340px, 30%);
+    margin: 0;
+    grid-template-columns: minmax(0, 1fr);
+    pointer-events: auto;
+  }
+  .section:not(.noGl) .title {
+    font-size: clamp(34px, min(4.6vw, 8vh), 56px);
+  }
+  .section:not(.noGl) .lead {
+    margin-top: clamp(10px, 2vh, 16px);
+    font-size: clamp(13px, min(1.2vw, 2.2vh), 16px);
+  }
+  .section:not(.noGl) .legendItem {
+    padding: clamp(6px, 1.3vh, 11px) 0;
+  }
+}
+
+/* phones: same list, just a little tighter so the page stays short */
+@media (max-width: 640px) {
+  .section {
+    padding-top: 72px;
+    padding-bottom: 20px;
+  }
+  .lead {
+    margin-top: 12px;
+  }
+  .legend {
+    margin-top: 2px;
+  }
+  .legendItem {
+    padding: 9px 0;
+    column-gap: 12px;
+  }
+  .legendTitle {
+    font-size: 13.5px;
+  }
+  .legendText {
+    font-size: 12px;
+  }
+}
