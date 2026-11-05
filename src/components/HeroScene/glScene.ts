@@ -147,7 +147,7 @@ void main() {
   // billboard text wipes in left → right, line after line
   if (uWipe < 1.5) {
     float th = uWipe * 1.45 - vUV.y * 0.3;
-    c.a *= smoothstep(th, th - 0.05, vUV.x);
+    c.a *= 1.0 - smoothstep(th - 0.05, th, vUV.x);
   }
   float fog = smoothstep(uFog.x, uFog.y, vW) * 0.85;
   vec3 rgb = mix(c.rgb, uBg, fog);
@@ -225,7 +225,7 @@ in float vA;
 out vec4 outColor;
 void main() {
   float r = length(gl_PointCoord * 2.0 - 1.0);
-  float a = smoothstep(1.0, 0.35, r);                 // small soft round dot
+  float a = 1.0 - smoothstep(0.35, 1.0, r);                 // small soft round dot
   outColor = vec4(uColor, a * vA * uAlpha);
 }`;
 
@@ -909,6 +909,7 @@ export function createScene(
     g.viewport(0, 0, canvas.width, canvas.height);
     const bg = BG[shown];
     g.clearColor(bg[0], bg[1], bg[2], 1);
+    g.depthMask(true); // clear() ignores the depth buffer while depthMask is false
     g.clear(g.COLOR_BUFFER_BIT | g.DEPTH_BUFFER_BIT);
     if (t < 0) return;
 
@@ -1085,7 +1086,13 @@ export function createScene(
   };
   const onRestored = () => {
     release();
-    if (canvases) build(canvases);
+    theme = readTheme();
+    try {
+      if (canvases) build(canvases);
+    } catch (err) {
+      fail(err);
+      return;
+    }
     start();
   };
   canvas.addEventListener("webglcontextlost", onLost);
@@ -1175,14 +1182,44 @@ export function createScene(
   }
 
   /* textures are drawn during the loader; the reveal waits for them */
+  /** the 3D scene could not be built on this device: say why (console, and on
+   *  screen with ?debug), clean up, and let the page show its text anyway */
+  function fail(err: unknown) {
+    console.error("[HeroScene] 3D scene failed:", err);
+    try {
+      release();
+    } catch {
+      /* ignore */
+    }
+    paintHost(readTheme()); // never leave a white / wrong box behind
+    if (host && /[?&]debug/.test(window.location.search)) {
+      const d = document.createElement("pre");
+      d.style.cssText =
+        "position:absolute;left:8px;right:8px;top:70px;z-index:5;margin:0;padding:8px;" +
+        "font:11px/1.35 monospace;white-space:pre-wrap;color:#fff;background:#b00020;";
+      d.textContent =
+        "HeroScene error: " + String((err as Error)?.stack || err);
+      host.appendChild(d);
+    }
+    if (!started) {
+      started = true;
+      opts.onStart?.();
+    }
+  }
+
   buildCanvases(lite, BILLBOARD.len, BILLBOARD.h, () => theme)
     .then((c) => {
       if (disposed) return;
       canvases = c;
-      build(c);
+      try {
+        build(c);
+      } catch (err) {
+        fail(err);
+        return;
+      }
       tryStart();
     })
-    .catch(() => undefined);
+    .catch((err) => fail(err));
 
   let started = false;
   function tryStart() {
@@ -1191,6 +1228,7 @@ export function createScene(
     // wait two painted frames so nothing hitches when the animation begins
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
+        applyTheme(readTheme()); // page theme may have been set after the scene was created
         t0 = reduced ? performance.now() - 60_000 : performance.now();
         opts.onStart?.();
         start();
