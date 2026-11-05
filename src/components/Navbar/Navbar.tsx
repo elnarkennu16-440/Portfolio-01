@@ -181,6 +181,85 @@ const computeCenterRect = (): LogoHandoffRect => {
   };
 };
 
+/* =========================================================================
+   EXACT SCROLL TO A STICKY-STACKED SECTION (used by the ABOUT link)
+   About is `position: sticky; top: 0` inside its own track (#about in App.tsx),
+   and it is only fully "settled" (flat corners, no hero showing) once the page
+   has scrolled to the TOP of that track. A plain `href="#about"` jump can stop
+   short (scroll-padding / scroll-margin from the page CSS, or the layout moving
+   while it scrolls), which left About stuck ~100px low with rounded corners.
+   window.scrollTo(top) ignores scroll-padding, and after the scroll ends we
+   re-measure once and snap the last few pixels if it still landed short.
+   ========================================================================= */
+const scrollToSectionTop = (id: string) => {
+  const el = document.getElementById(id);
+  if (!el) return false;
+
+  const reduce =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // clientTop = the section's own top border (Professional Overview has a 1px
+  // hairline), so its pinned stage starts flush with the top of the screen.
+  const targetTop = () =>
+    Math.max(
+      0,
+      Math.round(
+        el.getBoundingClientRect().top + window.scrollY + el.clientTop,
+      ),
+    );
+
+  window.scrollTo({
+    top: targetTop(),
+    left: 0,
+    behavior: reduce ? "auto" : "smooth",
+  });
+
+  // Wait until the scroll has stopped, then correct any leftover offset.
+  let raf = 0;
+  let last = window.scrollY;
+  let still = 0;
+  let frames = 0;
+  const stop = () => {
+    cancelAnimationFrame(raf);
+    window.removeEventListener("wheel", stop);
+    window.removeEventListener("touchstart", stop);
+    window.removeEventListener("keydown", stop);
+  };
+  const tick = () => {
+    frames += 1;
+    const y = window.scrollY;
+    still = Math.abs(y - last) < 0.5 ? still + 1 : 0;
+    last = y;
+    if (still >= 8 || frames > 180) {
+      stop();
+      if (Math.abs(window.scrollY - targetTop()) > 2) {
+        window.scrollTo({
+          top: targetTop(),
+          left: 0,
+          behavior: "instant" as ScrollBehavior,
+        });
+      }
+      return;
+    }
+    raf = requestAnimationFrame(tick);
+  };
+  // If the visitor scrolls by hand meanwhile, do not fight them.
+  window.addEventListener("wheel", stop, { passive: true });
+  window.addEventListener("touchstart", stop, { passive: true });
+  window.addEventListener("keydown", stop);
+  raf = requestAnimationFrame(tick);
+  return true;
+};
+
+/** Nav links that land with the exact scroll above (both are pinned / stacked sections). */
+const EXACT_SCROLL_IDS = ["about", "professional-overview"];
+
+/** Returns the section id when this nav item should use the exact scroll, else null. */
+const exactScrollTarget = (item: { id: string; href?: string }) => {
+  const key = item.href?.startsWith("#") ? item.href.slice(1) : item.id;
+  return EXACT_SCROLL_IDS.includes(key) ? key : null;
+};
+
 export const Navbar: React.FC<NavbarProps> = ({
   theme,
   onToggleTheme,
@@ -491,6 +570,32 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
+  // Logo click -> go to the very top of the page (= the top of the hero).
+  // Why not just href="#hero"? The hero is `position: sticky; top: 0`, so while
+  // you are scrolled down it is already "stuck" at the top of the screen and the
+  // browser thinks it is in place: the jump falls short / does nothing.
+  // The hero is pulled up under the navbar (negative margin-top) so it starts at
+  // document y = 0, so scrolling to 0 lands exactly on the hero.
+  const handleBrandClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    if (mobileMenuOpen) setMobileMenuOpen(false);
+    const reduce =
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, left: 0, behavior: reduce ? "auto" : "smooth" });
+  };
+
+  // ABOUT / PROFESSIONAL OVERVIEW links (desktop + mobile drawer): land exactly on
+  // the top of the section. If the section is missing for any reason, the normal
+  // anchor jump still runs.
+  const handleExactScroll = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    id: string,
+  ) => {
+    handleNavClick();
+    if (scrollToSectionTop(id)) e.preventDefault();
+  };
+
   return (
     <>
       <header ref={headerRef} className={`${styles.header} ${revealClass}`}>
@@ -511,6 +616,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Brand Logo Zone */}
           <a
             href="#hero"
+            onClick={handleBrandClick}
             className={styles.brand}
             aria-label={`${siteContent.meta.name} Portfolio Homepage`}
           >
@@ -559,7 +665,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                             aria-current={isActive ? "page" : undefined}
                             aria-haspopup="menu"
                             aria-expanded={desktopDropdownOpen}
-                            onClick={handleCloseDropdownImmediately}
+                            onClick={(e) => {
+                              handleCloseDropdownImmediately();
+                              const id = exactScrollTarget(item);
+                              if (id) handleExactScroll(e, id);
+                            }}
                           >
                             <span>{item.label}</span>
                             <svg
@@ -683,6 +793,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                         href={item.href}
                         className={`${styles.navLink} ${isActive ? styles.navLinkActive : ""}`}
                         aria-current={isActive ? "page" : undefined}
+                        onClick={(e) => {
+                          const id = exactScrollTarget(item);
+                          if (id) handleExactScroll(e, id);
+                        }}
                       >
                         {item.label}
                       </a>
@@ -773,7 +887,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <a
                     href={item.href}
                     className={styles.mobileNavLink}
-                    onClick={handleNavClick}
+                    onClick={(e) => {
+                      const id = exactScrollTarget(item);
+                      if (id) handleExactScroll(e, id);
+                      else handleNavClick();
+                    }}
                   >
                     <div className={styles.mobileNavRow}>
                       <span className={styles.mobileNavText}>{item.label}</span>
