@@ -1,28 +1,36 @@
 /* ────────────────────────────────────────────────────────────────────────────
- * ABOUT CAT — a realistic, lying cat (round-faced British Shorthair type, like the
- * reference photo): body in profile, head raised and turned to the viewer, front
- * paws stretched out, hind paws tucked, thick tail curled around in front.
+ * ABOUT CAT — the cat on the near sidewalk, in its own file.
  *
- * How it is made (no model files, no libraries):
- *   1. the cat is described as smooth blended shapes (a "signed distance field"):
- *      torso, chest, haunches, thighs, legs, round paws with toes, a big round head
- *      with full cheeks, two puffy whisker pads, a nose, small ears, and the tail.
- *   2. a little fur noise is added to the surface (strands run head -> tail).
- *   3. the field is turned into a smooth mesh (surface nets) at a fine grid.
- *   4. the light is baked into the vertex colours: soft key light, rim light,
- *      fur sheen, strand-by-strand fur variation and ambient occlusion
- *      (darker in the creases and where the cat touches the ground).
- * It is built ONCE, in small steps while the browser is idle (the same way the
- * textures are), and shared if the scene is rebuilt.
+ * A chubby black British Shorthair LYING down, built like a 3D-sculpt figure
+ * (not a few low-poly blobs): the shape is a signed-distance model — soft,
+ * blended ellipsoids + round cones (rump, back, shoulders, big round head with
+ * full cheeks, small ears, muzzle, chin, nose, stretched front legs with toes,
+ * two tucked hind paws with toe beans + pad, thick curled tail). That model is
+ * turned into a smooth mesh ONCE (surface nets, ~25k triangles) and lit with
+ * baked light: soft key + fill + rim + ambient occlusion + a little fur bump.
+ * White eyes sit in soft sockets.
  *
- * Local axes: x → toward the head, y → up, z → toward the viewer (the flank you see).
- * Feet / belly touch y = 0. Same animation hooks as before: head (turns), eyes (blink),
- * tail (sways), each with its own pivot.
- * The face details (plain white eyes, nose, "w" mouth, tongue) are small shapes that
- * lie on the skin of the head, see faceMeshes() and FACE below.
+ * Public contract (the same as the previous aboutCat.ts, so aboutGl.ts is unchanged):
+ *   buildCat(lite: boolean): Promise<CatGeo>
+ *   CatGeo = { body, head, eyes, tail, headPivot, tailPivot, eyesPivot }
+ * The head turns around headPivot, the eyes blink around eyesPivot, the tail
+ * sways around tailPivot. Position / size come from CAT in aboutSceneConfig.ts
+ * (local coords: feet at y = 0, the head looks toward +z = the viewer).
+ *
+ * The mesh is generated in small time slices (never one long block), started a
+ * moment after load while the browser is idle; buildCat() joins that same job
+ * (and speeds it up) if the scene asks for the cat earlier. Built once, shared.
  * ──────────────────────────────────────────────────────────────────────────── */
 
-import { MeshBuilder, RGBA, V3 } from "./aboutGlUtils";
+import { MeshBuilder, RGBA, V2, V3 } from "./aboutGlUtils";
+
+/** the coat. Black by default (same two names as before: COAT / COAT_GRAY).
+ *  gain = overall brightness of the fur, cap = the brightest the fur can get (0-255). */
+const COAT_BLACK = { gain: 1, cap: 124 };
+/** light grey "British blue" like the reference photo */
+export const COAT_GRAY = { gain: 3.4, cap: 235 };
+/** which coat is used: COAT_BLACK (your black cat) or COAT_GRAY (the grey one in the photo) */
+export const COAT = COAT_BLACK;
 
 export interface CatGeo {
   body: MeshBuilder;
@@ -34,116 +42,780 @@ export interface CatGeo {
   eyesPivot: V3;
 }
 
-/* ── tweak freely ───────────────────────────────────────────────────────── */
-/** the coat. Black cat by default. For a grey / "British blue" cat like the photo, multiply
- *  ambient / diffuse / rim / sheen by about 3.5 and raise cap to 230. */
-const COAT_BLACK = {
-  ambient: 10,
-  diffuse: 52,
-  rim: 44,
-  sheen: 30,
-  cap: 155,
-  furContrast: 0.3, // strand-by-strand brightness variation
-};
-/** light grey "British blue" like the reference photo */
-export const COAT_GRAY = {
-  ambient: 38,
-  diffuse: 150,
-  rim: 70,
-  sheen: 40,
-  cap: 235,
-  furContrast: 0.22,
-};
-/** which coat is used: COAT_BLACK (your black cat) or COAT_GRAY (the grey one in the photo) */
-export const COAT = COAT_BLACK;
-/** overall size of the model (the scene scales it again with CAT.scale) */
-const FIT = 0.78;
-/** size of one voxel of the mesh grid (metres, before FIT). Smaller = finer fur, more triangles */
-const VOXEL = 0.03;
-const VOXEL_LITE = 0.045;
+/* ════════════════════════════════════════════════════════════════════════════
+ * 1 · SHAPE — signed-distance primitives
+ * ════════════════════════════════════════════════════════════════════════════ */
 
-/** the face (offsets from the head centre H, in model metres) */
-const FACE = {
-  eyeX: 0.13, // eye centre: sideways from the middle of the face
-  eyeY: 0.04, // eye centre: up from the head centre
-  eyeRX: 0.058, // eye half width
-  eyeRY: 0.046, // eye half height
-  eyeTilt: 0.09, // outer corners a touch higher (radians)
-  eyeBulge: 0.024, // how far the white eye domes out of the skin
-  noseY: -0.026, // nose centre: up from the head centre
-  tongue: true, // the little tongue (like the reference); false hides it
+const BIG = 1;
+const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+const smoothstep = (a: number, b: number, v: number) => {
+  const t = clamp01((v - a) / (b - a));
+  return t * t * (3 - 2 * t);
 };
+const now = () =>
+  typeof performance !== "undefined" ? performance.now() : Date.now();
 
-/* ── small maths ────────────────────────────────────────────────────────── */
-type SDF = (x: number, y: number, z: number) => number;
-const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
-
-/** smooth union (blends two shapes into one skin) */
+/** soft union / soft subtraction (polynomial smooth-min) */
 const smin = (a: number, b: number, k: number) => {
+  if (k <= 0) return a < b ? a : b;
   const h = Math.max(k - Math.abs(a - b), 0) / k;
   return Math.min(a, b) - h * h * k * 0.25;
 };
-const ell =
-  (
-    cx: number,
-    cy: number,
-    cz: number,
-    rx: number,
-    ry: number,
-    rz: number,
-  ): SDF =>
-  (x, y, z) => {
-    const px = (x - cx) / rx;
-    const py = (y - cy) / ry;
-    const pz = (z - cz) / rz;
-    const k0 = Math.hypot(px, py, pz);
-    const k1 = Math.hypot(px / rx, py / ry, pz / rz);
-    return k1 < 1e-9 ? -Math.min(rx, ry, rz) : (k0 * (k0 - 1)) / k1;
-  };
+const smax = (a: number, b: number, k: number) => -smin(-a, -b, k);
 
-/** squash a shape flat along z (thin, pointed ears) */
-const flatZ =
-  (f: SDF, k: number, zc: number): SDF =>
-  (x, y, z) =>
-    f(x, y, (z - zc) * k);
+interface Op {
+  t: 0 | 1 | 2; // 0 ellipsoid · 1 round cone · 2 tube (polyline with radii)
+  add: boolean; // false = carve away
+  k: number; // blend size with what came before
+  cx: number; // bounding sphere
+  cy: number;
+  cz: number;
+  R: number;
+  // ellipsoid
+  rx: number;
+  ry: number;
+  rz: number;
+  m: number[]; // world → local rotation (3×3, row major)
+  // round cone
+  ax: number;
+  ay: number;
+  az: number;
+  bax: number;
+  bay: number;
+  baz: number;
+  l2: number;
+  rr: number;
+  a2: number;
+  il2: number;
+  r1: number;
+  r2: number;
+  fz: number; // flatten along z (ears)
+  // tube
+  tp: number[];
+  tr: number[];
+}
 
-/** capsule between two points, thick at a, thinner at b (legs, tail) */
-const seg = (a: V3, b: V3, ra: number, rb: number): SDF => {
-  const bax = b[0] - a[0];
-  const bay = b[1] - a[1];
-  const baz = b[2] - a[2];
-  const bb = bax * bax + bay * bay + baz * baz || 1;
-  return (x, y, z) => {
-    const pax = x - a[0];
-    const pay = y - a[1];
-    const paz = z - a[2];
-    const h = clamp((pax * bax + pay * bay + paz * baz) / bb, 0, 1);
-    return (
-      Math.hypot(pax - bax * h, pay - bay * h, paz - baz * h) -
-      (ra + (rb - ra) * h)
+const blank = (t: Op["t"], add: boolean, k: number): Op => ({
+  t,
+  add,
+  k,
+  cx: 0,
+  cy: 0,
+  cz: 0,
+  R: 0,
+  rx: 1,
+  ry: 1,
+  rz: 1,
+  m: [1, 0, 0, 0, 1, 0, 0, 0, 1],
+  ax: 0,
+  ay: 0,
+  az: 0,
+  bax: 0,
+  bay: 0,
+  baz: 0,
+  l2: 1,
+  rr: 0,
+  a2: 1,
+  il2: 1,
+  r1: 0,
+  r2: 0,
+  fz: 1,
+  tp: [],
+  tr: [],
+});
+
+const mm = (a: number[], b: number[]): number[] => {
+  const o = new Array<number>(9).fill(0);
+  for (let r = 0; r < 3; r++)
+    for (let c = 0; c < 3; c++)
+      for (let k = 0; k < 3; k++) o[r * 3 + c] += a[r * 3 + k] * b[k * 3 + c];
+  return o;
+};
+/** world → local for an ellipsoid turned by (x, y, z) degrees */
+const rotInv = (ex: number, ey: number, ez: number): number[] => {
+  const d = Math.PI / 180;
+  const [cx, sx] = [Math.cos(ex * d), Math.sin(ex * d)];
+  const [cy, sy] = [Math.cos(ey * d), Math.sin(ey * d)];
+  const [cz, sz] = [Math.cos(ez * d), Math.sin(ez * d)];
+  const Rx = [1, 0, 0, 0, cx, -sx, 0, sx, cx];
+  const Ry = [cy, 0, sy, 0, 1, 0, -sy, 0, cy];
+  const Rz = [cz, -sz, 0, sz, cz, 0, 0, 0, 1];
+  const R = mm(Rz, mm(Ry, Rx));
+  return [R[0], R[3], R[6], R[1], R[4], R[7], R[2], R[5], R[8]];
+};
+
+/** soft ellipsoid: centre, radii, blend, tilt (deg) */
+const E = (c: V3, r: V3, k = 0.05, rot: V3 = [0, 0, 0], add = true): Op => {
+  const o = blank(0, add, k);
+  [o.cx, o.cy, o.cz] = c;
+  [o.rx, o.ry, o.rz] = r;
+  o.R = Math.max(r[0], r[1], r[2]);
+  o.m = rotInv(rot[0], rot[1], rot[2]);
+  return o;
+};
+
+/** round cone from a to b (radius r1 → r2); fz < 1 flattens it along z */
+const C = (
+  a: V3,
+  b: V3,
+  r1: number,
+  r2: number,
+  k = 0.05,
+  fz = 1,
+  add = true,
+): Op => {
+  const o = blank(1, add, k);
+  [o.ax, o.ay, o.az] = a;
+  o.bax = b[0] - a[0];
+  o.bay = b[1] - a[1];
+  o.baz = b[2] - a[2];
+  o.l2 = o.bax * o.bax + o.bay * o.bay + o.baz * o.baz;
+  o.rr = r1 - r2;
+  o.a2 = o.l2 - o.rr * o.rr;
+  o.il2 = 1 / o.l2;
+  o.r1 = r1;
+  o.r2 = r2;
+  o.fz = fz;
+  o.cx = (a[0] + b[0]) / 2;
+  o.cy = (a[1] + b[1]) / 2;
+  o.cz = (a[2] + b[2]) / 2;
+  o.R = 0.5 * Math.sqrt(o.l2) + Math.max(r1, r2);
+  return o;
+};
+
+/** tube along a polyline, radius per point (tail) */
+const Tb = (pts: V3[], radii: number[], k = 0.05): Op => {
+  const o = blank(2, true, k);
+  o.tr = radii;
+  let lo: V3 = [1e9, 1e9, 1e9];
+  let hi: V3 = [-1e9, -1e9, -1e9];
+  for (const p of pts) {
+    o.tp.push(p[0], p[1], p[2]);
+    lo = [Math.min(lo[0], p[0]), Math.min(lo[1], p[1]), Math.min(lo[2], p[2])];
+    hi = [Math.max(hi[0], p[0]), Math.max(hi[1], p[1]), Math.max(hi[2], p[2])];
+  }
+  o.cx = (lo[0] + hi[0]) / 2;
+  o.cy = (lo[1] + hi[1]) / 2;
+  o.cz = (lo[2] + hi[2]) / 2;
+  o.R =
+    0.5 * Math.hypot(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) +
+    Math.max(...radii);
+  return o;
+};
+
+function shape(o: Op, x: number, y: number, z: number): number {
+  if (o.t === 0) {
+    const dx = x - o.cx;
+    const dy = y - o.cy;
+    const dz = z - o.cz;
+    const m = o.m;
+    const lx = m[0] * dx + m[1] * dy + m[2] * dz;
+    const ly = m[3] * dx + m[4] * dy + m[5] * dz;
+    const lz = m[6] * dx + m[7] * dy + m[8] * dz;
+    const ax = lx / o.rx;
+    const ay = ly / o.ry;
+    const az = lz / o.rz;
+    const k0 = Math.sqrt(ax * ax + ay * ay + az * az);
+    const bx = ax / o.rx;
+    const by = ay / o.ry;
+    const bz = az / o.rz;
+    const k1 = Math.sqrt(bx * bx + by * by + bz * bz);
+    return k1 < 1e-9 ? -Math.min(o.rx, o.ry, o.rz) : (k0 * (k0 - 1)) / k1;
+  }
+  if (o.t === 1) {
+    // round cone (iq), optionally flattened along z
+    const zz0 = o.fz === 1 ? z : o.cz + (z - o.cz) / o.fz;
+    const pax = x - o.ax;
+    const pay = y - o.ay;
+    const paz = zz0 - o.az;
+    const yy = pax * o.bax + pay * o.bay + paz * o.baz;
+    const zz = yy - o.l2;
+    const qx = pax * o.l2 - o.bax * yy;
+    const qy = pay * o.l2 - o.bay * yy;
+    const qz = paz * o.l2 - o.baz * yy;
+    const x2 = qx * qx + qy * qy + qz * qz;
+    const y2 = yy * yy * o.l2;
+    const z2 = zz * zz * o.l2;
+    const kk = Math.sign(o.rr) * o.rr * o.rr * x2;
+    let d: number;
+    if (Math.sign(zz) * o.a2 * z2 > kk) d = Math.sqrt(x2 + z2) * o.il2 - o.r2;
+    else if (Math.sign(yy) * o.a2 * y2 < kk)
+      d = Math.sqrt(x2 + y2) * o.il2 - o.r1;
+    else d = (Math.sqrt(x2 * o.a2 * o.il2) + yy * o.rr) * o.il2 - o.r1;
+    return d * o.fz;
+  }
+  // tube
+  let best = 1e9;
+  const tp = o.tp;
+  const tr = o.tr;
+  for (let i = 0; i + 1 < tr.length; i++) {
+    const ax = tp[i * 3];
+    const ay = tp[i * 3 + 1];
+    const az = tp[i * 3 + 2];
+    const bx = tp[i * 3 + 3] - ax;
+    const by = tp[i * 3 + 4] - ay;
+    const bz = tp[i * 3 + 5] - az;
+    const px = x - ax;
+    const py = y - ay;
+    const pz = z - az;
+    const h = clamp01(
+      (px * bx + py * by + pz * bz) / (bx * bx + by * by + bz * bz),
     );
+    const ex = px - bx * h;
+    const ey = py - by * h;
+    const ez = pz - bz * h;
+    const d =
+      Math.sqrt(ex * ex + ey * ey + ez * ez) -
+      (tr[i] + (tr[i + 1] - tr[i]) * h);
+    if (d < best) best = d;
+  }
+  return best;
+}
+
+/* ── a part (one mesh) = ordered list of ops, evaluated with a spatial index ── */
+interface Part {
+  ops: Op[];
+  floor: boolean; // cut flat just under the ground (it is hidden by the street)
+}
+
+function evalList(
+  part: Part,
+  list: ArrayLike<number>,
+  x: number,
+  y: number,
+  z: number,
+) {
+  let d = BIG;
+  for (let n = 0; n < list.length; n++) {
+    const o = part.ops[list[n]];
+    const s = shape(o, x, y, z);
+    d = o.add ? smin(d, s, o.k) : smax(d, -s, o.k);
+  }
+  if (part.floor) d = Math.max(d, -(y + 0.012));
+  return d;
+}
+
+/** brute-force evaluation (only used for a handful of one-off queries) */
+function evalSlow(part: Part, x: number, y: number, z: number) {
+  const all = part.ops.map((_, i) => i);
+  return evalList(part, all, x, y, z);
+}
+
+const BLOCK = 8; // cells per block
+
+interface Field {
+  part: Part;
+  x0: number;
+  y0: number;
+  z0: number;
+  h: number;
+  nx: number;
+  ny: number;
+  nz: number;
+  bnx: number;
+  bny: number;
+  bnz: number;
+  lists: number[][];
+  vals: Float32Array;
+}
+
+function makeField(part: Part, h: number): Field {
+  let lo: V3 = [1e9, 1e9, 1e9];
+  let hi: V3 = [-1e9, -1e9, -1e9];
+  for (const o of part.ops) {
+    if (!o.add) continue;
+    const r = o.R + 0.03;
+    lo = [
+      Math.min(lo[0], o.cx - r),
+      Math.min(lo[1], o.cy - r),
+      Math.min(lo[2], o.cz - r),
+    ];
+    hi = [
+      Math.max(hi[0], o.cx + r),
+      Math.max(hi[1], o.cy + r),
+      Math.max(hi[2], o.cz + r),
+    ];
+  }
+  if (part.floor) lo[1] = Math.max(lo[1], -0.03);
+  const nx = Math.ceil((hi[0] - lo[0]) / h);
+  const ny = Math.ceil((hi[1] - lo[1]) / h);
+  const nz = Math.ceil((hi[2] - lo[2]) / h);
+  const bnx = Math.ceil(nx / BLOCK);
+  const bny = Math.ceil(ny / BLOCK);
+  const bnz = Math.ceil(nz / BLOCK);
+  const lists: number[][] = [];
+  const bs = BLOCK * h;
+  const br = bs * 0.8661; // half the block diagonal
+  for (let bk = 0; bk < bnz; bk++)
+    for (let bj = 0; bj < bny; bj++)
+      for (let bi = 0; bi < bnx; bi++) {
+        const cx = lo[0] + (bi + 0.5) * bs;
+        const cy = lo[1] + (bj + 0.5) * bs;
+        const cz = lo[2] + (bk + 0.5) * bs;
+        const list: number[] = [];
+        part.ops.forEach((o, n) => {
+          const reach = o.R + o.k + 0.05 + br;
+          const dx = cx - o.cx;
+          const dy = cy - o.cy;
+          const dz = cz - o.cz;
+          if (dx * dx + dy * dy + dz * dz <= reach * reach) list.push(n);
+        });
+        lists.push(list);
+      }
+  const vals = new Float32Array((nx + 1) * (ny + 1) * (nz + 1)).fill(BIG);
+  return {
+    part,
+    x0: lo[0],
+    y0: lo[1],
+    z0: lo[2],
+    h,
+    nx,
+    ny,
+    nz,
+    bnx,
+    bny,
+    bnz,
+    lists,
+    vals,
   };
+}
+
+/** distance at any point (uses the block's short op list) */
+function sdf(f: Field, x: number, y: number, z: number) {
+  const bs = BLOCK * f.h;
+  let bi = Math.floor((x - f.x0) / bs);
+  let bj = Math.floor((y - f.y0) / bs);
+  let bk = Math.floor((z - f.z0) / bs);
+  bi = bi < 0 ? 0 : bi >= f.bnx ? f.bnx - 1 : bi;
+  bj = bj < 0 ? 0 : bj >= f.bny ? f.bny - 1 : bj;
+  bk = bk < 0 ? 0 : bk >= f.bnz ? f.bnz - 1 : bk;
+  return evalList(f.part, f.lists[(bk * f.bny + bj) * f.bnx + bi], x, y, z);
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * 2 · THE CAT — every number below is a piece of the sculpt
+ *     (local coords: feet y = 0, nose toward +z, body runs along x, head at +x)
+ * ════════════════════════════════════════════════════════════════════════════ */
+
+const HX = 0.48; // head centre x
+const HY = 0.64; // head centre y
+const HZ = 0.11; // head centre z
+const EYE_Y = 0.662;
+const EYE_DX = 0.094;
+
+/** places that get a lighter "pad" tone (nose, sole pads) and the inner ears */
+interface Tone {
+  c: V3;
+  r: V3;
+  kind: "pad" | "ear";
+}
+
+interface Model {
+  body: Part;
+  head: Part;
+  tail: Part;
+  tones: Tone[];
+  eyeZ: [number, number]; // where the face surface is at each eye (before the sockets)
+}
+
+function hindPaw(
+  x: number,
+  y: number,
+  z: number,
+  from: V3,
+  tones: Tone[],
+): Op[] {
+  // sole toward the viewer: four toe beans on top, one big pad below
+  const toe = (dx: number, dy: number, dz: number) =>
+    E([x + dx, y + dy, z + dz], [0.022, 0.026, 0.02], 0.008);
+  tones.push({
+    c: [x, y - 0.012, z + 0.04],
+    r: [0.04, 0.032, 0.03],
+    kind: "pad",
+  });
+  return [
+    C(from, [x, y + 0.012, z - 0.03], 0.085, 0.07, 0.05),
+    E([x, y, z], [0.07, 0.074, 0.05], 0.03),
+    toe(-0.047, 0.056, 0.028),
+    toe(-0.016, 0.07, 0.034),
+    toe(0.016, 0.07, 0.034),
+    toe(0.047, 0.056, 0.028),
+    E([x, y - 0.012, z + 0.04], [0.036, 0.028, 0.016], 0.01),
+  ];
+}
+
+function frontPaw(from: V3, wrist: V3, paw: V3, toes: V3[], r1: number): Op[] {
+  return [
+    C(from, wrist, r1, 0.074, 0.06),
+    E(paw, [0.088, 0.054, 0.07], 0.03),
+    ...toes.map((t) => E(t, [0.032, 0.03, 0.028], 0.01)),
+  ];
+}
+
+function tailPath(): { pts: V3[]; radii: number[] } {
+  const pts: V3[] = [];
+  const radii: number[] = [];
+  const N = 24;
+  const cx = -0.62; // centre of the curl
+  const cz = 0.3;
+  const R = 0.275;
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    const a = ((-90 - 188 * t) * Math.PI) / 180;
+    const r = 0.108 - 0.04 * Math.pow(t, 1.2); // thick root, rounded tip
+    const rest = r + 0.004; // lies on the ground
+    const y = 0.17 + (rest - 0.17) * smoothstep(0, 0.32, t);
+    pts.push([cx + R * Math.cos(a), y, cz + R * Math.sin(a)]);
+    radii.push(r);
+  }
+  return { pts, radii };
+}
+
+function surfaceZ(part: Part, x: number, y: number): number {
+  // walk from the front toward the head until we are inside, then bisect
+  let zo = 0.75;
+  let zi = HZ;
+  for (let z = 0.75; z > HZ; z -= 0.01) {
+    if (evalSlow(part, x, y, z) < 0) {
+      zi = z;
+      break;
+    }
+    zo = z;
+  }
+  for (let i = 0; i < 24; i++) {
+    const zm = (zo + zi) / 2;
+    if (evalSlow(part, x, y, zm) < 0) zi = zm;
+    else zo = zm;
+  }
+  return (zo + zi) / 2;
+}
+
+function buildModel(): Model {
+  const tones: Tone[] = [];
+
+  /* ── body: rump, back, shoulders, chest, belly, haunch, hind paws, front legs ── */
+  const body: Op[] = [
+    E([-0.45, 0.235, 0.0], [0.27, 0.235, 0.285], 0.1, [0, 0, -3]), // rump (lower than the back)
+    E([-0.13, 0.29, 0.0], [0.37, 0.285, 0.29], 0.11, [0, 0, 3]), // long back
+    E([0.22, 0.305, 0.06], [0.27, 0.29, 0.27], 0.11), // shoulders
+    E([0.4, 0.28, 0.12], [0.2, 0.27, 0.22], 0.08), // chest, under the chin
+    E([-0.1, 0.1, 0.04], [0.52, 0.115, 0.31], 0.07), // belly resting on the floor
+    E([-0.31, 0.215, 0.19], [0.19, 0.185, 0.14], 0.07), // near haunch
+    ...hindPaw(-0.337, 0.075, 0.335, [-0.33, 0.19, 0.2], tones),
+    ...hindPaw(-0.169, 0.088, 0.345, [-0.17, 0.2, 0.2], tones),
+    // near front leg: bent, paw right under the chin
+    ...frontPaw(
+      [0.33, 0.2, 0.25],
+      [0.46, 0.06, 0.33],
+      [0.5, 0.052, 0.335],
+      [
+        [0.552, 0.045, 0.372],
+        [0.578, 0.045, 0.338],
+        [0.578, 0.045, 0.3],
+      ],
+      0.112,
+    ),
+    // far front leg: stretched out forward, paw to the right of the chin
+    ...frontPaw(
+      [0.36, 0.2, 0.05],
+      [0.7, 0.065, 0.1],
+      [0.78, 0.058, 0.105],
+      [
+        [0.858, 0.05, 0.065],
+        [0.866, 0.05, 0.105],
+        [0.858, 0.05, 0.145],
+      ],
+      0.112,
+    ),
+  ];
+
+  /* ── head: round skull, full cheeks, muzzle, chin, small ears, nose ── */
+  const headBase: Op[] = [
+    E([HX, HY, HZ], [0.272, 0.232, 0.25], 0), // skull
+    E([HX - 0.165, 0.572, 0.2], [0.136, 0.114, 0.128], 0.06), // cheek L
+    E([HX + 0.165, 0.572, 0.2], [0.136, 0.114, 0.128], 0.06), // cheek R
+    E([HX, 0.545, 0.312], [0.105, 0.068, 0.064], 0.04), // muzzle
+    E([HX - 0.048, 0.543, 0.32], [0.057, 0.047, 0.046], 0.02), // whisker pad L
+    E([HX + 0.048, 0.543, 0.32], [0.057, 0.047, 0.046], 0.02), // whisker pad R
+    E([HX, 0.462, 0.29], [0.07, 0.048, 0.05], 0.04), // chin
+    E([HX - 0.015, 0.42, 0.09], [0.19, 0.16, 0.17], 0.07), // neck (hidden in the chest)
+    C(
+      [HX - 0.178, 0.8, 0.075],
+      [HX - 0.205, 0.905, 0.078],
+      0.072,
+      0.013,
+      0.035,
+      0.42,
+    ), // ear L
+    C(
+      [HX + 0.178, 0.8, 0.075],
+      [HX + 0.205, 0.905, 0.078],
+      0.072,
+      0.013,
+      0.035,
+      0.42,
+    ), // ear R
+    E([HX, 0.6, 0.354], [0.033, 0.022, 0.02], 0.012), // nose
+  ];
+  tones.push({ c: [HX, 0.6, 0.354], r: [0.037, 0.027, 0.03], kind: "pad" });
+  // inner ears: a soft dent on the front of each ear
+  for (const s of [-1, 1]) {
+    headBase.push(
+      E(
+        [HX + s * 0.186, 0.845, 0.108],
+        [0.036, 0.052, 0.026],
+        0.02,
+        [0, 0, -s * 8],
+        false,
+      ),
+    );
+    tones.push({
+      c: [HX + s * 0.186, 0.845, 0.1],
+      r: [0.038, 0.054, 0.03],
+      kind: "ear",
+    });
+  }
+
+  // eye sockets: dented into the face where the eyes will sit
+  const preCarve: Part = { ops: headBase.slice(), floor: false };
+  const eyeZ: [number, number] = [
+    surfaceZ(preCarve, HX - EYE_DX, EYE_Y),
+    surfaceZ(preCarve, HX + EYE_DX, EYE_Y),
+  ];
+  const sockets = [-1, 1].map((s, i) =>
+    E(
+      [HX + s * EYE_DX, EYE_Y, eyeZ[i] + 0.024],
+      [0.054, 0.042, 0.04],
+      0.02,
+      [0, 0, 0],
+      false,
+    ),
+  );
+
+  /* ── tail: thick, tapering, curls round the rump toward the front ── */
+  const tp = tailPath();
+
+  return {
+    body: { ops: body, floor: true },
+    head: { ops: [...headBase, ...sockets], floor: false },
+    tail: { ops: [Tb(tp.pts, tp.radii, 0)], floor: true },
+    tones,
+    eyeZ,
+  };
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * 3 · MESH — surface nets over the distance field (done in small time slices)
+ * ════════════════════════════════════════════════════════════════════════════ */
+
+interface Pace {
+  last: number;
+  due(): boolean;
+  reset(): void;
+}
+const makePace = (ms: number): Pace => {
+  const p: Pace = {
+    last: now(),
+    due: () => now() - p.last > ms,
+    reset: () => {
+      p.last = now();
+    },
+  };
+  return p;
 };
 
-const blend =
-  (k: number, ...fs: SDF[]): SDF =>
-  (x, y, z) => {
-    let d = fs[0](x, y, z);
-    for (let i = 1; i < fs.length; i++) d = smin(d, fs[i](x, y, z), k);
-    return d;
-  };
+function* fillField(f: Field, pace: Pace): Generator<void, void, void> {
+  const { nx, ny, nz, h } = f;
+  const nxp = nx + 1;
+  const nyp = ny + 1;
+  for (let bk = 0; bk < f.bnz; bk++)
+    for (let bj = 0; bj < f.bny; bj++)
+      for (let bi = 0; bi < f.bnx; bi++) {
+        const list = f.lists[(bk * f.bny + bj) * f.bnx + bi];
+        if (!list.length) continue;
+        const i1 = Math.min((bi + 1) * BLOCK, nx);
+        const j1 = Math.min((bj + 1) * BLOCK, ny);
+        const k1 = Math.min((bk + 1) * BLOCK, nz);
+        for (let k = bk * BLOCK; k <= k1; k++)
+          for (let j = bj * BLOCK; j <= j1; j++)
+            for (let i = bi * BLOCK; i <= i1; i++)
+              f.vals[(k * nyp + j) * nxp + i] = evalList(
+                f.part,
+                list,
+                f.x0 + i * h,
+                f.y0 + j * h,
+                f.z0 + k * h,
+              );
+        if (pace.due()) {
+          yield;
+          pace.reset();
+        }
+      }
+}
 
-/* value noise (for the fur) */
-const hash = (i: number, j: number, k: number) => {
-  let n =
-    (Math.imul(i, 374761393) +
-      Math.imul(j, 668265263) +
-      Math.imul(k, 1274126177)) |
-    0;
-  n = Math.imul(n ^ (n >>> 13), 1274126177);
-  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+interface Mesh {
+  pos: number[]; // xyz per vertex
+  nrm: number[]; // unit normal per vertex
+  idx: number[]; // triangles
+}
+
+function* meshField(f: Field, pace: Pace): Generator<void, Mesh, void> {
+  const { nx, ny, nz, h, vals } = f;
+  const nxp = nx + 1;
+  const nyp = ny + 1;
+  const sy = nxp;
+  const sz = nxp * nyp;
+  const off = [0, 1, sy, 1 + sy, sz, 1 + sz, sy + sz, 1 + sy + sz];
+  const edges: [number, number][] = [];
+  for (let c = 0; c < 8; c++)
+    for (const b of [1, 2, 4]) if (!(c & b)) edges.push([c, c | b]);
+
+  const cellVert = new Int32Array(nx * ny * nz).fill(-1);
+  const cid = (i: number, j: number, k: number) => (k * ny + j) * nx + i;
+  const pos: number[] = [];
+  const nrm: number[] = [];
+  const idx: number[] = [];
+  const v = new Float32Array(8);
+  const eps = h * 0.4;
+
+  for (let k = 0; k < nz; k++) {
+    for (let j = 0; j < ny; j++)
+      for (let i = 0; i < nx; i++) {
+        const base = k * sz + j * sy + i;
+        let neg = 0;
+        for (let c = 0; c < 8; c++) {
+          v[c] = vals[base + off[c]];
+          if (v[c] < 0) neg++;
+        }
+        if (neg === 0 || neg === 8) continue;
+        let ax = 0;
+        let ay = 0;
+        let az = 0;
+        let cnt = 0;
+        for (const [a, b] of edges) {
+          if (v[a] < 0 === v[b] < 0) continue;
+          const t = v[a] / (v[a] - v[b]);
+          ax += (a & 1) + ((b & 1) - (a & 1)) * t;
+          ay += ((a >> 1) & 1) + (((b >> 1) & 1) - ((a >> 1) & 1)) * t;
+          az += ((a >> 2) & 1) + (((b >> 2) & 1) - ((a >> 2) & 1)) * t;
+          cnt++;
+        }
+        let px = f.x0 + (i + ax / cnt) * h;
+        let py = f.y0 + (j + ay / cnt) * h;
+        let pz = f.z0 + (k + az / cnt) * h;
+        // one Newton step onto the true surface (keeps toes / ears crisp)
+        const d = sdf(f, px, py, pz);
+        const gx =
+          (sdf(f, px + eps, py, pz) - sdf(f, px - eps, py, pz)) / (2 * eps);
+        const gy =
+          (sdf(f, px, py + eps, pz) - sdf(f, px, py - eps, pz)) / (2 * eps);
+        const gz =
+          (sdf(f, px, py, pz + eps) - sdf(f, px, py, pz - eps)) / (2 * eps);
+        const g2 = gx * gx + gy * gy + gz * gz;
+        if (g2 > 1e-8) {
+          let sx = (d * gx) / g2;
+          let sy2 = (d * gy) / g2;
+          let sz2 = (d * gz) / g2;
+          const sl = Math.sqrt(sx * sx + sy2 * sy2 + sz2 * sz2);
+          const lim = h * 0.6;
+          if (sl > lim) {
+            sx *= lim / sl;
+            sy2 *= lim / sl;
+            sz2 *= lim / sl;
+          }
+          px -= sx;
+          py -= sy2;
+          pz -= sz2;
+        }
+        const gl = Math.sqrt(g2) || 1;
+        cellVert[cid(i, j, k)] = pos.length / 3;
+        pos.push(px, py, pz);
+        nrm.push(gx / gl, gy / gl, gz / gl);
+      }
+    if (pace.due()) {
+      yield;
+      pace.reset();
+    }
+  }
+
+  // one quad around every grid edge that crosses the surface
+  const quad = (a: number, b: number, c: number, d: number) => {
+    if (a < 0 || b < 0 || c < 0 || d < 0) return;
+    idx.push(a, b, c, a, c, d);
+  };
+  for (let k = 0; k <= nz; k++)
+    for (let j = 0; j <= ny; j++)
+      for (let i = 0; i <= nx; i++) {
+        const here = vals[k * sz + j * sy + i] < 0;
+        if (
+          i < nx &&
+          j >= 1 &&
+          k >= 1 &&
+          j < ny + 0 &&
+          k < nz &&
+          here !== vals[k * sz + j * sy + i + 1] < 0
+        )
+          quad(
+            cellVert[cid(i, j - 1, k - 1)],
+            cellVert[cid(i, j, k - 1)],
+            cellVert[cid(i, j, k)],
+            cellVert[cid(i, j - 1, k)],
+          );
+        if (
+          j < ny &&
+          i >= 1 &&
+          k >= 1 &&
+          i < nx &&
+          k < nz &&
+          here !== vals[k * sz + (j + 1) * sy + i] < 0
+        )
+          quad(
+            cellVert[cid(i - 1, j, k - 1)],
+            cellVert[cid(i, j, k - 1)],
+            cellVert[cid(i, j, k)],
+            cellVert[cid(i - 1, j, k)],
+          );
+        if (
+          k < nz &&
+          i >= 1 &&
+          j >= 1 &&
+          i < nx &&
+          j < ny &&
+          here !== vals[(k + 1) * sz + j * sy + i] < 0
+        )
+          quad(
+            cellVert[cid(i - 1, j - 1, k)],
+            cellVert[cid(i, j - 1, k)],
+            cellVert[cid(i, j, k)],
+            cellVert[cid(i - 1, j, k)],
+          );
+      }
+  return { pos, nrm, idx };
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * 4 · LIGHT — baked per vertex (soft key + fill + rim + AO + fur bump)
+ * ════════════════════════════════════════════════════════════════════════════ */
+
+const unit3 = (x: number, y: number, z: number): V3 => {
+  const l = Math.sqrt(x * x + y * y + z * z) || 1;
+  return [x / l, y / l, z / l];
 };
-const noise3 = (x: number, y: number, z: number) => {
+const KEY = unit3(-0.42, 0.74, 0.52); // front-left, above (like the street lamp side)
+const FILL = unit3(0.75, 0.25, 0.6);
+const VIEW = unit3(0, 0.18, 0.98); // roughly where the camera is, seen from the cat
+const HALF = unit3(KEY[0] + VIEW[0], KEY[1] + VIEW[1], KEY[2] + VIEW[2]);
+const dot3 = (a: V3, b: V3) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+
+const hash3 = (x: number, y: number, z: number) => {
+  let h =
+    Math.imul(x, 374761393) ^
+    Math.imul(y, 668265263) ^
+    Math.imul(z, 1274126177);
+  h = Math.imul(h ^ (h >>> 13), 1103515245);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+};
+const vnoise = (x: number, y: number, z: number) => {
   const xi = Math.floor(x);
   const yi = Math.floor(y);
   const zi = Math.floor(z);
@@ -156,804 +828,326 @@ const noise3 = (x: number, y: number, z: number) => {
   const l = (a: number, b: number, t: number) => a + (b - a) * t;
   return l(
     l(
-      l(hash(xi, yi, zi), hash(xi + 1, yi, zi), u),
-      l(hash(xi, yi + 1, zi), hash(xi + 1, yi + 1, zi), u),
+      l(hash3(xi, yi, zi), hash3(xi + 1, yi, zi), u),
+      l(hash3(xi, yi + 1, zi), hash3(xi + 1, yi + 1, zi), u),
       v,
     ),
     l(
-      l(hash(xi, yi, zi + 1), hash(xi + 1, yi, zi + 1), u),
-      l(hash(xi, yi + 1, zi + 1), hash(xi + 1, yi + 1, zi + 1), u),
+      l(hash3(xi, yi, zi + 1), hash3(xi + 1, yi, zi + 1), u),
+      l(hash3(xi, yi + 1, zi + 1), hash3(xi + 1, yi + 1, zi + 1), u),
       v,
     ),
     w,
   );
 };
 
-/* ── the cat, as shapes ─────────────────────────────────────────────────── */
-/** head centre (the head is raised and looks at the viewer, +z) */
-const H = { x: 0.64, y: 0.72, z: 0.2 };
-
-/** things that touch the ground are cut flat there (the cat lies on the land) */
-const onGround =
-  (f: SDF): SDF =>
-  (x, y, z) =>
-    Math.max(f(x, y, z), -y);
-
-function bodyShape(): SDF {
-  const torso = ell(-0.05, 0.37, 0.0, 0.62, 0.36, 0.39);
-  const chest = ell(0.45, 0.4, 0.04, 0.36, 0.4, 0.37);
-  const ruff = ell(0.56, 0.42, 0.14, 0.26, 0.3, 0.26); // thick fur ruff under the chin
-  const rump = ell(-0.5, 0.34, 0.03, 0.34, 0.33, 0.34);
-  const thighNear = ell(-0.36, 0.27, 0.25, 0.3, 0.26, 0.17);
-  const thighFar = ell(-0.36, 0.27, -0.22, 0.3, 0.26, 0.15);
-
-  // front legs stretched forward, thick and round like a shorthair's
-  const foreNear = seg([0.42, 0.24, 0.22], [0.8, 0.085, 0.34], 0.15, 0.108);
-  const foreFar = seg([0.46, 0.2, -0.1], [0.8, 0.085, 0.0], 0.14, 0.1);
-  const pawNear = ell(0.88, 0.07, 0.35, 0.145, 0.074, 0.11);
-  const pawFar = ell(0.86, 0.07, 0.0, 0.14, 0.07, 0.1);
-  const toesNear = blend(
-    0.03,
-    ell(0.985, 0.052, 0.29, 0.04, 0.042, 0.042),
-    ell(1.003, 0.052, 0.352, 0.04, 0.042, 0.044),
-    ell(0.985, 0.052, 0.414, 0.04, 0.042, 0.042),
-  );
-  const toesFar = blend(
-    0.03,
-    ell(0.96, 0.05, -0.065, 0.038, 0.04, 0.04),
-    ell(0.976, 0.05, -0.002, 0.038, 0.04, 0.042),
-    ell(0.96, 0.05, 0.06, 0.038, 0.04, 0.04),
-  );
-
-  // hind paws tucked in front of the haunch, toes toward the viewer
-  const hindA = ell(-0.17, 0.078, 0.5, 0.105, 0.072, 0.15);
-  const hindB = ell(0.0, 0.078, 0.5, 0.105, 0.072, 0.15);
-  const hindToes = blend(
-    0.025,
-    ell(-0.22, 0.055, 0.64, 0.032, 0.036, 0.034),
-    ell(-0.165, 0.055, 0.655, 0.034, 0.036, 0.036),
-    ell(-0.11, 0.055, 0.64, 0.032, 0.036, 0.034),
-    ell(-0.05, 0.055, 0.64, 0.032, 0.036, 0.034),
-    ell(0.005, 0.055, 0.655, 0.034, 0.036, 0.036),
-    ell(0.06, 0.055, 0.64, 0.032, 0.036, 0.034),
-  );
-
-  const core = blend(0.16, torso, chest, ruff, rump, thighNear, thighFar);
-  const limbs = blend(
-    0.07,
-    foreNear,
-    foreFar,
-    pawNear,
-    pawFar,
-    toesNear,
-    toesFar,
-    hindA,
-    hindB,
-    hindToes,
-  );
-  const whole = blend(0.1, core, limbs);
-  const flat = onGround(whole);
-  return (x, y, z) => {
-    let d = flat(x, y, z);
-    if (Math.abs(d) < 0.07) {
-      // fur: soft clumps that run along the body (head -> tail)
-      d +=
-        (noise3(x * 6, y * 9, z * 9) - 0.5) * 0.014 +
-        (noise3(x * 11, y * 18, z * 18) - 0.5) * 0.006;
-    }
-    return d;
+/** fur: small streaks along the body + a few soft wrinkles, as a normal wobble */
+function furNormal(n: V3, x: number, y: number, z: number, amt: number): V3 {
+  const q = (sx: number, sy: number, sz: number): V3 => {
+    const X = x * sx;
+    const Y = y * sy;
+    const Z = z * sz;
+    const e = 0.6;
+    return [
+      vnoise(X + e, Y, Z) - vnoise(X - e, Y, Z),
+      vnoise(X, Y + e, Z) - vnoise(X, Y - e, Z),
+      vnoise(X, Y, Z + e) - vnoise(X, Y, Z - e),
+    ];
   };
+  const a = q(30, 46, 46);
+  const b = q(6, 8, 8);
+  let gx = a[0] * 0.42 * amt + b[0] * 0.2 * amt;
+  let gy = a[1] * 0.42 * amt + b[1] * 0.2 * amt;
+  let gz = a[2] * 0.42 * amt + b[2] * 0.2 * amt;
+  const dn = gx * n[0] + gy * n[1] + gz * n[2];
+  gx -= n[0] * dn;
+  gy -= n[1] * dn;
+  gz -= n[2] * dn;
+  return unit3(n[0] - gx, n[1] - gy, n[2] - gz);
 }
 
-function headShape(withFur: boolean): SDF {
-  const { x: hx, y: hy, z: hz } = H;
-  const cranium = ell(hx, hy, hz, 0.33, 0.29, 0.29);
-  const cheekL = ell(hx - 0.2, hy - 0.08, hz + 0.08, 0.19, 0.16, 0.17);
-  const cheekR = ell(hx + 0.2, hy - 0.08, hz + 0.08, 0.19, 0.16, 0.17);
-  const bridge = ell(hx, hy + 0.0, hz + 0.16, 0.13, 0.14, 0.12);
-  const chin = ell(hx, hy - 0.175, hz + 0.14, 0.085, 0.05, 0.07);
-  const earL = flatZ(
-    seg([hx - 0.19, hy + 0.2, 0], [hx - 0.262, hy + 0.43, 0], 0.108, 0.02),
-    2.3,
-    hz - 0.03,
+/* mouth: a soft darker "ω" on the muzzle, painted into the light */
+const MOUTH: [V2, V2][] = [
+  [
+    [HX, 0.585],
+    [HX, 0.553],
+  ],
+  [
+    [HX, 0.553],
+    [HX - 0.026, 0.537],
+  ],
+  [
+    [HX - 0.026, 0.537],
+    [HX - 0.052, 0.545],
+  ],
+  [
+    [HX, 0.553],
+    [HX + 0.026, 0.537],
+  ],
+  [
+    [HX + 0.026, 0.537],
+    [HX + 0.052, 0.545],
+  ],
+];
+const segDist = (px: number, py: number, a: V2, b: V2) => {
+  const bx = b[0] - a[0];
+  const by = b[1] - a[1];
+  const h = clamp01(
+    ((px - a[0]) * bx + (py - a[1]) * by) / (bx * bx + by * by),
   );
-  const earR = flatZ(
-    seg([hx + 0.19, hy + 0.2, 0], [hx + 0.262, hy + 0.43, 0], 0.108, 0.02),
-    2.3,
-    hz - 0.03,
-  );
-  const neck = ell(hx - 0.1, hy - 0.23, hz - 0.12, 0.3, 0.3, 0.26);
-
-  // the face (like the reference): two round, puffy whisker pads with a groove
-  // between them, and a small raised nose above the groove
-  const padL = ell(hx - 0.108, hy - 0.108, hz + 0.242, 0.104, 0.064, 0.095);
-  const padR = ell(hx + 0.108, hy - 0.108, hz + 0.242, 0.104, 0.064, 0.095);
-  const pads = blend(0.02, padL, padR);
-  const nose = ell(hx, hy + FACE.noseY, hz + 0.296, 0.044, 0.033, 0.034);
-
-  const skull = blend(0.08, cranium, cheekL, cheekR, bridge, chin, neck);
-  const face = blend(0.03, skull, pads, nose);
-  const withEars = blend(0.05, face, blend(0.04, earL, earR));
-  return (x, y, z) => {
-    let d = withEars(x, y, z);
-    if (withFur && Math.abs(d) < 0.06) {
-      d += (noise3(x * 5, y * 13, z * 13) - 0.5) * 0.009;
-    }
-    return d;
-  };
-}
-
-function tailShape(): SDF {
-  /* thick at the rump, curling around the hind paws on the viewer's side, tapering to a rounded tip */
-  const P: [V3, number][] = [
-    [[-0.74, 0.2, -0.06], 0.108],
-    [[-0.92, 0.16, 0.04], 0.1],
-    [[-0.99, 0.12, 0.22], 0.096],
-    [[-0.93, 0.1, 0.42], 0.09],
-    [[-0.79, 0.092, 0.6], 0.085],
-    [[-0.59, 0.088, 0.71], 0.078],
-    [[-0.37, 0.082, 0.75], 0.068],
-    [[-0.22, 0.074, 0.78], 0.052],
-  ];
-  const parts: SDF[] = [];
-  for (let i = 0; i < P.length - 1; i++)
-    parts.push(seg(P[i][0], P[i + 1][0], P[i][1], P[i + 1][1]));
-  const whole = onGround(blend(0.05, ...parts));
-  return (x, y, z) => {
-    let d = whole(x, y, z);
-    if (Math.abs(d) < 0.06) d += (noise3(x * 4, y * 14, z * 14) - 0.5) * 0.01;
-    return d;
-  };
-}
-
-/* ── mesh from the field (surface nets) ─────────────────────────────────── */
-const tick = () => new Promise<void>((r) => setTimeout(r, 0));
-
-interface Meshed {
-  pos: number[]; // x y z per vertex
-  nrm: number[]; // outward normal per vertex
-  tris: number[]; // vertex indices
-}
-
-async function meshOf(f: SDF, min: V3, max: V3, h: number): Promise<Meshed> {
-  const nx = Math.ceil((max[0] - min[0]) / h);
-  const ny = Math.ceil((max[1] - min[1]) / h);
-  const nz = Math.ceil((max[2] - min[2]) / h);
-  const sx = nx + 1;
-  const sy = ny + 1;
-  const val = new Float32Array(sx * sy * (nz + 1));
-  const at = (i: number, j: number, k: number) => (k * sy + j) * sx + i;
-
-  for (let k = 0; k <= nz; k++) {
-    for (let j = 0; j <= ny; j++) {
-      for (let i = 0; i <= nx; i++) {
-        val[at(i, j, k)] = f(min[0] + i * h, min[1] + j * h, min[2] + k * h);
-      }
-    }
-    if (k % 6 === 5) await tick(); // let the browser breathe
-  }
-
-  const vid = new Int32Array(nx * ny * nz).fill(-1);
-  const cell = (i: number, j: number, k: number) => (k * ny + j) * nx + i;
-  const pos: number[] = [];
-  const nrm: number[] = [];
-  const EDGES: [number, number][] = [
-    [0, 1],
-    [2, 3],
-    [4, 5],
-    [6, 7],
-    [0, 2],
-    [1, 3],
-    [4, 6],
-    [5, 7],
-    [0, 4],
-    [1, 5],
-    [2, 6],
-    [3, 7],
-  ];
-  const cv = new Float32Array(8);
-
-  for (let k = 0; k < nz; k++) {
-    for (let j = 0; j < ny; j++) {
-      for (let i = 0; i < nx; i++) {
-        let neg = 0;
-        for (let c = 0; c < 8; c++) {
-          const v =
-            val[at(i + (c & 1), j + ((c >> 1) & 1), k + ((c >> 2) & 1))];
-          cv[c] = v;
-          if (v < 0) neg++;
-        }
-        if (neg === 0 || neg === 8) continue;
-        let px = 0;
-        let py = 0;
-        let pz = 0;
-        let n = 0;
-        for (const [a, b] of EDGES) {
-          const va = cv[a];
-          const vb = cv[b];
-          if (va < 0 === vb < 0) continue;
-          const t = va / (va - vb);
-          px += i + (a & 1) + ((b & 1) - (a & 1)) * t;
-          py += j + ((a >> 1) & 1) + (((b >> 1) & 1) - ((a >> 1) & 1)) * t;
-          pz += k + ((a >> 2) & 1) + (((b >> 2) & 1) - ((a >> 2) & 1)) * t;
-          n++;
-        }
-        vid[cell(i, j, k)] = pos.length / 3;
-        pos.push(
-          min[0] + (px / n) * h,
-          min[1] + (py / n) * h,
-          min[2] + (pz / n) * h,
-        );
-        // outward normal = gradient of the field across the cell
-        let gx = 0;
-        let gy = 0;
-        let gz = 0;
-        for (let c = 0; c < 8; c++) {
-          gx += (c & 1 ? 1 : -1) * cv[c];
-          gy += (c & 2 ? 1 : -1) * cv[c];
-          gz += (c & 4 ? 1 : -1) * cv[c];
-        }
-        const gl = Math.hypot(gx, gy, gz) || 1;
-        nrm.push(gx / gl, gy / gl, gz / gl);
-      }
-    }
-    if (k % 8 === 7) await tick();
-  }
-
-  const tris: number[] = [];
-  const quad = (a: number, b: number, c: number, d: number) => {
-    if (a < 0 || b < 0 || c < 0 || d < 0) return;
-    // face the same way as the field gradient (outward)
-    const ux = pos[b * 3] - pos[a * 3];
-    const uy = pos[b * 3 + 1] - pos[a * 3 + 1];
-    const uz = pos[b * 3 + 2] - pos[a * 3 + 2];
-    const vx = pos[c * 3] - pos[a * 3];
-    const vy = pos[c * 3 + 1] - pos[a * 3 + 1];
-    const vz = pos[c * 3 + 2] - pos[a * 3 + 2];
-    const fx = uy * vz - uz * vy;
-    const fy = uz * vx - ux * vz;
-    const fz = ux * vy - uy * vx;
-    const dot =
-      fx * (nrm[a * 3] + nrm[c * 3]) +
-      fy * (nrm[a * 3 + 1] + nrm[c * 3 + 1]) +
-      fz * (nrm[a * 3 + 2] + nrm[c * 3 + 2]);
-    if (dot >= 0) tris.push(a, b, c, a, c, d);
-    else tris.push(a, c, b, a, d, c);
-  };
-  for (let k = 1; k < nz; k++) {
-    for (let j = 1; j < ny; j++) {
-      for (let i = 0; i < nx; i++) {
-        const a = val[at(i, j, k)];
-        const b = val[at(i + 1, j, k)];
-        if (a < 0 !== b < 0)
-          quad(
-            vid[cell(i, j - 1, k - 1)],
-            vid[cell(i, j, k - 1)],
-            vid[cell(i, j, k)],
-            vid[cell(i, j - 1, k)],
-          );
-      }
-    }
-  }
-  for (let k = 1; k < nz; k++) {
-    for (let j = 0; j < ny; j++) {
-      for (let i = 1; i < nx; i++) {
-        const a = val[at(i, j, k)];
-        const b = val[at(i, j + 1, k)];
-        if (a < 0 !== b < 0)
-          quad(
-            vid[cell(i - 1, j, k - 1)],
-            vid[cell(i, j, k - 1)],
-            vid[cell(i, j, k)],
-            vid[cell(i - 1, j, k)],
-          );
-      }
-    }
-  }
-  for (let k = 0; k < nz; k++) {
-    for (let j = 1; j < ny; j++) {
-      for (let i = 1; i < nx; i++) {
-        const a = val[at(i, j, k)];
-        const b = val[at(i, j, k + 1)];
-        if (a < 0 !== b < 0)
-          quad(
-            vid[cell(i - 1, j - 1, k)],
-            vid[cell(i, j - 1, k)],
-            vid[cell(i, j, k)],
-            vid[cell(i - 1, j, k)],
-          );
-      }
-    }
-  }
-  return { pos, nrm, tris };
-}
-
-/* ── baked light + fur ──────────────────────────────────────────────────── */
-const unit = (x: number, y: number, z: number): V3 => {
-  const l = Math.hypot(x, y, z) || 1;
-  return [x / l, y / l, z / l];
+  return Math.hypot(px - a[0] - bx * h, py - a[1] - by * h);
 };
-const KEY = unit(-0.38, 0.8, 0.5); // key light: above, front-left
-const VIEW = unit(0, 0.2, 1); // roughly where the camera is
-const HALF = unit(KEY[0] + VIEW[0], KEY[1] + VIEW[1], KEY[2] + VIEW[2]);
-const gray = (n: number, a = 1): RGBA => [n / 255, n / 255, n / 255, a];
 
-function colourOf(f: SDF, p: V3, n: V3, nose: boolean): RGBA {
-  const ndl = n[0] * KEY[0] + n[1] * KEY[1] + n[2] * KEY[2];
-  const soft = Math.pow(0.5 + 0.5 * ndl, 2); // half-lambert: soft, fur-like
-  const ndv = Math.max(0, n[0] * VIEW[0] + n[1] * VIEW[1] + n[2] * VIEW[2]);
-  const rim = Math.pow(1 - ndv, 2.2) * (0.35 + 0.65 * clamp(n[1] + 0.25, 0, 1));
-  const sheen = Math.pow(
-    Math.max(0, n[0] * HALF[0] + n[1] * HALF[1] + n[2] * HALF[2]),
-    18,
-  );
-  // ambient occlusion: how open is the space just above this point? (creases + the ground contact are darker)
-  const open = clamp(
-    f(p[0] + n[0] * 0.09, p[1] + n[1] * 0.09, p[2] + n[2] * 0.09) / 0.09,
-    0,
-    1,
-  );
-  const ao = 0.35 + 0.65 * Math.pow(open, 1.4);
-  // strand-by-strand fur variation (finer than the mesh grid)
-  const fur =
-    noise3(p[0] * 9, p[1] * 46, p[2] * 46) * 0.65 +
-    noise3(p[0] * 20, p[1] * 90, p[2] * 90) * 0.35;
-  const furM = 1 + (fur - 0.5) * COAT.furContrast * 2;
-  const ground = 0.55 + 0.45 * clamp(p[1] / 0.12, 0, 1); // where it touches the land
-  let v =
-    (COAT.ambient + COAT.diffuse * soft + COAT.rim * rim + COAT.sheen * sheen) *
-    ao *
-    furM *
-    ground;
-  if (nose) v = Math.max(v, 46); // the nose is a touch lighter
-  return gray(Math.min(COAT.cap, v));
+function* shadeMesh(
+  m: Mesh,
+  all: (x: number, y: number, z: number) => number,
+  tones: Tone[],
+  fur: number,
+  pace: Pace,
+): Generator<void, Float32Array, void> {
+  const n = m.pos.length / 3;
+  const out = new Float32Array(n);
+  const AO_H = [0.02, 0.05, 0.09, 0.14];
+  for (let i = 0; i < n; i++) {
+    const x = m.pos[i * 3];
+    const y = m.pos[i * 3 + 1];
+    const z = m.pos[i * 3 + 2];
+    let nn: V3 = [m.nrm[i * 3], m.nrm[i * 3 + 1], m.nrm[i * 3 + 2]];
+
+    // which special place is this vertex in?
+    let padK = 0;
+    let earK = 0;
+    for (const t of tones) {
+      const dx = (x - t.c[0]) / t.r[0];
+      const dy = (y - t.c[1]) / t.r[1];
+      const dz = (z - t.c[2]) / t.r[2];
+      const q = 1 - (dx * dx + dy * dy + dz * dz);
+      if (q > 0) {
+        if (t.kind === "pad") padK = Math.max(padK, Math.min(1, q * 2));
+        else earK = Math.max(earK, Math.min(1, q * 2));
+      }
+    }
+    if (!padK) nn = furNormal(nn, x, y, z, fur);
+
+    // ambient occlusion from the whole cat
+    let occ = 0;
+    let w = 1;
+    for (const hh of AO_H) {
+      occ += (hh - all(x + nn[0] * hh, y + nn[1] * hh, z + nn[2] * hh)) * w;
+      w *= 0.62;
+    }
+    let ao = clamp01(1 - occ * 5.2);
+    ao = 0.12 + 0.88 * ao;
+    ao *= 0.6 + 0.4 * smoothstep(0, 0.075, y); // darker where it touches the ground
+
+    const diff = Math.pow(clamp01(dot3(nn, KEY) * 0.5 + 0.5), 2);
+    const fill = Math.max(0, dot3(nn, FILL));
+    const sky = nn[1] * 0.5 + 0.5;
+    const ndv = clamp01(dot3(nn, VIEW));
+    const rim =
+      Math.pow(1 - ndv, 2.4) *
+      (0.35 + 0.65 * clamp01(0.55 * nn[1] + 0.45 - 0.25 * nn[0]));
+    const spec = Math.pow(clamp01(dot3(nn, HALF)), 20);
+
+    let lum =
+      4 +
+      ao * (33 * diff + 6 * fill + 5 * sky) +
+      30 * rim * (0.35 + 0.65 * ao) +
+      15 * spec * ao;
+    if (earK) lum = lum * (1 + 0.35 * earK) + 5 * earK;
+    if (padK) lum = lum + 14 * padK + 9 * padK * diff;
+
+    // mouth line (front of the muzzle only)
+    if (z > 0.27 && y < 0.6 && y > 0.5) {
+      let dm = 1;
+      for (const s of MOUTH) dm = Math.min(dm, segDist(x, y, s[0], s[1]));
+      lum *= 1 - 0.55 * Math.exp(-((dm / 0.009) * (dm / 0.009)));
+    }
+    out[i] = Math.min(COAT.cap, lum * COAT.gain) / 255;
+
+    if ((i & 255) === 255 && pace.due()) {
+      yield;
+      pace.reset();
+    }
+  }
+  return out;
 }
 
-function toMesh(
-  m: Meshed,
-  f: SDF,
-  noseAt: V3 | null,
-  tint?: (p: V3) => number,
-): MeshBuilder {
+/* ════════════════════════════════════════════════════════════════════════════
+ * 5 · PUT IT TOGETHER
+ * ════════════════════════════════════════════════════════════════════════════ */
+
+const UV0: V2 = [0, 0];
+
+function toBuilder(m: Mesh, lum: Float32Array): MeshBuilder {
   const mb = new MeshBuilder();
-  const nv = m.pos.length / 3;
-  const col: RGBA[] = new Array(nv);
-  for (let i = 0; i < nv; i++) {
-    const p: V3 = [m.pos[i * 3], m.pos[i * 3 + 1], m.pos[i * 3 + 2]];
-    const n: V3 = [m.nrm[i * 3], m.nrm[i * 3 + 1], m.nrm[i * 3 + 2]];
-    const nose =
-      !!noseAt &&
-      Math.hypot(p[0] - noseAt[0], p[1] - noseAt[1], p[2] - noseAt[2]) < 0.045;
-    const c = colourOf(f, p, n, nose);
-    const k = tint ? 1 + tint(p) : 1;
-    col[i] = k === 1 ? c : ([c[0] * k, c[1] * k, c[2] * k, c[3]] as RGBA);
-  }
-  const uv: [number, number][] = [
-    [0, 0],
-    [0, 0],
-    [0, 0],
-  ];
-  for (let t = 0; t < m.tris.length; t += 3) {
-    const a = m.tris[t];
-    const b = m.tris[t + 1];
-    const c = m.tris[t + 2];
-    const P = [a, b, c].map(
-      (i) =>
-        [
-          m.pos[i * 3] * FIT,
-          m.pos[i * 3 + 1] * FIT,
-          m.pos[i * 3 + 2] * FIT,
-        ] as V3,
-    );
-    mb.tri(P, uv, [col[a], col[b], col[c]]);
+  for (let t = 0; t < m.idx.length; t++) {
+    const vi = m.idx[t];
+    const g = lum[vi];
+    const c: RGBA = [g, g, g, 1];
+    mb.vert([m.pos[vi * 3], m.pos[vi * 3 + 1], m.pos[vi * 3 + 2]], UV0, c);
   }
   return mb;
 }
 
-/* ── the face: two plain white eyes, a nose, a "w" mouth and a little tongue ──
- * The head mesh is too coarse for fine details, so these are small separate
- * shapes that lie on the skin of the head (they ride on the head: same turn /
- * tilt). The eyes are pure flat white (no pupil, no shading) and are the only
- * thing that blinks. Positions are offsets from the head centre H
- * (x = sideways, y = up). The numbers live in FACE (top of this file).     */
-
-const cross3 = (a: V3, b: V3): V3 => [
-  a[1] * b[2] - a[2] * b[1],
-  a[2] * b[0] - a[0] * b[2],
-  a[0] * b[1] - a[1] * b[0],
-];
-const norm3 = (v: V3): V3 => unit(v[0], v[1], v[2]);
-
-/** z of the front of the face at (x, y) (the skin of the head field) */
-function frontZ(f: SDF, x: number, y: number): number {
-  let lo = H.z - 0.1; // inside
-  let hi = H.z + 0.5; // outside
-  for (let i = 0; i < 26; i++) {
-    const mid = (lo + hi) / 2;
-    if (f(x, y, mid) < 0) lo = mid;
-    else hi = mid;
-  }
-  return hi;
-}
-
-/** outward normal of the skin at a point */
-function normalAt(f: SDF, p: V3): V3 {
-  const e = 0.004;
-  return unit(
-    f(p[0] + e, p[1], p[2]) - f(p[0] - e, p[1], p[2]),
-    f(p[0], p[1] + e, p[2]) - f(p[0], p[1] - e, p[2]),
-    f(p[0], p[1], p[2] + e) - f(p[0], p[1], p[2] - e),
-  );
-}
-
-interface Frame3 {
-  p: V3; // point on the skin
-  n: V3; // out of the skin
-  u: V3; // sideways along the skin
-  v: V3; // up along the skin
-}
-
-/** a frame lying on the skin at (x, y); `roll` turns u / v around n (tilted eyes) */
-function skinFrame(f: SDF, x: number, y: number, roll = 0): Frame3 {
-  const p: V3 = [x, y, frontZ(f, x, y)];
-  const n = normalAt(f, p);
-  const u0 = norm3([1 - n[0] * n[0], -n[1] * n[0], -n[2] * n[0]]);
-  const v0 = cross3(n, u0);
-  const c = Math.cos(roll);
-  const s = Math.sin(roll);
-  const u: V3 = [
-    u0[0] * c + v0[0] * s,
-    u0[1] * c + v0[1] * s,
-    u0[2] * c + v0[2] * s,
-  ];
-  const v: V3 = [
-    v0[0] * c - u0[0] * s,
-    v0[1] * c - u0[1] * s,
-    v0[2] * c - u0[2] * s,
-  ];
-  return { p, n, u, v };
-}
-
-/** the same soft key light as the fur, for the little face pieces */
-const lit = (n: V3, base: number): RGBA => {
-  const ndl = n[0] * KEY[0] + n[1] * KEY[1] + n[2] * KEY[2];
-  const soft = Math.pow(0.5 + 0.5 * ndl, 2);
-  return gray(base * (0.55 + 0.45 * soft));
-};
-
-const UV0: [number, number][] = [
-  [0, 0],
-  [0, 0],
-  [0, 0],
-];
-
-/** a smooth flattened ellipsoid lying on the skin. c = its centre, r = radii along (u, v, n).
- *  `widen(ly)` can make it wider / narrower up the shape (the nose is a rounded triangle). */
-function dome(
-  mb: MeshBuilder,
-  c: V3,
-  fr: Frame3,
-  r: V3,
-  colour: (n: V3) => RGBA,
-  widen?: (ly: number) => number,
-) {
-  const NU = 18;
-  const NV = 10;
-  const rows: { p: V3; col: RGBA }[][] = [];
-  for (let i = 0; i <= NV; i++) {
-    const ph = -Math.PI / 2 + (i / NV) * Math.PI;
-    const cp = Math.cos(ph);
-    const sp = Math.sin(ph);
-    const row: { p: V3; col: RGBA }[] = [];
-    for (let j = 0; j <= NU; j++) {
-      const th = (j / NU) * Math.PI * 2;
-      const lx = cp * Math.cos(th);
-      const ly = cp * Math.sin(th);
-      const wx = widen ? widen(ly) : 1;
-      const p: V3 = [0, 0, 0];
-      const nr: V3 = [0, 0, 0];
-      for (let k = 0; k < 3; k++) {
-        p[k] =
-          c[k] +
-          fr.u[k] * lx * r[0] * wx +
-          fr.v[k] * ly * r[1] +
-          fr.n[k] * sp * r[2];
-        nr[k] =
-          (fr.u[k] * lx) / r[0] +
-          (fr.v[k] * ly) / r[1] +
-          (fr.n[k] * sp) / r[2];
+/** the two white eyes: soft domes that follow the face (so they sit in the sockets) */
+function buildEyes(head: Field): MeshBuilder {
+  const mb = new MeshBuilder();
+  const hw = 0.046;
+  const hh = 0.03;
+  const SEG = 20;
+  const lift = (x: number, y: number) => {
+    // find the face surface here (walk in from the front, then bisect)
+    let zo = 0.75;
+    let zi = HZ;
+    for (let z = 0.75; z > HZ; z -= 0.01) {
+      if (sdf(head, x, y, z) < 0) {
+        zi = z;
+        break;
       }
-      row.push({
-        p: [p[0] * FIT, p[1] * FIT, p[2] * FIT],
-        col: colour(norm3(nr)),
-      });
+      zo = z;
     }
-    rows.push(row);
-  }
-  for (let i = 0; i < NV; i++) {
-    for (let j = 0; j < NU; j++) {
-      const a = rows[i][j];
-      const b = rows[i][j + 1];
-      const d = rows[i + 1][j];
-      const e = rows[i + 1][j + 1];
-      mb.tri([a.p, b.p, e.p], UV0, [a.col, b.col, e.col]);
-      mb.tri([a.p, e.p, d.p], UV0, [a.col, e.col, d.col]);
+    for (let i = 0; i < 22; i++) {
+      const zm = (zo + zi) / 2;
+      if (sdf(head, x, y, zm) < 0) zi = zm;
+      else zo = zm;
     }
-  }
-}
-
-/** a thin round cord laid along a path on the skin (the mouth lines) */
-function cord(
-  mb: MeshBuilder,
-  path: { p: V3; n: V3 }[],
-  radAt: (t: number) => number, // radius along the path, t = 0 → 1
-  colour: (n: V3) => RGBA,
-) {
-  const SIDES = 7;
-  const rings: { p: V3; col: RGBA }[][] = [];
-  for (let i = 0; i < path.length; i++) {
-    const a = path[Math.max(0, i - 1)].p;
-    const b = path[Math.min(path.length - 1, i + 1)].p;
-    const t = norm3([b[0] - a[0], b[1] - a[1], b[2] - a[2]]);
-    const e1 = norm3(cross3(t, path[i].n));
-    const e2 = cross3(e1, t);
-    const rad = radAt(i / (path.length - 1));
-    const ring: { p: V3; col: RGBA }[] = [];
-    for (let k = 0; k < SIDES; k++) {
-      const an = (k / SIDES) * Math.PI * 2;
-      const dir: V3 = [0, 0, 0];
-      for (let m = 0; m < 3; m++) {
-        dir[m] = e1[m] * Math.cos(an) + e2[m] * Math.sin(an);
-      }
-      ring.push({
-        p: [
-          (path[i].p[0] + dir[0] * rad) * FIT,
-          (path[i].p[1] + dir[1] * rad) * FIT,
-          (path[i].p[2] + dir[2] * rad) * FIT,
-        ],
-        col: colour(dir),
-      });
-    }
-    rings.push(ring);
-  }
-  for (let i = 0; i < rings.length - 1; i++) {
-    for (let k = 0; k < SIDES; k++) {
-      const a = rings[i][k];
-      const b = rings[i][(k + 1) % SIDES];
-      const d = rings[i + 1][k];
-      const e = rings[i + 1][(k + 1) % SIDES];
-      mb.tri([a.p, b.p, e.p], UV0, [a.col, b.col, e.col]);
-      mb.tri([a.p, e.p, d.p], UV0, [a.col, e.col, d.col]);
-    }
-  }
-  // close both ends
-  const ends: [number, number][] = [
-    [0, 0],
-    [rings.length - 1, path.length - 1],
-  ];
-  for (const [ri, pi] of ends) {
-    const mid = path[pi].p;
-    const cm: V3 = [mid[0] * FIT, mid[1] * FIT, mid[2] * FIT];
-    for (let k = 0; k < SIDES; k++) {
-      const a = rings[ri][k];
-      const b = rings[ri][(k + 1) % SIDES];
-      mb.tri([cm, a.p, b.p], UV0, [a.col, a.col, b.col]);
-    }
-  }
-}
-
-/** smooth curve through points (Catmull-Rom) */
-function curve(pts: [number, number][], sub: number): [number, number][] {
-  const out: [number, number][] = [];
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[Math.max(0, i - 1)];
-    const p1 = pts[i];
-    const p2 = pts[i + 1];
-    const p3 = pts[Math.min(pts.length - 1, i + 2)];
-    for (let s = 0; s < sub; s++) {
-      const t = s / sub;
-      const t2 = t * t;
-      const t3 = t2 * t;
-      const at = (k: 0 | 1) =>
-        0.5 *
-        (2 * p1[k] +
-          (-p0[k] + p2[k]) * t +
-          (2 * p0[k] - 5 * p1[k] + 4 * p2[k] - p3[k]) * t2 +
-          (-p0[k] + 3 * p1[k] - 3 * p2[k] + p3[k]) * t3);
-      out.push([at(0), at(1)]);
-    }
-  }
-  out.push(pts[pts.length - 1]);
-  return out;
-}
-
-/** the mouth ("w"): from the groove under the nose each lip curves down and out
- *  under its whisker pad (right half; the left half is mirrored) */
-const LIP: [number, number][] = [
-  [0.0, -0.108],
-  [0.012, -0.127],
-  [0.03, -0.142],
-  [0.056, -0.15],
-  [0.084, -0.15],
-  [0.111, -0.143],
-  [0.134, -0.132],
-  [0.148, -0.121],
-];
-
-/** the two whisker pads are a touch lighter, so the puffy cheeks still read on a black cat */
-const padTint = (p: V3): number => {
-  if (p[2] < H.z + 0.2) return 0; // only the front of the face
-  let t = 0;
+    return (zo + zi) / 2;
+  };
   for (const s of [-1, 1]) {
-    const d = Math.hypot(
-      (p[0] - (H.x + s * 0.108)) / 0.118,
-      (p[1] - (H.y - 0.108)) / 0.072,
-    );
-    const e = clamp((d - 0.5) / 0.5, 0, 1);
-    t = Math.max(t, 0.3 * (1 - e * e * (3 - 2 * e)));
-  }
-  return t;
-};
-
-function faceMeshes(
-  f: SDF,
-  h: number,
-): { eyes: MeshBuilder; face: MeshBuilder; pivot: V3 } {
-  const eyes = new MeshBuilder();
-  const face = new MeshBuilder();
-  const ey = H.y + FACE.eyeY;
-  // the coarser the head mesh, the more it can drift from the ideal skin: sit a bit higher
-  const air = Math.max(0, h - 0.03) * 0.5;
-
-  /* eyes: plain white domes centred just under the skin, so the head can
-     never poke through them */
-  for (const side of [-1, 1]) {
-    const fr = skinFrame(f, H.x + side * FACE.eyeX, ey, side * FACE.eyeTilt);
-    const c: V3 = [
-      fr.p[0] - fr.n[0] * 0.004,
-      fr.p[1] - fr.n[1] * 0.004,
-      fr.p[2] - fr.n[2] * 0.004,
-    ];
-    const r: V3 = [FACE.eyeRX, FACE.eyeRY, FACE.eyeBulge + 0.004 + air];
-    dome(eyes, c, fr, r, () => gray(255));
-  }
-
-  /* nose: a small rounded triangle (wider at the top), lighter than the fur */
-  {
-    const fr = skinFrame(f, H.x, H.y + FACE.noseY + 0.004);
-    const c: V3 = [
-      fr.p[0] - fr.n[0] * 0.004,
-      fr.p[1] - fr.n[1] * 0.004,
-      fr.p[2] - fr.n[2] * 0.004,
-    ];
-    const r: V3 = [0.04, 0.03, 0.016 + 0.004 + air];
-    dome(
-      face,
-      c,
-      fr,
-      r,
-      (n) => lit(n, 150),
-      (ly) => 1 + 0.3 * ly,
-    );
-  }
-
-  /* mouth: the groove under the nose, then the two curved lips ("w") */
-  const onSkin = (x: number, y: number) => {
-    const fr = skinFrame(f, H.x + x, H.y + y);
-    const lift = 0.003 + air;
-    return {
-      p: [
-        fr.p[0] + fr.n[0] * lift,
-        fr.p[1] + fr.n[1] * lift,
-        fr.p[2] + fr.n[2] * lift,
-      ] as V3,
-      n: fr.n,
+    const cx = HX + s * EYE_DX;
+    const th = -s * 0.12; // inner corner a touch higher
+    const ring = (k: number, dome: number): { p: V3; g: number }[] => {
+      const pts: { p: V3; g: number }[] = [];
+      for (let i = 0; i < SEG; i++) {
+        const a = (i / SEG) * Math.PI * 2;
+        const lx = Math.cos(a) * hw * k;
+        const ly = Math.sin(a) * hh * k;
+        const x = cx + lx * Math.cos(th) - ly * Math.sin(th);
+        const y = EYE_Y + lx * Math.sin(th) + ly * Math.cos(th);
+        pts.push({
+          p: [x, y, lift(x, y) + 0.0045 + 0.006 * dome],
+          g: 1 - 0.1 * k * k,
+        });
+      }
+      return pts;
     };
-  };
-  const mouthCol = (n: V3) => lit(n, 112);
-  const groove = curve(
-    [
-      [0, FACE.noseY - 0.04],
-      [0, -0.075],
-      LIP[0],
-    ],
-    3,
-  );
-  const lip = curve(LIP, 3);
-  // thick at the groove, fading out toward the cheeks
-  const lipRad = (t: number) => 0.0082 - 0.0038 * t;
-  cord(
-    face,
-    groove.map(([x, y]) => onSkin(x, y)),
-    () => 0.0075,
-    mouthCol,
-  );
-  cord(
-    face,
-    lip.map(([x, y]) => onSkin(x, y)),
-    lipRad,
-    mouthCol,
-  );
-  cord(
-    face,
-    lip.map(([x, y]) => onSkin(-x, y)),
-    lipRad,
-    mouthCol,
-  );
-
-  /* tongue: a little tab sticking out under the mouth (FACE.tongue = false hides it) */
-  if (FACE.tongue) {
-    const fr = skinFrame(f, H.x, H.y - 0.168);
-    const lift = 0.006 + air;
-    const c: V3 = [
-      fr.p[0] + fr.n[0] * lift,
-      fr.p[1] + fr.n[1] * lift,
-      fr.p[2] + fr.n[2] * lift,
-    ];
-    dome(face, c, fr, [0.054, 0.044, 0.02], (n) => lit(n, 150));
+    const c0: V3 = [cx, EYE_Y, lift(cx, EYE_Y) + 0.0105];
+    const r1 = ring(0.55, 0.7);
+    const r2 = ring(1, 0);
+    const tri = (a: V3, ga: number, b: V3, gb: number, c: V3, gc: number) => {
+      mb.vert(a, UV0, [ga, ga, ga, 1], 1);
+      mb.vert(b, UV0, [gb, gb, gb, 1], 1);
+      mb.vert(c, UV0, [gc, gc, gc, 1], 1);
+    };
+    for (let i = 0; i < SEG; i++) {
+      const j = (i + 1) % SEG;
+      tri(c0, 1, r1[i].p, r1[i].g, r1[j].p, r1[j].g);
+      tri(r1[i].p, r1[i].g, r2[i].p, r2[i].g, r2[j].p, r2[j].g);
+      tri(r1[i].p, r1[i].g, r2[j].p, r2[j].g, r1[j].p, r1[j].g);
+    }
   }
-
-  return {
-    eyes,
-    face,
-    pivot: [H.x * FIT, ey * FIT, (frontZ(f, H.x, ey) + 0.006) * FIT],
-  };
+  return mb;
 }
 
-/* ── public: built once, in small steps ─────────────────────────────────── */
-const cache = new Map<boolean, Promise<CatGeo>>();
+function* buildCatGen(lite: boolean): Generator<void, CatGeo, void> {
+  const pace = makePace(4);
+  const h = lite ? 0.022 : 0.0165;
+  const model = buildModel();
+  yield;
+  pace.reset();
 
-export function buildCat(lite: boolean): Promise<CatGeo> {
-  let p = cache.get(lite);
-  if (!p) {
-    p = (async () => {
-      const h = lite ? VOXEL_LITE : VOXEL;
+  const body = makeField(model.body, h);
+  const head = makeField(model.head, h);
+  const tail = makeField(model.tail, h);
+  const all = (x: number, y: number, z: number) =>
+    Math.min(sdf(body, x, y, z), sdf(head, x, y, z), sdf(tail, x, y, z));
 
-      const bodyF = bodyShape();
-      const bodyM = await meshOf(
-        bodyF,
-        [-1.12, -0.06, -0.5],
-        [1.2, 0.82, 0.86],
-        h,
-      );
-      const body = toMesh(bodyM, bodyF, null);
-      await tick();
+  for (const f of [body, head, tail]) yield* fillField(f, pace);
+  const mb = yield* meshField(body, pace);
+  const mh = yield* meshField(head, pace);
+  const mt = yield* meshField(tail, pace);
+  const lb = yield* shadeMesh(mb, all, model.tones, 0.9, pace);
+  const lh = yield* shadeMesh(mh, all, model.tones, 0.75, pace);
+  const lt = yield* shadeMesh(mt, all, model.tones, 0.9, pace);
 
-      const headF = headShape(true);
-      const headM = await meshOf(
-        headF,
-        [H.x - 0.5, H.y - 0.5, H.z - 0.42],
-        [H.x + 0.5, H.y + 0.5, H.z + 0.48],
-        h,
-      );
-      const head = toMesh(headM, headF, null, padTint);
-      await tick();
+  const geo: CatGeo = {
+    body: toBuilder(mb, lb),
+    head: toBuilder(mh, lh),
+    eyes: buildEyes(head),
+    tail: toBuilder(mt, lt),
+    headPivot: [HX - 0.015, 0.42, 0.1], // the neck: the head turns around here
+    tailPivot: [-0.5, 0.12, 0.0], // inside the rump (a long lever, so the sway reads)
+    eyesPivot: [HX, EYE_Y, 0.4],
+  };
+  return geo;
+}
 
-      const tailF = tailShape();
-      const tailM = await meshOf(
-        tailF,
-        [-1.14, -0.06, -0.22],
-        [-0.1, 0.34, 0.92],
-        h,
-      );
-      const tail = toMesh(tailM, tailF, null);
-      await tick();
+/* ── public: built once, in small steps, shared ───────────────────────────── */
+/** same rule as AboutScene.tsx, so the cat matches the scene's "lite" mode (used for the early pre-build only) */
+function isLite(): boolean {
+  if (typeof window === "undefined") return false;
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  return (
+    window.innerWidth < 992 ||
+    (nav.hardwareConcurrency ?? 8) <= 4 ||
+    (nav.deviceMemory ?? 8) <= 4
+  );
+}
 
-      // eyes (plain white) + nose, mouth and tongue (these ride on the head)
-      const { eyes, face, pivot } = faceMeshes(headShape(false), h);
-      for (const v of face.data) head.data.push(v);
+interface Job {
+  gen: Generator<void, CatGeo, void>;
+  promise: Promise<CatGeo>;
+  urgent: boolean; // the scene is waiting for it → work faster
+}
+const cache = new Map<boolean, Job>();
 
-      return {
-        body,
-        head,
-        eyes,
-        tail,
-        headPivot: [(H.x - 0.1) * FIT, (H.y - 0.22) * FIT, (H.z - 0.1) * FIT],
-        tailPivot: [-0.74 * FIT, 0.2 * FIT, -0.06 * FIT],
-        eyesPivot: pivot,
-      } as CatGeo;
-    })();
-    cache.set(lite, p);
+function start(lite: boolean): Job {
+  const gen = buildCatGen(lite);
+  const job = { gen, urgent: false } as Job;
+  job.promise = new Promise<CatGeo>((resolve, reject) => {
+    const step = () => {
+      try {
+        // idle pre-build: ~3 ms of work every ~14 ms · scene is waiting: ~8 ms every tick
+        const until = now() + (job.urgent ? 8 : 3);
+        for (;;) {
+          const r = gen.next();
+          if (r.done) {
+            resolve(r.value);
+            return;
+          }
+          if (now() >= until) break;
+        }
+        setTimeout(step, job.urgent ? 0 : 14);
+      } catch (e) {
+        cache.delete(lite); // start clean next time instead of keeping a broken build
+        reject(e);
+      }
+    };
+    setTimeout(step, 0);
+  });
+  return job;
+}
+
+/** the lying black cat (built once, then reused — also when the scene rebuilds) */
+export function buildCat(lite: boolean = isLite()): Promise<CatGeo> {
+  let job = cache.get(lite);
+  if (!job) {
+    job = start(lite);
+    cache.set(lite, job);
   }
-  return p;
+  job.urgent = true;
+  return job.promise;
+}
+
+/* start building a moment after load, a few milliseconds at a time, so it is
+   usually ready before the About section scrolls into view */
+if (typeof window !== "undefined") {
+  window.setTimeout(() => {
+    const lite = isLite();
+    if (cache.has(lite)) return;
+    const job = start(lite);
+    cache.set(lite, job);
+    job.promise.catch(() => undefined);
+  }, 1500);
 }
