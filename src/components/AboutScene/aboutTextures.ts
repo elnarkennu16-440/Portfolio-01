@@ -8,7 +8,7 @@ import {
   ABOUT_TEXT,
   BILLBOARD,
   BUILDINGS,
-  GROUND,
+  LAND,
   SIGN,
   STREET,
 } from "./aboutSceneConfig";
@@ -78,23 +78,52 @@ function groundCanvas(ppm: number): HTMLCanvasElement {
   const Z = (z: number) => (z - S.z0) * ppm;
   const r = rng(31);
 
-  // sidewalks ("the land"): near-black with BIG square grid, like the Hero
-  const G = GROUND;
-  g.fillStyle = G.base;
+  // sidewalks
+  g.fillStyle = "#2b2b2e";
   g.fillRect(0, 0, W, H);
-  // The old small paving slabs used r() here. Keep consuming the same random numbers so the
-  // road stains further down stay exactly where they were (the road must not change).
-  const oldSlab = 1.6;
-  for (let x = Math.floor(S.x0 / oldSlab) * oldSlab; x < S.x1; x += oldSlab)
-    for (let z = Math.floor(S.z0 / oldSlab) * oldSlab; z < S.z1; z += oldSlab)
-      r();
-  // grid lines (z lines are aligned to the far kerb, so they meet the road edges)
-  const lw = Math.max(2, G.line * ppm);
-  g.fillStyle = G.lineColor;
-  for (let x = Math.ceil(S.x0 / G.cell) * G.cell; x <= S.x1; x += G.cell)
-    g.fillRect(X(x) - lw / 2, 0, lw, H);
-  const gz0 = S.roadFar - Math.ceil((S.roadFar - S.z0) / G.cell) * G.cell;
-  for (let z = gz0; z <= S.z1; z += G.cell) g.fillRect(0, Z(z) - lw / 2, W, lw);
+  // paving slabs: slight brightness change per slab + joints
+  const slab = 1.6;
+  for (let x = Math.floor(S.x0 / slab) * slab; x < S.x1; x += slab) {
+    for (let z = Math.floor(S.z0 / slab) * slab; z < S.z1; z += slab) {
+      const v = r();
+      g.fillStyle =
+        v > 0.5
+          ? `rgba(255,255,255,${(v - 0.5) * 0.07})`
+          : `rgba(0,0,0,${(0.5 - v) * 0.16})`;
+      g.fillRect(X(x), Z(z), slab * ppm, slab * ppm);
+    }
+  }
+  g.fillStyle = "rgba(0,0,0,0.5)";
+  for (let x = Math.floor(S.x0 / slab) * slab; x < S.x1; x += slab)
+    g.fillRect(X(x), 0, Math.max(1, 0.05 * ppm), H);
+  for (let z = Math.floor(S.z0 / slab) * slab; z < S.z1; z += slab)
+    g.fillRect(0, Z(z), W, Math.max(1, 0.05 * ppm));
+
+  // NEAR sidewalk = the land in front of the road: big black squares (like the Hero's land).
+  // It has its own random generator, so the road stains below stay exactly where they were.
+  {
+    const lr = rng(77);
+    const y0 = Z(LAND.split);
+    const lw = Math.max(1.5, 0.07 * ppm);
+    g.fillStyle = "#060607";
+    g.fillRect(0, y0, W, H - y0);
+    const sq = LAND.square;
+    const xs = Math.floor(S.x0 / sq) * sq;
+    for (let x = xs; x < S.x1; x += sq) {
+      for (let z = LAND.split; z < S.z1; z += sq) {
+        const v = lr();
+        if (v > 0.5) {
+          g.fillStyle = `rgba(255,255,255,${(v - 0.5) * 0.035})`;
+          g.fillRect(X(x), Z(z), sq * ppm, sq * ppm);
+        }
+      }
+    }
+    g.fillStyle = "rgba(255,255,255,0.17)";
+    for (let x = xs; x < S.x1; x += sq)
+      g.fillRect(X(x) - lw / 2, y0, lw, H - y0);
+    for (let z = LAND.split; z < S.z1; z += sq)
+      g.fillRect(0, Z(z) - lw / 2, W, lw);
+  }
 
   // asphalt
   g.fillStyle = "#161618";

@@ -4,6 +4,7 @@ import { siteContent } from "../../content/siteContent";
 import { PreFooterDots } from "../../components/PreFooterDots/PreFooterDots";
 import prefooterImage from "../../assets/images/Prefooter-Background-Image.png";
 import styles from "./PreFooterBanner.module.css";
+import "./PreFooterLightMode.css";
 
 type SubpageId = "experience" | "workflows" | "services";
 

@@ -3,17 +3,7 @@
  * MeshBuilder). Colours are "baked" light (no lighting maths while drawing).
  * ──────────────────────────────────────────────────────────────────────────── */
 
-import {
-  MeshBuilder,
-  RGBA,
-  Shader,
-  V2,
-  V3,
-  blob,
-  cone,
-  rng,
-  triangulate,
-} from "./aboutGlUtils";
+import { MeshBuilder, RGBA, V2, V3, rng, triangulate } from "./aboutGlUtils";
 import {
   BILLBOARD,
   BUILDINGS,
@@ -21,6 +11,7 @@ import {
   CAT,
   DUST,
   LAMP,
+  LAND,
   SIGN,
   STREET,
 } from "./aboutSceneConfig";
@@ -38,8 +29,61 @@ const UV4: V2[] = [
 /* ── ground ─────────────────────────────────────────────────────────────── */
 /** the textured street (sidewalks, road, crossing) */
 export function buildGround(): MeshBuilder {
+  // the far sidewalk + the road, up to where the land starts (never moves)
   const m = new MeshBuilder();
-  m.ground(STREET.x0, STREET.z0, STREET.x1, STREET.z1, 0, gray(255));
+  const v1 = (LAND.split - STREET.z0) / (STREET.z1 - STREET.z0);
+  m.quad(
+    [
+      [STREET.x0, 0, STREET.z0],
+      [STREET.x1, 0, STREET.z0],
+      [STREET.x1, 0, LAND.split],
+      [STREET.x0, 0, LAND.split],
+    ],
+    [
+      [0, 0],
+      [1, 0],
+      [1, v1],
+      [0, v1],
+    ],
+    gray(255),
+  );
+  return m;
+}
+
+/** the LAND: the near sidewalk in front of the road, cut into small pieces so the
+ *  gravity waves can bend it. Same texture as the street (continues exactly where
+ *  buildGround() stops), so with no waves it looks like one flat street. */
+export function buildLand(lite: boolean): MeshBuilder {
+  const m = new MeshBuilder();
+  const cell = lite ? LAND.cellLite : LAND.cell;
+  const nx = Math.ceil((STREET.x1 - STREET.x0) / cell);
+  const nz = Math.ceil((STREET.z1 - LAND.split) / cell);
+  const v0 = (LAND.split - STREET.z0) / (STREET.z1 - STREET.z0);
+  for (let j = 0; j < nz; j++) {
+    const za = LAND.split + ((STREET.z1 - LAND.split) * j) / nz;
+    const zb = LAND.split + ((STREET.z1 - LAND.split) * (j + 1)) / nz;
+    const va = v0 + (1 - v0) * (j / nz);
+    const vb = v0 + (1 - v0) * ((j + 1) / nz);
+    for (let i = 0; i < nx; i++) {
+      const xa = STREET.x0 + ((STREET.x1 - STREET.x0) * i) / nx;
+      const xb = STREET.x0 + ((STREET.x1 - STREET.x0) * (i + 1)) / nx;
+      m.quad(
+        [
+          [xa, 0, za],
+          [xb, 0, za],
+          [xb, 0, zb],
+          [xa, 0, zb],
+        ],
+        [
+          [i / nx, va],
+          [(i + 1) / nx, va],
+          [(i + 1) / nx, vb],
+          [i / nx, vb],
+        ],
+        gray(255),
+      );
+    }
+  }
   return m;
 }
 
@@ -361,109 +405,7 @@ export function buildSignPosts(
   return m;
 }
 
-/* ── the cat (local coords: feet at y = 0, facing +z) ───────────────────── */
-export interface CatGeo {
-  body: MeshBuilder;
-  head: MeshBuilder;
-  eyes: MeshBuilder;
-  tail: MeshBuilder;
-  headPivot: V3;
-  tailPivot: V3;
-  eyesPivot: V3;
-}
-
-export function buildCat(): CatGeo {
-  const L: V3 = [-0.45, 0.72, 0.55]; // light: front-left, above
-  const shade: Shader = (n) => {
-    const d = Math.max(0, n[0] * L[0] + n[1] * L[1] + n[2] * L[2]);
-    const rim =
-      Math.pow(Math.max(0, n[1]), 2) * 0.35 +
-      Math.pow(Math.max(0, -n[0]), 2) * 0.25;
-    const v = 9 + 46 * d + 34 * rim;
-    return gray(Math.min(150, v));
-  };
-
-  const body = new MeshBuilder();
-  blob(body, [0, 0.4, -0.02], [0.4, 0.4, 0.5], shade, { seed: 3, rotX: 0 }); // haunches
-  blob(body, [0, 0.82, 0.06], [0.3, 0.5, 0.32], shade, { seed: 5 }); // torso
-  blob(body, [0, 0.78, 0.22], [0.25, 0.3, 0.22], shade, { seed: 6 }); // chest
-  blob(body, [-0.13, 0.33, 0.34], [0.07, 0.36, 0.08], shade, {
-    seed: 7,
-    jitter: 0.04,
-  }); // front legs
-  blob(body, [0.13, 0.33, 0.34], [0.07, 0.36, 0.08], shade, {
-    seed: 8,
-    jitter: 0.04,
-  });
-  blob(body, [-0.13, 0.04, 0.4], [0.09, 0.05, 0.12], shade, {
-    seed: 9,
-    jitter: 0.04,
-  }); // paws
-  blob(body, [0.13, 0.04, 0.4], [0.09, 0.05, 0.12], shade, {
-    seed: 10,
-    jitter: 0.04,
-  });
-
-  const head = new MeshBuilder();
-  const hp: V3 = [0, 1.2, 0.18];
-  blob(head, [0, 1.27, 0.2], [0.28, 0.23, 0.25], shade, {
-    seed: 11,
-    jitter: 0.05,
-  });
-  blob(head, [0, 1.18, 0.4], [0.12, 0.09, 0.12], shade, {
-    seed: 12,
-    jitter: 0.04,
-  }); // muzzle
-  cone(head, [-0.16, 1.4, 0.15], 0.28, 0.12, [-0.03, 0, -0.02], shade);
-  cone(head, [0.16, 1.4, 0.15], 0.28, 0.12, [0.03, 0, -0.02], shade);
-
-  // glowing eyes: two small slanted slits
-  const eyes = new MeshBuilder();
-  const ez = 0.462;
-  const slit = (cx: number, tilt: number) => {
-    eyes.quad(
-      [
-        [cx - 0.05, 1.3 + tilt, ez],
-        [cx + 0.05, 1.3 - tilt, ez],
-        [cx + 0.05, 1.268 - tilt, ez + 0.002],
-        [cx - 0.05, 1.268 + tilt, ez + 0.002],
-      ],
-      UV4,
-      gray(255),
-      1,
-    );
-  };
-  slit(-0.115, -0.016);
-  slit(0.115, 0.016);
-
-  // tail: a chain of overlapping blobs that curls up behind the cat
-  const tail = new MeshBuilder();
-  const tp: V3 = [0.2, 0.2, -0.32];
-  const path: V3[] = [];
-  for (let i = 0; i <= 12; i++) {
-    const t = i / 12;
-    const x = 0.2 + Math.sin(t * 1.9) * 0.42;
-    const y = 0.16 + t * 1.18 - Math.sin(t * 3.14) * 0.05;
-    const z = -0.32 - Math.sin(t * 3.14) * 0.05;
-    path.push([x, y, z]);
-  }
-  path.forEach((p, i) =>
-    blob(tail, p, [0.1 - i * 0.003, 0.1, 0.1 - i * 0.003], shade, {
-      seed: 20 + i,
-      jitter: 0.03,
-    }),
-  );
-
-  return {
-    body,
-    head,
-    eyes,
-    tail,
-    headPivot: hp,
-    tailPivot: tp,
-    eyesPivot: [0, 1.28, ez],
-  };
-}
+/* the cat now lives in aboutCat.ts (realistic lying cat) */
 
 /* ── street lamp + the light it throws ──────────────────────────────────── */
 export function buildLamp(): {

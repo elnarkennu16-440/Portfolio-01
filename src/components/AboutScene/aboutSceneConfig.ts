@@ -60,22 +60,16 @@ export const STREET = {
   crossX1: 3.0,
 };
 
-/* ── GROUND / SIDEWALK "land" — big near-black squares, same look as the Hero ──
- * Only the sidewalks use this. The road, kerbs, lane lines and crossing are untouched. */
-export const GROUND = {
-  /** size of ONE grid square in metres. The road is 7.5 m wide = exactly 2 squares, so the
-   *  grid lines meet the kerbs. Want it to match the Hero exactly? Put the Hero's grid size here. */
-  cell: 3.75,
-  /** width of the grid line (metres) */
-  line: 0.09,
-  /** the squares: black */
-  base: "#060607",
-  /** the grid lines: a faint grey, like the Hero */
-  lineColor: "#202024",
-  /** plain floor outside the textured part (0-255): same black as the squares, so no edge shows */
-  floor: 7,
-  /** light look colour remap (colour × x + y): black squares → white, grid lines → light grey */
-  lightRemap: [-1.68, 1.01] as [number, number],
+/* ── LAND: the near sidewalk in front of the road (the square paving) ─────────
+ * Bigger black squares (like the Hero's land) + the gravity waves live here.
+ * split = where the road ends and the land starts (the road and everything on it never move). */
+export const LAND = {
+  split: STREET.roadNear + 0.15,
+  /** size of one paving square (metres) */
+  square: 2.4,
+  /** size of one piece of the land mesh (the waves bend these) */
+  cell: 0.5,
+  cellLite: 0.8,
 };
 
 /* ── BUILDINGS (far side of the street) ─────────────────────────────────── */

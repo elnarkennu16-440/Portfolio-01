@@ -50,6 +50,31 @@ export interface DotFieldOptions {
   landHole?: boolean;
   /** A full-screen sub page (Resume, All Works): while it is open, the dot fields of the page behind it pause. */
   overlay?: boolean;
+  /**
+   * Opt-in (PreFooter only, default off = nothing changes for the other sections):
+   * the image covers the whole area like a wide background (cropped to fit,
+   * never stretched), without edge fade, and its dots are toned down.
+   */
+  fill?: boolean;
+  /** With `fill`: strongest dot tone of the image, 0..1 (default 0.6). Lower = darker image. */
+  fillTone?: number;
+  /** With `fill`: which part of the image stays visible when it is cropped, 0..1 (default 0.5 / 0.5). */
+  fillFocusX?: number;
+  fillFocusY?: number;
+  /**
+   * Opt-in (PreFooter only, default off = nothing changes for the other sections):
+   * "calm zones" on the image (with `fill`). Inside them the gravity waves are weakened,
+   * so the figure in the picture is barely bent when the cursor goes over it.
+   * The zones are ellipses written in pixels of a reference section size (refW x refH);
+   * they are attached to the IMAGE, so they follow it on every screen size.
+   */
+  calm?: {
+    refW: number;
+    refH: number;
+    /** 0..1 : how much of the wave movement is removed inside the zones (1 = none left) */
+    amount: number;
+    zones: Array<{ x: number; y: number; rx: number; ry: number }>;
+  };
 }
 
 /* ───── full-screen sub pages pause the page behind them ───── */
@@ -392,7 +417,27 @@ function computeLayout(
   H: number,
   text: Box | null,
   aspect: number,
+  fill: { x: number; y: number } | null = null,
 ): Layout {
+  if (fill) {
+    // wide background: the image covers the whole area (like object-fit: cover).
+    // 10% overscan so the 3D tilt of the sheet never shows an empty edge.
+    const over = 1.1;
+    const width = Math.max(W, H * aspect) * over;
+    const height = width / aspect;
+    const left = -(width - W) * fill.x;
+    const top = -(height - H) * fill.y;
+    return {
+      left,
+      top,
+      width,
+      height,
+      cx: left + width / 2,
+      cy: top + height / 2,
+      spacing: W < MOBILE_BREAKPOINT ? 4.4 : 6,
+    };
+  }
+
   const mobile = W < MOBILE_BREAKPOINT;
   let size: number;
   let cx: number;
@@ -486,6 +531,12 @@ export function createDotField(opts: DotFieldOptions): DotField {
     ? host.querySelector<HTMLElement>("[data-dot-mask]")
     : null;
   const hasImage = !!imageSrc;
+  const useFill = !!opts.fill && hasImage;
+  const fillTone = Math.max(0, Math.min(1, opts.fillTone ?? 0.6));
+  const fillFocus = {
+    x: Math.max(0, Math.min(1, opts.fillFocusX ?? 0.5)),
+    y: Math.max(0, Math.min(1, opts.fillFocusY ?? 0.5)),
+  };
 
   const gl = canvas.getContext("webgl", {
     alpha: true,
@@ -536,6 +587,7 @@ export function createDotField(opts: DotFieldOptions): DotField {
   let hgt = new Float32Array(0);
   let vel = new Float32Array(0);
   let wave = new Float32Array(0);
+  let calmK = new Float32Array(0); // per dot: 1 = full movement, lower = calmer (see `calm`)
   let settled = true;
   let waveDirty = false;
   let spacingNow = 6;
@@ -851,7 +903,13 @@ export function createDotField(opts: DotFieldOptions): DotField {
     canvas.width = Math.round(W * dpr);
     canvas.height = Math.round(H * dpr);
 
-    const lay = computeLayout(W, H, text, lumAspect);
+    const lay = computeLayout(
+      W,
+      H,
+      text,
+      lumAspect,
+      useFill ? fillFocus : null,
+    );
     layout = lay;
 
     // grid (spacing grows only if a huge screen would exceed the dot cap)
@@ -903,19 +961,57 @@ export function createDotField(opts: DotFieldOptions): DotField {
               py - lay.top,
               lay.top + lay.height - py,
             );
-            tone = sampleLum(lum, u, v) * smooth(0, feather, edge);
+            tone =
+              sampleLum(lum, u, v) *
+              (useFill ? fillTone : smooth(0, feather, edge));
           }
         }
         if (tb && tone > 0) {
           const dx = Math.max(tb.l - px, 0, px - tb.r);
           const dy = Math.max(tb.t - py, 0, py - tb.b);
-          tone *= 0.3 + 0.7 * smooth(0, 48, Math.hypot(dx, dy));
+          // fill: a wider soft fade so the text stays easy to read
+          tone *= 0.3 + 0.7 * smooth(0, useFill ? 150 : 48, Math.hypot(dx, dy));
         }
 
         stat[o] = px - W / 2;
         stat[o + 1] = py - H / 2;
         stat[o + 2] = tone;
         stat[o + 3] = hash2(i, j);
+      }
+    }
+
+    // calm zones (opt-in): weaker wave movement over the figure of the image
+    calmK = new Float32Array(0);
+    const calmOpt = opts.calm;
+    if (useFill && calmOpt && calmOpt.zones.length && lay.width > 0) {
+      const ref = computeLayout(
+        calmOpt.refW,
+        calmOpt.refH,
+        null,
+        lumAspect,
+        fillFocus,
+      );
+      const sc = lay.width / ref.width;
+      const zs = calmOpt.zones.map((z) => ({
+        x: lay.left + (z.x - ref.left) * sc,
+        y: lay.top + (z.y - ref.top) * sc,
+        rx: Math.max(1, z.rx * sc),
+        ry: Math.max(1, z.ry * sc),
+      }));
+      const amt = Math.max(0, Math.min(1, calmOpt.amount));
+      calmK = new Float32Array(N);
+      for (let j = 0; j < rows; j++) {
+        const py = Y0 + j * sy;
+        const stagger = j & 1 ? sx * 0.5 : 0;
+        for (let i = 0; i < cols; i++) {
+          const px = X0 + i * sx + stagger;
+          let inside = 0;
+          for (const z of zs) {
+            const d = Math.hypot((px - z.x) / z.rx, (py - z.y) / z.ry);
+            inside = Math.max(inside, 1 - smooth(1.0, 1.3, d)); // full calm up to the edge, soft fade outside
+          }
+          calmK[j * cols + i] = 1 - amt * inside;
+        }
       }
     }
 
@@ -1072,13 +1168,15 @@ export function createDotField(opts: DotFieldOptions): DotField {
   const updateWave = () => {
     const ix = 1 / (2 * sx);
     const iy = 1 / (2 * sy);
+    const calm = calmK.length === N ? calmK : null; // null = no calm zones (all other sections)
     for (let j = 1; j < rows - 1; j++) {
       let idx = j * cols + 1;
       for (let i = 1; i < cols - 1; i++, idx++) {
         const o = idx * 3;
-        wave[o] = hgt[idx];
-        wave[o + 1] = (hgt[idx + 1] - hgt[idx - 1]) * ix;
-        wave[o + 2] = (hgt[idx + cols] - hgt[idx - cols]) * iy;
+        const k = calm ? calm[idx] : 1;
+        wave[o] = hgt[idx] * k;
+        wave[o + 1] = (hgt[idx + 1] - hgt[idx - 1]) * ix * k;
+        wave[o + 2] = (hgt[idx + cols] - hgt[idx - cols]) * iy * k;
       }
     }
     waveDirty = true;

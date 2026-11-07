@@ -1,0 +1,95 @@
+/* =========================================================================
+   PreFooterLightMode.css  (GLOBAL css file, NOT a CSS module)
+
+   Light mode for the PreFooter banner, kept separate from
+   PreFooterBanner.module.css / PreFooterDots.module.css / dotField.ts.
+
+   - Active ONLY when data-theme="light" (set by ThemeToggle).
+   - COLORS ONLY. Never touches width, height, padding, margin, position,
+     font-size, transform or media queries, so layout / portrait size /
+     responsiveness stay exactly as they are. Dark mode is not affected.
+   - Uses the SAME color tokens as Footer.module.css in light mode, so the
+     PreFooter and the Footer always match:
+       background -> var(--bg-surface-elevated)
+       text       -> var(--text-primary) / --text-secondary / --text-muted
+   ========================================================================= */
+
+:root {
+  /* DARK MODE: brightness of the dots (portrait / face). 1 = as it was before,
+     higher = brighter and easier to see, lower = darker. Try 1.1 to 1.8. */
+  --prefooter-dark-dots-brightness: 1.3;
+
+  /* LIGHT MODE: how visible the portrait is. 1 = plain inversion (same as the Footer),
+     higher = darker portrait dots and lighter background dots = MORE visible portrait,
+     lower = softer. Try 1 to 2.2. */
+  --prefooter-light-dots-contrast: 6.7;
+}
+
+/* ---- 0. DARK MODE dots: lifts the dark parts (like the face) so they can be seen.
+        Only the brightness of the dots changes: no sizes, no layout, no movement.
+        The light mode rule below replaces this filter when data-theme="light". ---- */
+section[aria-label="Profile and Work Inquiries"] canvas {
+  filter: brightness(var(--prefooter-dark-dots-brightness));
+}
+
+/* ---- 1. background: same as the Footer ---- */
+[data-theme="light"] section[aria-label="Profile and Work Inquiries"] {
+  background-color: var(--bg-surface-elevated);
+}
+
+/* ---- 2. dots: same inversion the Footer dots use (light dots -> dark dots), so the
+        portrait shows up again, while the plain background dots stay light gray.
+        contrast() sets how strong the portrait is. Dot sizes, waves and layout
+        are untouched. Transparent pixels stay transparent. ---- */
+[data-theme="light"] section[aria-label="Profile and Work Inquiries"] canvas {
+  filter: invert(1) contrast(var(--prefooter-light-dots-contrast));
+}
+
+/* ---- 3. texts: same tokens as the Footer ---- */
+[data-theme="light"] section[aria-label="Profile and Work Inquiries"] h2 {
+  color: var(--text-primary);
+  text-shadow: none;
+}
+
+[data-theme="light"] section[aria-label="Profile and Work Inquiries"] p {
+  color: var(--text-secondary);
+  text-shadow: none;
+}
+
+/* "Message me" / "Explore Experience" (label + line + arrow follow the color) */
+[data-theme="light"] section[aria-label="Profile and Work Inquiries"] button {
+  color: var(--text-primary);
+  text-shadow: none;
+}
+
+[data-theme="light"]
+  section[aria-label="Profile and Work Inquiries"]
+  button[class*="ctaLineMuted"] {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"]
+  section[aria-label="Profile and Work Inquiries"]
+  button[class*="ctaLine"]:hover {
+  color: var(--text-muted);
+}
+
+[data-theme="light"]
+  section[aria-label="Profile and Work Inquiries"]
+  button[class*="ctaLine"]:focus-visible {
+  outline-color: var(--border-strong);
+}
+
+/* right side meta (Kennu Elnar / location / role) */
+[data-theme="light"]
+  section[aria-label="Profile and Work Inquiries"]
+  [class*="rightMeta"] {
+  color: var(--text-secondary);
+  text-shadow: none;
+}
+
+[data-theme="light"]
+  section[aria-label="Profile and Work Inquiries"]
+  [class*="rightMetaTitle"] {
+  color: var(--text-primary);
+}

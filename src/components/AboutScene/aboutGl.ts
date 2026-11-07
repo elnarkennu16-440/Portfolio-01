@@ -22,6 +22,7 @@ import {
   FOG,
   FOG_LIGHT,
   LAMP,
+  LAND,
   LOOKS,
   Pose,
   SIGN,
@@ -52,16 +53,17 @@ import {
   translate,
 } from "./aboutGlUtils";
 import { AboutCanvases, buildAboutCanvases } from "./aboutTextures";
+import { CatGeo, buildCat } from "./aboutCat";
 import {
   buildBillboard,
   buildBuilding,
   buildCar,
-  buildCat,
   buildCommentSign,
   buildDust,
   buildFloor,
   buildGround,
   buildLamp,
+  buildLand,
   buildSignPosts,
 } from "./aboutSceneParts";
 
@@ -79,6 +81,30 @@ export interface AboutController {
   dispose(): void;
 }
 
+/* ── LAND WAVES (gravity) — tweak freely ─────────────────────────────────
+ * Only the land (the black squares on the near sidewalk) bends with the cursor, and the
+ * cat sits on it and rides along. The road, cars, buildings, billboard, lamp and sign
+ * never move. Units are metres. The same numbers are used by the shader and by the
+ * cat, so they always agree. */
+const WAVE_RIPPLES = 12; // must match uRip[12] in the shader
+const LW = {
+  depth: 0.5, // how deep the land sinks under the cursor
+  sigma: 1.8, // width of that dip
+  slide: 1.0, // how far the lines slide toward the cursor
+  speed: 2.3, // ripple speed (m/s)
+  width: 1.0, // ripple width
+  amp: 0.45, // ripple height at full strength
+  decay: 0.8,
+  eps: 0.25, // step used to measure the slope
+  glide: 7, // cursor smoothing (higher = quicker)
+  life: 4.5, // seconds a ripple lives
+  limit: 60, // keeps the pointer position inside a sane range
+  glow: 2.2, // how much the lines light up where the land is bent
+  catSlide: 0.3, // the cat barely slides (it stays where it sits)
+  catTilt: 16, // how much the cat leans with the slope
+};
+const f3 = (n: number) => n.toFixed(3);
+
 /* ── shaders ────────────────────────────────────────────────────────────── */
 const VS = `#version 300 es
 precision highp float;
@@ -90,12 +116,51 @@ uniform mat4 uVP;
 uniform mat4 uLocal;
 uniform vec3 uEye;
 uniform float uPoint;
+uniform float uWave;     // 1 only for the land
+uniform vec4 uWell;      // cursor "mass": x, z, depth, sigma (metres)
+uniform vec4 uRip[${WAVE_RIPPLES}];   // ripples: x, z, age (s), strength
+uniform float uSlide;
 out vec2 vUV;
 out vec4 vCol;
 out float vDist;
 out float vKind;
+out float vGlow;
+
+/* the land starts after the road; far away it fades back to still */
+float landMask(vec2 q) {
+  float m = smoothstep(${f3(LAND.split)}, ${f3(LAND.split + 0.9)}, q.y);
+  m *= 1.0 - smoothstep(30.0, 44.0, abs(q.x));
+  m *= 1.0 - smoothstep(18.0, 25.0, q.y);
+  return m;
+}
+float landH(vec2 q) {
+  vec2 d = q - uWell.xy;
+  float h = -uWell.z * exp(-dot(d, d) / (2.0 * uWell.w * uWell.w));
+  for (int i = 0; i < ${WAVE_RIPPLES}; i++) {
+    vec4 r = uRip[i];
+    if (r.w > 0.001) {
+      float f = length(q - r.xy) - ${f3(LW.speed)} * r.z;
+      h += r.w * ${f3(LW.amp)} * exp(-r.z * ${f3(LW.decay)}) * exp(-(f * f) / (2.0 * ${f3(LW.width)} * ${f3(LW.width)})) * cos(f / ${f3(LW.width)} * 1.7);
+    }
+  }
+  return h;
+}
+
 void main() {
   vec4 wp = uLocal * vec4(aPos, 1.0);
+  float glow = 0.0;
+  if (uWave > 0.5) {
+    float mk = landMask(wp.xz);
+    if (mk > 0.001) {
+      float h0 = landH(wp.xz);
+      float gx = landH(wp.xz + vec2(${f3(LW.eps)}, 0.0)) - landH(wp.xz - vec2(${f3(LW.eps)}, 0.0));
+      float gz = landH(wp.xz + vec2(0.0, ${f3(LW.eps)})) - landH(wp.xz - vec2(0.0, ${f3(LW.eps)}));
+      wp.xz -= vec2(gx, gz) / ${f3(LW.eps * 2)} * uSlide * mk;   // downhill = toward the cursor (magnet)
+      wp.y += (h0 > 0.0 ? h0 * 0.35 : h0) * mk;                  // sinks away from you, rises only a little
+      glow = clamp(abs(h0) * mk / ${f3(LW.amp)}, 0.0, 1.0);
+    }
+  }
+  vGlow = glow;
   gl_Position = uVP * wp;
   gl_PointSize = uPoint;
   vUV = aUV;
@@ -120,10 +185,12 @@ uniform float uTypeOn;
 uniform float uBlink;
 uniform float uPointMode;
 uniform vec2 uRemap;
+uniform float uGlowK;
 in vec2 vUV;
 in vec4 vCol;
 in float vDist;
 in float vKind;
+in float vGlow;
 out vec4 outColor;
 void main() {
   vec4 c = vCol;
@@ -146,6 +213,7 @@ void main() {
 
   // light look: ONLY the street + floor turn light (they carry their own remap: colour × x + y).
   // Buildings, billboard, cat and sign are not touched, so they stay black / grey on the white world.
+  c.rgb *= 1.0 + vGlow * uGlowK; // the land lines light up where it is bent
   c.rgb = mix(c.rgb, c.rgb * uRemap.x + uRemap.y, uLook);
   // floating dust: white on the night look, soft grey on the white look
   if (uPass > 2.5) c.rgb = mix(c.rgb, vec3(0.42, 0.42, 0.47), uLook);
@@ -173,10 +241,91 @@ interface Item {
   typed?: boolean;
   /** light look colour remap (colour × x + y). Default [1, 0] = unchanged. */
   remap?: [number, number];
+  /** the land: bends with the cursor (gravity waves) */
+  wave?: boolean;
   upd: (t: number) => Frame | null;
 }
 
 const ID = identity();
+
+/** inverse of a 4x4 matrix (column-major) */
+function invert4(m: Mat4): Mat4 | null {
+  const a00 = m[0],
+    a01 = m[1],
+    a02 = m[2],
+    a03 = m[3];
+  const a10 = m[4],
+    a11 = m[5],
+    a12 = m[6],
+    a13 = m[7];
+  const a20 = m[8],
+    a21 = m[9],
+    a22 = m[10],
+    a23 = m[11];
+  const a30 = m[12],
+    a31 = m[13],
+    a32 = m[14],
+    a33 = m[15];
+  const b00 = a00 * a11 - a01 * a10;
+  const b01 = a00 * a12 - a02 * a10;
+  const b02 = a00 * a13 - a03 * a10;
+  const b03 = a01 * a12 - a02 * a11;
+  const b04 = a01 * a13 - a03 * a11;
+  const b05 = a02 * a13 - a03 * a12;
+  const b06 = a20 * a31 - a21 * a30;
+  const b07 = a20 * a32 - a22 * a30;
+  const b08 = a20 * a33 - a23 * a30;
+  const b09 = a21 * a32 - a22 * a31;
+  const b10 = a21 * a33 - a23 * a31;
+  const b11 = a22 * a33 - a23 * a32;
+  let det =
+    b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
+  if (!det) return null;
+  det = 1 / det;
+  const o = new Float32Array(16);
+  o[0] = (a11 * b11 - a12 * b10 + a13 * b09) * det;
+  o[1] = (a02 * b10 - a01 * b11 - a03 * b09) * det;
+  o[2] = (a31 * b05 - a32 * b04 + a33 * b03) * det;
+  o[3] = (a22 * b04 - a21 * b05 - a23 * b03) * det;
+  o[4] = (a12 * b08 - a10 * b11 - a13 * b07) * det;
+  o[5] = (a00 * b11 - a02 * b08 + a03 * b07) * det;
+  o[6] = (a32 * b02 - a30 * b05 - a33 * b01) * det;
+  o[7] = (a20 * b05 - a22 * b02 + a23 * b01) * det;
+  o[8] = (a10 * b10 - a11 * b08 + a13 * b06) * det;
+  o[9] = (a01 * b08 - a00 * b10 - a03 * b06) * det;
+  o[10] = (a30 * b04 - a31 * b02 + a33 * b00) * det;
+  o[11] = (a21 * b02 - a20 * b04 - a23 * b00) * det;
+  o[12] = (a11 * b07 - a10 * b09 - a12 * b06) * det;
+  o[13] = (a00 * b09 - a01 * b07 + a02 * b06) * det;
+  o[14] = (a31 * b01 - a30 * b03 - a32 * b00) * det;
+  o[15] = (a20 * b03 - a21 * b01 + a22 * b00) * det;
+  return o;
+}
+
+/** screen point (css px) → point on the ground (y = 0) under it, or null if it looks above the horizon */
+function pickGround(
+  inv: Mat4,
+  sx: number,
+  sy: number,
+  W: number,
+  H: number,
+): [number, number] | null {
+  const nx = (sx / W) * 2 - 1;
+  const ny = 1 - (sy / H) * 2;
+  const at = (z: number): V3 => {
+    const w = inv[3] * nx + inv[7] * ny + inv[11] * z + inv[15];
+    return [
+      (inv[0] * nx + inv[4] * ny + inv[8] * z + inv[12]) / w,
+      (inv[1] * nx + inv[5] * ny + inv[9] * z + inv[13]) / w,
+      (inv[2] * nx + inv[6] * ny + inv[10] * z + inv[14]) / w,
+    ];
+  };
+  const a = at(-1);
+  const b = at(1);
+  const t = a[1] / (a[1] - b[1]);
+  if (!isFinite(t) || t < 0) return null;
+  return [a[0] + (b[0] - a[0]) * t, a[2] + (b[2] - a[2]) * t];
+}
 
 /* ── controller ─────────────────────────────────────────────────────────── */
 export function createAboutScene(
@@ -206,6 +355,93 @@ export function createAboutScene(
     my: 0,
     p: input.current.progress,
     look: input.current.dark ? 0 : 1,
+  };
+
+  /* land waves: pointer over the section + the ripples it drops */
+  const wIn = {
+    px: 0,
+    py: 0,
+    hover: false,
+    kicks: [] as { x: number; y: number }[],
+  };
+  const ripBuf = new Float32Array(WAVE_RIPPLES * 4); // x, z, age, strength
+  const rips = Array.from({ length: WAVE_RIPPLES }, () => ({
+    x: 0,
+    z: 0,
+    born: -1e9,
+    amp: 0,
+  }));
+  let ripNext = 0;
+  const wv = {
+    x: 0,
+    z: 0,
+    lx: 0,
+    lz: 0,
+    has: false,
+    amt: 0,
+    lastEmit: -9,
+    lastNow: 0,
+  };
+  let waveLive = false;
+  const emitRipple = (x: number, z: number, amp: number, nowS: number) => {
+    const r = rips[ripNext];
+    ripNext = (ripNext + 1) % WAVE_RIPPLES;
+    r.x = x;
+    r.z = z;
+    r.born = nowS;
+    r.amp = amp;
+  };
+  const clampW = (v: number) => Math.max(-LW.limit, Math.min(LW.limit, v));
+  /** same land maths as the shader, for the cat sitting on it */
+  const landMaskCpu = (x: number, z: number) => {
+    const ss = (a: number, b: number, v: number) => {
+      const t = clamp01((v - a) / (b - a));
+      return t * t * (3 - 2 * t);
+    };
+    return (
+      ss(LAND.split, LAND.split + 0.9, z) *
+      (1 - ss(30, 44, Math.abs(x))) *
+      (1 - ss(18, 25, z))
+    );
+  };
+  const landHCpu = (x: number, z: number) => {
+    const d2 = (x - wv.x) ** 2 + (z - wv.z) ** 2;
+    let h = -LW.depth * wv.amt * Math.exp(-d2 / (2 * LW.sigma * LW.sigma));
+    for (let i = 0; i < WAVE_RIPPLES; i++) {
+      const s = ripBuf[i * 4 + 3];
+      if (s > 0.001) {
+        const age = ripBuf[i * 4 + 2];
+        const f =
+          Math.hypot(x - ripBuf[i * 4], z - ripBuf[i * 4 + 1]) - LW.speed * age;
+        h +=
+          s *
+          LW.amp *
+          Math.exp(-age * LW.decay) *
+          Math.exp(-(f * f) / (2 * LW.width * LW.width)) *
+          Math.cos((f / LW.width) * 1.7);
+      }
+    }
+    return h;
+  };
+  /** how the land moves the cat: it rides up / down with it and leans a little, but stays where it sits */
+  const catLand = (cx: number, cz: number): Mat4 => {
+    if (!waveLive) return ID;
+    const mk = landMaskCpu(cx, cz);
+    if (mk < 0.001) return ID;
+    const e = LW.eps;
+    const h0 = landHCpu(cx, cz);
+    const sx = (landHCpu(cx + e, cz) - landHCpu(cx - e, cz)) / (2 * e);
+    const sz = (landHCpu(cx, cz + e) - landHCpu(cx, cz - e)) / (2 * e);
+    const y = (h0 > 0 ? h0 * 0.35 : h0) * mk;
+    const dx = -sx * LW.slide * mk * LW.catSlide;
+    const dz = -sz * LW.slide * mk * LW.catSlide;
+    const lim = (v: number) => Math.max(-6, Math.min(6, v));
+    const roll = lim(Math.atan(sx * mk) * (180 / Math.PI) * (LW.catTilt / 16));
+    const pitch = lim(Math.atan(sz * mk) * (180 / Math.PI) * (LW.catTilt / 16));
+    return mul(
+      translate(dx, y, dz),
+      around([cx, 0, cz], mul(rotateX(-pitch), rotateZ(roll))),
+    );
   };
 
   let program: WebGLProgram | null = null;
@@ -296,7 +532,7 @@ export function createAboutScene(
     (Math.atan2(end.eye[1] - objY, end.eye[2] - objZ) * 180) / Math.PI;
 
   /* ── build the whole scene ────────────────────────────────────────────── */
-  function build(c: AboutCanvases) {
+  function build(c: AboutCanvases, catGeo: CatGeo) {
     program = makeProgram(gl!, VS, FS);
     for (const n of [
       "uVP",
@@ -317,6 +553,11 @@ export function createAboutScene(
       "uBlink",
       "uPointMode",
       "uRemap",
+      "uWave",
+      "uWell",
+      "uRip",
+      "uSlide",
+      "uGlowK",
     ]) {
       U[n] = gl!.getUniformLocation(program, n);
     }
@@ -348,8 +589,14 @@ export function createAboutScene(
     add(buildFloor(), null, 0, fadeIn(T.ground.delay, T.ground.dur), {
       remap: [0, 1],
     });
-    add(buildGround(), tex(c.ground), 0, fadeIn(T.ground.delay, T.ground.dur), {
+    const groundT = tex(c.ground);
+    add(buildGround(), groundT, 0, fadeIn(T.ground.delay, T.ground.dur), {
       remap: [2.1, 0.58],
+    });
+    // the land (near sidewalk, black squares). Light look: it turns near-white with grey lines.
+    add(buildLand(lite), groundT, 0, fadeIn(T.ground.delay, T.ground.dur), {
+      remap: [-2.4, 0.99],
+      wave: true,
     });
 
     /* buildings */
@@ -478,12 +725,12 @@ export function createAboutScene(
     }
 
     {
-      const cat = buildCat();
+      const cat = catGeo;
       const cx = portrait ? CAT.portraitX : CAT.x;
       const cz = portrait ? CAT.portraitZ : CAT.z;
       const k = portrait ? CAT.portraitScale : CAT.scale;
       const cyaw = portrait ? CAT.portraitYaw : CAT.yaw;
-      const base = mul(
+      const base0 = mul(
         translate(cx, 0, cz),
         mul(rotateY(cyaw), scale3(k, k, k)),
       );
@@ -491,7 +738,11 @@ export function createAboutScene(
         const p = prog(t, TIMELINE.cat.delay, TIMELINE.cat.dur);
         if (p <= 0) return null;
         return {
-          m: mul(base, translate(0, -0.5 * (1 - easeOut(p)), 0)),
+          // the cat sits on the land: it follows the waves (see catLand)
+          m: mul(
+            mul(catLand(cx, cz), base0),
+            translate(0, -0.5 * (1 - easeOut(p)), 0),
+          ),
           fade: smooth(p * 1.4),
         };
       };
@@ -540,7 +791,7 @@ export function createAboutScene(
         if (!f) return null;
         const sway = Math.sin(t * 1.1) * 6 + Math.sin(t * 0.43) * 3;
         return {
-          m: mul(f.m, around(cat.tailPivot, rotateZ(sway))),
+          m: mul(f.m, around(cat.tailPivot, rotateY(sway * 0.8))),
           fade: f.fade,
         };
       });
@@ -643,7 +894,70 @@ export function createAboutScene(
       lookAt(pose.eye, pose.target),
     );
 
+    /* ── land waves: cursor → point on the ground, a soft well that follows it,
+       and ripples dropped while it moves / when you click or tap ── */
+    const nowS = now / 1000;
+    const dtW = Math.min(0.1, Math.max(0, nowS - wv.lastNow));
+    wv.lastNow = nowS;
+    if (!reduced && (wIn.hover || wIn.kicks.length)) {
+      const inv = invert4(vp);
+      if (inv) {
+        if (wIn.hover) {
+          const gp = pickGround(inv, wIn.px, wIn.py, W, H);
+          if (gp) {
+            const gx = clampW(gp[0]);
+            const gz = clampW(gp[1]);
+            if (!wv.has || wv.amt < 0.05) {
+              wv.x = wv.lx = gx;
+              wv.z = wv.lz = gz;
+              wv.has = true;
+            }
+            const f = 1 - Math.exp(-dtW * LW.glide);
+            wv.x += (gx - wv.x) * f;
+            wv.z += (gz - wv.z) * f;
+            wv.amt += (1 - wv.amt) * (1 - Math.exp(-dtW * 4));
+            const moved = Math.hypot(wv.x - wv.lx, wv.z - wv.lz);
+            if (moved > 0.9 && nowS - wv.lastEmit > 0.26) {
+              emitRipple(wv.x, wv.z, 0.25 + Math.min(0.35, moved / 8), nowS);
+              wv.lx = wv.x;
+              wv.lz = wv.z;
+              wv.lastEmit = nowS;
+            }
+          } else {
+            wv.amt *= Math.exp(-dtW * 2.5);
+          }
+        } else {
+          wv.amt *= Math.exp(-dtW * 2.5);
+        }
+        if (wIn.kicks.length) {
+          for (const k of wIn.kicks.splice(0, 3)) {
+            const gp = pickGround(inv, k.x, k.y, W, H);
+            if (gp) emitRipple(clampW(gp[0]), clampW(gp[1]), 1, nowS);
+          }
+        }
+      }
+    } else {
+      wv.amt *= Math.exp(-dtW * 2.5);
+      wIn.kicks.length = 0;
+    }
+    if (wv.amt < 0.004) wv.amt = 0;
+    waveLive = wv.amt > 0;
+    for (let i = 0; i < WAVE_RIPPLES; i++) {
+      const r = rips[i];
+      const age = nowS - r.born;
+      const live = r.amp > 0 && age >= 0 && age < LW.life;
+      ripBuf[i * 4] = r.x;
+      ripBuf[i * 4 + 1] = r.z;
+      ripBuf[i * 4 + 2] = live ? age : 0;
+      ripBuf[i * 4 + 3] = live ? r.amp : 0;
+      if (live) waveLive = true;
+    }
+
     g.useProgram(program);
+    g.uniform1f(U.uSlide, LW.slide);
+    g.uniform4f(U.uWell, wv.x, wv.z, LW.depth * wv.amt, LW.sigma);
+    g.uniform4fv(U.uRip, ripBuf);
+    g.uniform1f(U.uGlowK, LW.glow);
     g.uniformMatrix4fv(U.uVP, false, vp);
     g.uniform3f(U.uEye, pose.eye[0], pose.eye[1], pose.eye[2]);
     g.uniform3f(U.uBg, bg[0], bg[1], bg[2]);
@@ -710,6 +1024,7 @@ export function createAboutScene(
         const alpha = f.alpha ?? 1;
         if (pass === 0 ? fade <= 0.002 : alpha <= 0.002) continue;
         g.uniformMatrix4fv(U.uLocal, false, f.m);
+        g.uniform1f(U.uWave, it.wave && waveLive ? 1 : 0);
         g.activeTexture(g.TEXTURE0);
         g.bindTexture(g.TEXTURE_2D, it.tex ?? white);
         g.uniform1f(U.uUseTex, it.tex ? 1 : 0);
@@ -790,6 +1105,42 @@ export function createAboutScene(
   };
   document.addEventListener("visibilitychange", onVis);
 
+  /* land waves: pointer position over the About section (mouse hover, or a tap / touch) and
+     clicks / taps that drop a stronger pulse. Passive: scrolling is never blocked. */
+  const waveHost =
+    (canvas.closest("section") as HTMLElement | null) ?? canvas.parentElement;
+  const waveLocal = (e: PointerEvent) => {
+    const r = (canvas.parentElement ?? canvas).getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+  const onWaveMove = (e: PointerEvent) => {
+    if (e.pointerType === "touch") return;
+    const p = waveLocal(e);
+    wIn.px = p.x;
+    wIn.py = p.y;
+    wIn.hover = true;
+  };
+  const onWaveDown = (e: PointerEvent) => {
+    const p = waveLocal(e);
+    wIn.px = p.x;
+    wIn.py = p.y;
+    wIn.hover = true;
+    if (wIn.kicks.length < 6) wIn.kicks.push({ x: p.x, y: p.y });
+  };
+  const onWaveEnd = (e: PointerEvent) => {
+    if (e.pointerType !== "mouse") wIn.hover = false;
+  };
+  const onWaveLeave = () => {
+    wIn.hover = false;
+  };
+  if (waveHost && !reduced) {
+    waveHost.addEventListener("pointermove", onWaveMove, { passive: true });
+    waveHost.addEventListener("pointerdown", onWaveDown, { passive: true });
+    waveHost.addEventListener("pointerup", onWaveEnd, { passive: true });
+    waveHost.addEventListener("pointercancel", onWaveEnd, { passive: true });
+    waveHost.addEventListener("pointerleave", onWaveLeave, { passive: true });
+  }
+
   const onLost = (e: Event) => {
     e.preventDefault();
     cancelAnimationFrame(raf);
@@ -823,7 +1174,10 @@ export function createAboutScene(
     try {
       canvases = await buildAboutCanvases(lite, portrait);
       if (disposed) return;
-      build(canvases);
+      // the cat mesh is built once, in small steps (see aboutCat.ts)
+      const catGeo = await buildCat(lite);
+      if (disposed) return;
+      build(canvases, catGeo);
       built = true;
       start();
     } finally {
@@ -855,6 +1209,13 @@ export function createAboutScene(
       ro?.disconnect();
       io?.disconnect();
       document.removeEventListener("visibilitychange", onVis);
+      if (waveHost) {
+        waveHost.removeEventListener("pointermove", onWaveMove);
+        waveHost.removeEventListener("pointerdown", onWaveDown);
+        waveHost.removeEventListener("pointerup", onWaveEnd);
+        waveHost.removeEventListener("pointercancel", onWaveEnd);
+        waveHost.removeEventListener("pointerleave", onWaveLeave);
+      }
       canvas.removeEventListener("webglcontextlost", onLost);
       canvas.removeEventListener("webglcontextrestored", onRestored);
       release();
