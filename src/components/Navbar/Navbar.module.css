@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600&display=swap");
+
 /* Floating Pill Header Wrapper */
 .header {
   position: sticky;
@@ -157,7 +159,12 @@
 
 .navLink {
   position: relative;
-  font-family: var(--font-sans);
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: var(--text-xs);
   font-weight: 500;
   letter-spacing: 0.08em;
@@ -295,7 +302,12 @@
 }
 
 .dropdownHeaderMono {
-  font-family: var(--font-mono);
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: 0.62rem;
   letter-spacing: 0.12em;
   color: var(--text-muted);
@@ -346,7 +358,12 @@
 }
 
 .dropdownItemLabel {
-  font-family: var(--font-sans);
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: 0.78rem;
   font-weight: 500;
   color: var(--text-primary);
@@ -662,7 +679,12 @@
 /* Smaller labels so the full text (even "PROFESSIONAL OVERVIEW") is visible.
    If a screen is ever too narrow the text wraps instead of being cut off. */
 .mobileNavText {
-  font-family: var(--font-serif);
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: clamp(0.85rem, 3.6vw, 1.3rem);
   color: var(--text-primary);
   text-transform: uppercase;
@@ -800,7 +822,12 @@
 }
 
 .drawerContactHeading {
-  font-family: var(--font-sans);
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: var(--text-xs);
   letter-spacing: var(--tracking-wider);
   text-transform: uppercase;
@@ -854,7 +881,12 @@
   border-radius: 0;
   background: transparent;
   color: var(--text-primary);
-  font-family: var(--font-mono);
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: 0.7rem;
   font-weight: 500;
   letter-spacing: 0.08em;

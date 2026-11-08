@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600&display=swap");
 
 .capabilitiesSection {
   position: relative;
@@ -59,19 +59,27 @@
 }
 
 .headerUnderline {
+  /* Header frame: a thin rounded "cradle" line (sides rise, bottom curves),
+     same colour as the old straight underline. Drawn left to right.
+     Tweak: --hdr-reach = how far the sides rise above / spread beyond the title,
+            --hdr-r = roundness of the bottom corners. */
+  --hdr-reach: clamp(0.65rem, 1.6vw, 1.1rem);
+  --hdr-r: clamp(18px, 3vw, 34px);
   position: absolute;
+  top: calc(var(--hdr-reach) * -1);
   bottom: 0;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background-color: var(--border-hairline);
-  transform: scaleX(0);
-  transform-origin: left;
-  transition: transform 1.35s var(--ease-slowmo);
+  left: calc(var(--hdr-reach) * -1);
+  right: calc(var(--hdr-reach) * -1);
+  border: 1px solid var(--border-hairline);
+  border-top: none;
+  border-radius: 0 0 var(--hdr-r) var(--hdr-r);
+  pointer-events: none;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 1.35s var(--ease-slowmo);
 }
 
 .isRevealed .headerUnderline {
-  transform: scaleX(1);
+  clip-path: inset(0 0 0 0);
 }
 
 .sectionHeader {
@@ -81,10 +89,11 @@
 }
 
 .titleAccentBar {
+  /* hidden: the small "—" bar is replaced by the rounded frame (.headerUnderline) */
+  display: none;
   width: 24px;
   height: 2px;
   background-color: var(--border-strong);
-  display: inline-block;
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 1.1s var(--ease-slowmo);
@@ -102,7 +111,12 @@
 }
 
 .sectionTitle {
-  font-family: "Kaushan Script", "Caveat", cursive;
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: clamp(1.6rem, 5vw, var(--text-3xl));
   font-weight: 400;
   letter-spacing: 0.01em;
@@ -395,7 +409,12 @@
   --t3d-1: #484b52;
   --t3d-2: #393b41;
 
-  font-family: "Kaushan Script", "Caveat", cursive;
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: clamp(1rem, 2.8vw, 1.2rem);
   font-weight: 400;
   line-height: 1.2;
@@ -697,7 +716,7 @@
 /* Prefers-reduced-motion overrides */
 @media (prefers-reduced-motion: reduce) {
   .headerUnderline {
-    transform: none !important;
+    clip-path: none !important;
     transition: none !important;
   }
   .introRow {

@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600&display=swap");
+
 /* Experience Subpage Styles
  * Full-screen standalone page with editorial typography and matching dark/light tokens.
  *
@@ -171,7 +173,12 @@
 }
 
 .pageTitle {
-  font-family: var(--font-serif);
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: clamp(2rem, 4.5vw, 3.25rem);
   font-weight: 400;
   letter-spacing: -0.01em;
@@ -284,7 +291,12 @@
 }
 
 .roleTitle {
-  font-family: var(--font-serif);
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: clamp(1.5rem, 3.2vw, 2.25rem);
   font-weight: 400;
   line-height: 1.2;
@@ -707,7 +719,12 @@
 }
 
 .railRole {
-  font-family: var(--font-serif);
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: 1.02rem;
   line-height: 1.25;
 }

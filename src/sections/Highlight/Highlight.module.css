@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600&display=swap");
 
 /* ────────────────────────────────────────────────────────────────────────────
  * HIGHLIGHT SECTION — extra showcase between Capabilities and Professional
@@ -24,7 +24,12 @@
 .title {
   max-width: 13em;
   margin: 0;
-  font-family: "Kaushan Script", "Brush Script MT", cursive;
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: clamp(34px, 4.6vw, 56px);
   font-weight: 400;
   line-height: 1.15;
@@ -71,6 +76,12 @@
   opacity: 0.55;
 }
 .legendTitle {
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: 14px;
   font-weight: 750;
 }

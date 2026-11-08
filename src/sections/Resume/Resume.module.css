@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600&display=swap");
+
 /* ────────────────────────────────────────────────────────────────────────────
  * RESUME SUBPAGE STYLES
  * Layout: navbar (icon / theme + X) → RESUME title → short paragraph →
@@ -143,7 +145,12 @@
 /* Minimalist centered title */
 /* Minimalist centered title (serif, same family as site headings) */
 .mainTitle {
-  font-family: "Kaushan Script", "Caveat", cursive;
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: clamp(
     2.5rem,
     5vw,

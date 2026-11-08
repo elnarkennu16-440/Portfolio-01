@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600&display=swap");
 
 /* ────────────────────────────────────────────────────────────────────────────
  * ABOUT — clean paragraph typography style matching the portfolio design
@@ -152,12 +152,17 @@
   color: var(--about-sub);
 }
 
-/* Short tagline under "ABOUT — 2026": Kaushan Script, same brush style as the hero.
+/* Short tagline under "ABOUT — 2026": heading font (Red Hat Display), same as the hero.
    Only this line uses the script font; the label above is untouched. */
 .tagline {
   margin: 0;
   max-width: min(100%, 30rem);
-  font-family: "Kaushan Script", "Caveat", cursive;
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: clamp(0.85rem, 1.5vw, 1.1rem);
   font-weight: 400;
   line-height: 1.5;

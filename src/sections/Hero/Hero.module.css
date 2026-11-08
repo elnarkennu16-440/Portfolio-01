@@ -1,6 +1,6 @@
-/* Brush-script font: used for the sentence on phones (the 3D billboard uses Archivo,
+/* Heading font (Red Hat Display): used for the sentence on phones (the 3D billboard uses Archivo,
    which HeroScene.module.css loads itself). */
-@import url("https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap");
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -10,7 +10,8 @@
  * ──────────────────────────────────────────────────────────────────────────── */
 
 .heroSection {
-  --hand-font: "Kaushan Script", "Caveat", cursive;
+  --hand-font:
+    "Red Hat Display", system-ui, -apple-system, "Segoe UI", sans-serif;
   --ink: #09090a; /* same colour as the scene background (BG in glScene.ts) */
   --hero-bg: var(--ink);
   --hero-fg: #f4f4f5;

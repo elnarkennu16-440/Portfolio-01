@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Kaushan+Script&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600&display=swap");
 
 /* Professional Overview — PINNED HORIZONTAL SCROLL
  * While you scroll, the stage stays pinned and the slides move sideways
@@ -139,7 +139,12 @@
 .headline,
 .bigTitle {
   margin: 0;
-  font-family: "Kaushan Script", "Caveat", cursive;
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-weight: 400;
   color: var(--text-primary);
   text-shadow:
@@ -150,10 +155,11 @@
 
 .headline {
   /* limited by BOTH width and height so it never runs under the navbar */
-  font-size: clamp(1.9rem, min(8.3vw, 12.8vh), 8.3rem);
-  line-height: 1.08;
-  max-width: 30ch;
-  text-wrap: balance;
+  font-size: clamp(1.9rem, min(5vw, 10vh), 4.5rem);
+  font-weight: 600; /* bolder, same clean font. 500 = a bit lighter, 700 = heavier (add 700 to the @import) */
+  line-height: 1.1;
+  max-width: none; /* full width so the title fits on 2 lines on desktop */
+  text-wrap: balance; /* splits the 2 lines evenly */
 }
 
 .bigTitle {

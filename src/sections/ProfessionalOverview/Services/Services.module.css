@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;600&display=swap");
+
 /* Services Subpage Styles
  * Editorial services catalogue, technical deliverables checklist,
  * sleek monochrome styling, and integrated contact actions.
@@ -161,7 +163,12 @@
 }
 
 .pageTitle {
-  font-family: var(--font-serif);
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: clamp(2rem, 4.5vw, 3.25rem);
   font-weight: 400;
   letter-spacing: -0.01em;
@@ -245,7 +252,12 @@
 }
 
 .serviceTitle {
-  font-family: var(--font-serif);
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: clamp(1.4rem, 2.8vw, 1.95rem);
   font-weight: 400;
   color: var(--text-primary);
@@ -498,7 +510,12 @@
 }
 
 .phaseTitle {
-  font-family: var(--font-serif);
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: 1.9em;
   font-weight: 400;
   line-height: 1.2;
@@ -938,7 +955,12 @@
 }
 
 .railRole {
-  font-family: var(--font-serif);
+  font-family:
+    "Red Hat Display",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
   font-size: 0.95rem;
   line-height: 1.25;
 }
