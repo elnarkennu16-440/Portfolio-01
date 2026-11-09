@@ -64,7 +64,6 @@ import {
   buildGround,
   buildLamp,
   buildLand,
-  buildSignPosts,
 } from "./aboutSceneParts";
 
 export interface AboutInput {
@@ -204,7 +203,8 @@ in float vGlow;
 out vec4 outColor;
 void main() {
   vec4 c = vCol;
-  if (uUseTex > 0.5) c *= texture(uTex, vUV);
+  // the comment-sign text (typed) is sampled a touch sharper than the default mip choice
+  if (uUseTex > 0.5) c *= texture(uTex, vUV, uTypeOn > 0.5 ? -0.4 : 0.0);
 
   if (uPointMode > 0.5) {
     float d = length(gl_PointCoord - 0.5);
@@ -467,7 +467,11 @@ export function createAboutScene(
   const U: Record<string, WebGLUniformLocation | null> = {};
 
   /* ── GPU resources ────────────────────────────────────────────────────── */
-  const tex = (c: HTMLCanvasElement, repeat = false) => {
+  const tex = (
+    c: HTMLCanvasElement | ImageData,
+    repeat = false,
+    aniso?: number,
+  ) => {
     const t = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, t);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
@@ -489,7 +493,7 @@ export function createAboutScene(
       gl.texParameterf(
         gl.TEXTURE_2D,
         ext.TEXTURE_MAX_ANISOTROPY_EXT,
-        Math.min(lite ? 4 : 8, max),
+        Math.min(aniso ?? (lite ? 4 : 8), max),
       );
     }
     textures.push(t);
@@ -805,18 +809,10 @@ export function createAboutScene(
         };
       };
       add(geo.body, null, 0, sign);
-      add(geo.text, tex(c.sign.canvas), 1, sign, { typed: true });
-      add(
-        buildSignPosts(0, sy - sh / 2 - SIGN.tailLen * 0.2, 0, sw),
-        null,
-        0,
-        rise(
-          TIMELINE.sign.delay,
-          1.0,
-          6,
-          mul(translate(sx, 0, sz), rotateY(syaw)),
-        ),
-      );
+      add(geo.text, tex(c.sign.image, false, lite ? 8 : 16), 1, sign, {
+        typed: true,
+      });
+      // no posts / base: the sign floats
     }
 
     {

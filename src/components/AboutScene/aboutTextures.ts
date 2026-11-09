@@ -378,6 +378,10 @@ function billboardCanvas(
 /* ── comment sign text (wrapped to fit, with per-character positions for typing) ── */
 export interface SignLayout {
   canvas: HTMLCanvasElement;
+  /** the same picture as raw pixels for the GPU: every pixel carries the text colour and only the
+   *  alpha changes. (A canvas keeps see-through pixels black, which darkened the letters in the
+   *  small mip levels and made the text look faint / jagged.) */
+  image: ImageData;
   /** per line: the text and the x (0–1 of the canvas width) after each character */
   lines: { text: string; ends: number[] }[];
   x0: number; // where the text starts (0–1 of width)
@@ -506,8 +510,17 @@ function signTextCanvas(
     out.push({ text, ends });
     total += text.length + 1;
   });
+  // text colour on every pixel, coverage only in alpha → the mip levels keep the real letter colour
+  const image = g.getImageData(0, 0, W, H);
+  const px = image.data;
+  for (let i = 0; i < px.length; i += 4) {
+    px[i] = 236; // #ececee, same as fillStyle above
+    px[i + 1] = 236;
+    px[i + 2] = 238;
+  }
   return {
     canvas: c,
+    image,
     lines: out,
     x0: padX / W,
     topUV: top / H,
