@@ -396,45 +396,115 @@ function signTextCanvas(
   const H = Math.round(hM * ppm);
   const c = mk(W, H);
   const g = c.getContext("2d")!;
-  const padX = 0.5 * ppm;
-  const padY = 0.42 * ppm;
+  const padX = 0.42 * ppm;
+  const padY = 0.28 * ppm;
   const maxW = W - padX * 2;
   const words = ABOUT_TEXT.split(" ");
 
-  // the biggest font size that still fits inside the bubble
-  let size = 0.36 * ppm;
-  let lines: string[] = [];
-  let lineH = 0;
-  for (; size > 10; size -= 1) {
-    g.font = `400 ${size}px ${font}`;
-    lineH = size * 1.42;
-    lines = [];
-    let cur = "";
-    for (const w of words) {
-      const t = cur ? `${cur} ${w}` : w;
-      if (g.measureText(t).width > maxW && cur) {
-        lines.push(cur);
-        cur = w;
-      } else cur = t;
-    }
-    if (cur) lines.push(cur);
-    if (lines.length * lineH <= H - padY * 2) break;
+  /* One font size → the best way to break the paragraph into JUSTIFIED lines.
+     Instead of filling each line greedily (which leaves some lines with big holes between
+     the words), it looks at the whole paragraph and picks the breaks that make every
+     line's gaps as even and as close to a normal space as possible (like a typesetter).
+     The last line stays left-aligned. */
+  interface Plan {
+    size: number;
+    lineH: number;
+    space: number;
+    widths: number[];
+    rows: string[][]; // words per line
+    extra: number[]; // extra space added to every gap of that line (justify)
+    stretch: number; // the biggest change of a gap, in "normal spaces" (0 = none)
   }
+  const SHRINK = 0.3;
+  const planFor = (size: number): Plan => {
+    g.font = `400 ${size}px ${font}`;
+    const space = g.measureText(" ").width;
+    const widths = words.map((w) => g.measureText(w).width);
+    const n = words.length;
+    const best = new Array<number>(n + 1).fill(Infinity);
+    const nxt = new Array<number>(n + 1).fill(n);
+    best[n] = 0;
+    for (let i = n - 1; i >= 0; i--) {
+      let natural = 0;
+      for (let j = i; j < n; j++) {
+        natural += widths[j] + (j > i ? space : 0);
+        // a line may be a little too long if its spaces squeeze by up to 30%
+        if (j > i && natural - maxW > (j - i) * space * SHRINK) break;
+        let cost: number;
+        if (j === n - 1) {
+          // last line: left-aligned; only avoid a lonely word / very short end
+          cost = natural < maxW * 0.3 ? ((maxW * 0.3 - natural) / maxW) * 6 : 0;
+        } else if (j === i) {
+          cost = 1e4; // a single word on a line can't be justified
+        } else {
+          const s = (maxW - natural) / (j - i) / space; // + stretch, - squeeze
+          cost = Math.abs(s) ** 3 + 0.01;
+        }
+        if (best[j + 1] + cost < best[i]) {
+          best[i] = best[j + 1] + cost;
+          nxt[i] = j + 1;
+        }
+      }
+    }
+    const rows: string[][] = [];
+    const extra: number[] = [];
+    let stretch = 0;
+    for (let i = 0; i < n; ) {
+      const j = nxt[i];
+      const row = words.slice(i, j);
+      let natural = 0;
+      for (let k = i; k < j; k++) natural += widths[k] + (k > i ? space : 0);
+      const gaps = row.length - 1;
+      const last = j >= n;
+      const e = !last && gaps > 0 ? (maxW - natural) / gaps : 0; // + stretch, - squeeze
+      stretch = Math.max(stretch, Math.abs(e) / space);
+      rows.push(row);
+      extra.push(e);
+      i = j;
+    }
+    return { size, lineH: size * 1.38, space, widths, rows, extra, stretch };
+  };
+
+  // biggest font size that fits inside the bubble, then (within 10% of it) the size whose
+  // justified gaps are the most even
+  const fits: Plan[] = [];
+  for (let size = 0.36 * ppm; size > 10; size -= 1) {
+    const p = planFor(size);
+    if (p.rows.length * p.lineH <= H - padY * 2) {
+      fits.push(p);
+      if (p.size < fits[0].size * 0.9) break;
+    }
+  }
+  let plan: Plan | null = null;
+  for (const p of fits) {
+    if (!plan || p.stretch < plan.stretch - 1e-6) plan = p;
+  }
+  const use = plan ?? planFor(10);
+  const { size, lineH, space, widths, rows, extra } = use;
 
   g.fillStyle = "#ececee";
   g.textBaseline = "alphabetic";
+  g.textAlign = "left";
   g.font = `400 ${size}px ${font}`;
-  const top = padY + (H - padY * 2 - lines.length * lineH) / 2;
+  const top = padY + (H - padY * 2 - rows.length * lineH) / 2;
   const out: SignLayout["lines"] = [];
   let total = 0;
-  lines.forEach((ln, i) => {
+  let wi = 0; // index of the first word of the line
+  rows.forEach((row, i) => {
     const y = top + i * lineH + size * 1.02;
-    g.fillText(ln, padX, y);
     const ends: number[] = [];
-    for (let k = 1; k <= ln.length; k++)
-      ends.push((padX + g.measureText(ln.slice(0, k)).width) / W);
-    out.push({ text: ln, ends });
-    total += ln.length + 1;
+    let x = padX;
+    row.forEach((word, k) => {
+      g.fillText(word, x, y);
+      for (let ch = 1; ch <= word.length; ch++)
+        ends.push((x + g.measureText(word.slice(0, ch)).width) / W);
+      x += widths[wi + k] + space + extra[i];
+      if (k < row.length - 1) ends.push(x / W); // the space after the word
+    });
+    wi += row.length;
+    const text = row.join(" ");
+    out.push({ text, ends });
+    total += text.length + 1;
   });
   return {
     canvas: c,

@@ -162,19 +162,40 @@ export const BILLBOARD = {
 
 /* ── COMMENT SIGN (floats above the cat) ────────────────────────────────── */
 export const SIGN = {
-  x: 2.9,
-  y: 3.75, // centre height
+  /* desktop: wider + shorter bubble, pushed right so it no longer touches the GitHub board;
+     the tail points down at the cat's head */
+  x: 4.1, // (moved 1.2 left + tailX 1.4 so the tail still points at the cat while the sign is turned in 3D)
+  y: 3.35, // centre height
   z: 1.8,
-  w: 8.2,
-  h: 3.6,
+  w: 9.4,
+  h: 2.55,
   depth: 0.32,
   radius: 0.5,
-  tailX: 1.9, // tail position from the centre (right of the middle)
-  tailLen: 1.15,
+  tailX: 1.4, // tail position from the centre (right of the middle)
+  tailLen: 0.95,
   tailW: 0.95,
-  yaw: -5,
-  /** portrait / phones: taller bubble, more room for the text */
-  portrait: { x: 0.2, y: 5.8, z: 3, w: 9.0, h: 5.2, tailX: 0.9, yaw: 0 },
+  /** 3D perspective: the sign is turned so its RIGHT side comes toward you (bigger) and its LEFT side
+   *  goes away (smaller). Negative = right side nearer. 0 = flat on to the screen. */
+  yaw: -28,
+  /** portrait / phones: wide + short bubble that sits BELOW the GitHub board (the contribution
+   *  graph stays fully visible); long tail down to the base of the sign */
+  portrait: {
+    x: -0.8, // (moved left + tailX 1.95 so the tail stays on the cat while the sign is turned)
+    y: 5.1,
+    z: 3,
+    w: 12.6,
+    h: 3.9,
+    tailX: 1.95,
+    tailLen: 2.4,
+    tailW: 1.3,
+    yaw: -22, // same 3D turn as desktop, a little softer for the narrow screen
+    /** how much of the half-width of the screen the bubble may use (see signFit in aboutGl.ts) */
+    fitLimit: 0.83,
+  },
+  /** desktop: same idea. On narrower windows the bubble shrinks (around its tail tip) instead of
+   *  running off the right edge. fitMin = the smallest it is allowed to get (1 = full size). */
+  fitLimit: 0.93,
+  fitMin: 0.6,
   /** typing speed */
   charsPerSecond: 58,
 };

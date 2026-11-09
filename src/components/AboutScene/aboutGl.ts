@@ -544,6 +544,68 @@ export function createAboutScene(
   const facing = (objY: number, objZ: number, end: Pose) =>
     (Math.atan2(end.eye[1] - objY, end.eye[2] - objZ) * 180) / Math.PI;
 
+  /* comment sign: how much it has to shrink (around its tail tip) so it never runs off the
+     screen on narrower windows / phones. 1 = the size set in aboutSceneConfig.ts. The sign is
+     turned in 3D (yaw) so its near side is bigger on screen: the fit projects the real corners
+     through the settled camera (same field-of-view rule as poseFor() at progress 1). */
+  const signFit = (
+    sx: number,
+    sy: number,
+    sz: number,
+    w: number,
+    h: number,
+    tip: V3,
+    yaw: number,
+    stilt: number,
+  ): number => {
+    const end: Pose = portrait ? CAMERA.endPortrait : CAMERA.end;
+    const aspect = W / H;
+    const minH = portrait ? CAMERA.minHFovPortrait : CAMERA.minHFov;
+    const need =
+      (2 * Math.atan(Math.tan((minH * Math.PI) / 360) / aspect) * 180) /
+      Math.PI;
+    const fov = Math.min(
+      portrait ? CAMERA.maxFovPortrait : CAMERA.maxFov,
+      Math.max(end.fov, need),
+    );
+    const vp = mul(
+      perspective(fov, aspect, CAMERA.near, CAMERA.far),
+      lookAt(end.eye, end.target),
+    );
+    const limit = portrait ? SIGN.portrait.fitLimit : SIGN.fitLimit;
+    const placed = mul(
+      vp,
+      mul(translate(sx, sy, sz), mul(rotateY(yaw), rotateX(-stilt))),
+    );
+    const hw = w / 2;
+    const hh = h / 2;
+    const corners: V3[] = [
+      [-hw, hh, 0],
+      [hw, hh, 0],
+      [-hw, -hh, 0],
+      [hw, -hh, 0],
+    ];
+    const fits = (k: number): boolean => {
+      const m = mul(placed, around(tip, scale3(k, k, k)));
+      return corners.every((c) => {
+        const cw = m[3] * c[0] + m[7] * c[1] + m[11] * c[2] + m[15];
+        if (cw <= 0.01) return false;
+        const cx = m[0] * c[0] + m[4] * c[1] + m[8] * c[2] + m[12];
+        return Math.abs(cx / cw) <= limit;
+      });
+    };
+    if (fits(1)) return 1;
+    let lo = SIGN.fitMin;
+    if (!fits(lo)) return lo;
+    let hi = 1;
+    for (let i = 0; i < 14; i++) {
+      const mid = (lo + hi) / 2;
+      if (fits(mid)) lo = mid;
+      else hi = mid;
+    }
+    return lo;
+  };
+
   /* ── build the whole scene ────────────────────────────────────────────── */
   function build(c: AboutCanvases, catGeo: CatGeo) {
     program = makeProgram(gl!, VS, FS);
@@ -706,21 +768,34 @@ export function createAboutScene(
         sw,
         sh,
         portrait ? SIGN.portrait.tailX : SIGN.tailX,
+        portrait ? SIGN.portrait.tailLen : SIGN.tailLen,
+        portrait ? SIGN.portrait.tailW : SIGN.tailW,
       );
       const tip = geo.tip;
       const sz = portrait ? SIGN.portrait.z : SIGN.z;
       const syaw = portrait ? SIGN.portrait.yaw : SIGN.yaw;
-      // phones: the sign faces the camera exactly (level, not tilted)
+      // the sign is turned in 3D (syaw) so its right side comes toward you; phones also lean it to face the camera
       const stilt = portrait ? facing(sy, sz, CAMERA.endPortrait) : 0;
       const place = () =>
         mul(
           translate(sx, sy, sz),
           mul(rotateY(syaw), rotateX(-stilt * smooth(cur.p))),
         );
+      // the fit only changes when the canvas size changes, so it is not recomputed every frame
+      let fitKey = "";
+      let fitVal = 1;
+      const fitNow = () => {
+        const key = `${W}|${H}|${portrait}`;
+        if (key !== fitKey) {
+          fitKey = key;
+          fitVal = signFit(sx, sy, sz, sw, sh, tip, syaw, stilt);
+        }
+        return fitVal;
+      };
       const sign = (t: number): Frame | null => {
         const p = prog(t, TIMELINE.sign.delay, TIMELINE.sign.dur);
         if (p <= 0) return null;
-        const s = lerp(0.15, 1, easeOutBack(p));
+        const s = lerp(0.15, 1, easeOutBack(p)) * fitNow();
         const bob = Math.sin(t * 0.8) * 0.05;
         const pop = around(tip, scale3(s, s, s));
         return {
@@ -732,10 +807,15 @@ export function createAboutScene(
       add(geo.body, null, 0, sign);
       add(geo.text, tex(c.sign.canvas), 1, sign, { typed: true });
       add(
-        buildSignPosts(sx, sy - sh / 2 - SIGN.tailLen * 0.2, sz, sw),
+        buildSignPosts(0, sy - sh / 2 - SIGN.tailLen * 0.2, 0, sw),
         null,
         0,
-        rise(TIMELINE.sign.delay, 1.0, 6),
+        rise(
+          TIMELINE.sign.delay,
+          1.0,
+          6,
+          mul(translate(sx, 0, sz), rotateY(syaw)),
+        ),
       );
     }
 

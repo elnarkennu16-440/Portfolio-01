@@ -300,6 +300,8 @@ export function buildCommentSign(
   w: number,
   h: number,
   tailX: number = SIGN.tailX,
+  tailLen: number = SIGN.tailLen,
+  tailW: number = SIGN.tailW,
 ): SignGeo {
   const r = SIGN.radius;
   const hw = w / 2;
@@ -317,9 +319,9 @@ export function buildCommentSign(
   arc(hw - r, hh - r, 90, 0);
   arc(hw - r, -hh + r, 0, -90);
   const tx = tailX;
-  pts.push([tx + SIGN.tailW / 2, -hh]);
-  pts.push([tx + 0.28, -hh - SIGN.tailLen]);
-  pts.push([tx - SIGN.tailW / 2, -hh]);
+  pts.push([tx + tailW / 2, -hh]);
+  pts.push([tx + 0.28, -hh - tailLen]);
+  pts.push([tx - tailW / 2, -hh]);
   arc(-hw + r, -hh + r, -90, -180);
 
   const tris = triangulate(pts);
@@ -368,7 +370,7 @@ export function buildCommentSign(
   );
 
   // two posts behind the sign + a small base
-  return { body, text, tip: [tx + 0.28, -hh - SIGN.tailLen, 0], w, h };
+  return { body, text, tip: [tx + 0.28, -hh - tailLen, 0], w, h };
 }
 
 /** posts + slab under the sign, in WORLD coordinates */

@@ -195,7 +195,9 @@
   .tagline {
     font-size: 0.85rem;
     line-height: 1.45;
-    max-width: 100%;
+    /* breaks the sentence earlier so the last words never slide under the chatbot button
+       (bottom-right) */
+    max-width: calc(100% - 3.5rem);
   }
 }
 
