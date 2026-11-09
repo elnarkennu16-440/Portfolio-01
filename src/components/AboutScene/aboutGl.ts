@@ -53,7 +53,7 @@ import {
   translate,
 } from "./aboutGlUtils";
 import { AboutCanvases, buildAboutCanvases } from "./aboutTextures";
-import { CatGeo, buildCat } from "./aboutCat";
+import { CatGeo, TAIL_BONES, buildCat } from "./aboutCat";
 import {
   buildBillboard,
   buildBuilding,
@@ -117,6 +117,8 @@ uniform mat4 uLocal;
 uniform vec3 uEye;
 uniform float uPoint;
 uniform float uWave;     // 1 only for the land
+uniform float uSkin;     // 1 only for the cat's tail (it bends along its bones)
+uniform mat4 uBone[${TAIL_BONES}];
 uniform vec4 uWell;      // cursor "mass": x, z, depth, sigma (metres)
 uniform vec4 uRip[${WAVE_RIPPLES}];   // ripples: x, z, age (s), strength
 uniform float uSlide;
@@ -147,7 +149,15 @@ float landH(vec2 q) {
 }
 
 void main() {
-  vec4 wp = uLocal * vec4(aPos, 1.0);
+  vec3 lp = aPos;
+  if (uSkin > 0.5) {
+    // aExtra.y = how far along the tail this vertex is (0 root … 1 tip): blend the two nearest bones
+    float bs = clamp(aExtra.y, 0.0, 1.0) * ${TAIL_BONES - 1}.0;
+    int b0 = int(floor(bs));
+    int b1 = min(b0 + 1, ${TAIL_BONES - 1});
+    lp = mix((uBone[b0] * vec4(aPos, 1.0)).xyz, (uBone[b1] * vec4(aPos, 1.0)).xyz, bs - float(b0));
+  }
+  vec4 wp = uLocal * vec4(lp, 1.0);
   float glow = 0.0;
   if (uWave > 0.5) {
     float mk = landMask(wp.xz);
@@ -231,6 +241,7 @@ interface Frame {
   m: Mat4;
   fade?: number; // 0 = hidden, 1 = shown (opaque things)
   alpha?: number; // see-through things
+  bones?: Float32Array; // the tail: bone matrices (see aboutCat.ts, tailPose)
 }
 interface Item {
   vao: WebGLVertexArrayObject;
@@ -243,6 +254,8 @@ interface Item {
   remap?: [number, number];
   /** the land: bends with the cursor (gravity waves) */
   wave?: boolean;
+  /** the cat's tail: bends along its bones */
+  skin?: boolean;
   upd: (t: number) => Frame | null;
 }
 
@@ -554,6 +567,8 @@ export function createAboutScene(
       "uPointMode",
       "uRemap",
       "uWave",
+      "uSkin",
+      "uBone",
       "uWell",
       "uRip",
       "uSlide",
@@ -786,15 +801,19 @@ export function createAboutScene(
         },
         { fadeTo: [0.02, 0.02, 0.02] },
       );
-      add(cat.tail, null, 0, (t) => {
-        const f = appear(t);
-        if (!f) return null;
-        const sway = Math.sin(t * 1.1) * 6 + Math.sin(t * 0.43) * 3;
-        return {
-          m: mul(f.m, around(cat.tailPivot, rotateY(sway * 0.8))),
-          fade: f.fade,
-        };
-      });
+      // the tail bends along its bones: a slow, soft wiggle (sometimes the whole tail,
+      // sometimes only the tip). The motion lives in aboutCat.ts (tailPose).
+      add(
+        cat.tail,
+        null,
+        0,
+        (t) => {
+          const f = appear(t);
+          if (!f) return null;
+          return { m: f.m, fade: f.fade, bones: cat.tailPose(t) };
+        },
+        { skin: true },
+      );
     }
 
     /* cars driving by */
@@ -1025,6 +1044,9 @@ export function createAboutScene(
         if (pass === 0 ? fade <= 0.002 : alpha <= 0.002) continue;
         g.uniformMatrix4fv(U.uLocal, false, f.m);
         g.uniform1f(U.uWave, it.wave && waveLive ? 1 : 0);
+        const skinned = !!(it.skin && f.bones);
+        g.uniform1f(U.uSkin, skinned ? 1 : 0);
+        if (skinned) g.uniformMatrix4fv(U.uBone, false, f.bones!);
         g.activeTexture(g.TEXTURE0);
         g.bindTexture(g.TEXTURE_2D, it.tex ?? white);
         g.uniform1f(U.uUseTex, it.tex ? 1 : 0);

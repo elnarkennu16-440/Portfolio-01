@@ -20,6 +20,10 @@
  * The mesh is generated in small time slices (never one long block), started a
  * moment after load while the browser is idle; buildCat() joins that same job
  * (and speeds it up) if the scene asks for the cat earlier. Built once, shared.
+ *
+ * TAIL WIGGLE (section 6): every tail vertex carries a "bone weight" (how far along the
+ * tail it is) and CatGeo.tailPose(t) returns the bone matrices for time t. The engine
+ * (aboutGl.ts) bends the tail with them in the vertex shader: slow, soft, side to side.
  * ──────────────────────────────────────────────────────────────────────────── */
 
 import { MeshBuilder, RGBA, V2, V3 } from "./aboutGlUtils";
@@ -40,6 +44,9 @@ export interface CatGeo {
   headPivot: V3;
   tailPivot: V3;
   eyesPivot: V3;
+  /** bone matrices (TAIL_BONES × mat4, column-major) that bend the tail at time t (seconds
+   *  since the reveal). The same array is reused on every call: upload it right away. */
+  tailPose: (t: number) => Float32Array;
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -416,6 +423,7 @@ interface Model {
   tail: Part;
   tones: Tone[];
   eyeZ: [number, number]; // where the face surface is at each eye (before the sockets)
+  tailPts: V3[]; // centre line of the tail (the bones are placed along it)
 }
 
 function hindPaw(
@@ -601,6 +609,7 @@ function buildModel(): Model {
     tail: { ops: [Tb(tp.pts, tp.radii, 0)], floor: true },
     tones,
     eyeZ,
+    tailPts: tp.pts,
   };
 }
 
@@ -979,13 +988,23 @@ function* shadeMesh(
 
 const UV0: V2 = [0, 0];
 
-function toBuilder(m: Mesh, lum: Float32Array): MeshBuilder {
+function toBuilder(
+  m: Mesh,
+  lum: Float32Array,
+  weight?: Float32Array,
+): MeshBuilder {
   const mb = new MeshBuilder();
   for (let t = 0; t < m.idx.length; t++) {
     const vi = m.idx[t];
     const g = lum[vi];
     const c: RGBA = [g, g, g, 1];
-    mb.vert([m.pos[vi * 3], m.pos[vi * 3 + 1], m.pos[vi * 3 + 2]], UV0, c);
+    mb.vert(
+      [m.pos[vi * 3], m.pos[vi * 3 + 1], m.pos[vi * 3 + 2]],
+      UV0,
+      c,
+      0,
+      weight ? weight[vi] : 0,
+    );
   }
   return mb;
 }
@@ -1050,6 +1069,187 @@ function buildEyes(head: Field): MeshBuilder {
   return mb;
 }
 
+/* ════════════════════════════════════════════════════════════════════════════
+ * 6 · TAIL WIGGLE — the tail bends along a chain of bones
+ *
+ * Every tail vertex carries `s` (0 = root … 1 = tip, measured along the tail). The engine
+ * blends the two neighbouring bone matrices by `s` in the vertex shader, so the tail bends
+ * smoothly (no seams, no cracks). tailPose(t) gives the bone matrices.
+ *
+ * What it does (slow and soft, like a relaxed cat lying down):
+ *   · "swish"  – the whole tail drifts lazily from side to side
+ *   · "wiggle" – only the tip waves, a little behind the base (a travelling wave)
+ *   · the two fade in and out by themselves (never suddenly), so sometimes the whole tail
+ *     moves, sometimes only the tip, sometimes both, sometimes it just rests.
+ * ════════════════════════════════════════════════════════════════════════════ */
+
+/** bones along the tail (aboutGl.ts uses the same number in the vertex shader) */
+export const TAIL_BONES = 7;
+/** inside the rump: the whole tail swings around this point */
+const TAIL_PIVOT: V3 = [-0.5, 0.12, 0.0];
+
+/** motion settings (degrees and seconds) — tweak freely. Arrays go root → tip (one value per bone). */
+const WIGGLE = {
+  /** how much of the base sway stays while only the tip is moving (0 = none, 1 = all) */
+  baseRest: 0.3,
+  /** whole-tail swish: bend per joint, speeds (rad/s), delay from joint to joint (s) */
+  swishAmp: [0, 2.2, 2.2, 2.4, 2.6, 2.8, 3.0],
+  swishSpeed: [0.95, 0.37],
+  swishLag: 0.25,
+  /** tip wiggle: bend per joint (mostly the last ones), speed (waves per second), lag per joint (rad) */
+  tipAmp: [0, 0, 0.8, 2.2, 4.2, 6.5, 8.5],
+  tipHz: 0.8,
+  tipLag: 0.5,
+};
+
+/** a slow on / off "weather" 0…1: mostly smooth hills and valleys, so things start and stop gently */
+const calm = (
+  t: number,
+  a: number,
+  b: number,
+  pa: number,
+  pb: number,
+  lo: number,
+  hi: number,
+) =>
+  smoothstep(
+    lo,
+    hi,
+    0.5 + 0.5 * (0.6 * Math.sin(a * t + pa) + 0.4 * Math.sin(b * t + pb)),
+  );
+
+/** bend angle (degrees, around the vertical axis) of every joint at time t */
+function tailAngles(t: number, out: number[]) {
+  const W = WIGGLE;
+  // the first tip wiggle starts a second or so after the cat has appeared
+  const swish = calm(t, 0.41, 0.17, 3.2, 5.6, 0.52, 0.82);
+  const tip = calm(t, 0.53, 0.23, 5.0, 5.6, 0.46, 0.76);
+  // base of the tail: the slow sway it always had, calmer while only the tip is moving
+  out[0] =
+    (Math.sin(t * 1.1) * 6 + Math.sin(t * 0.43) * 3) *
+    0.8 *
+    (W.baseRest + (1 - W.baseRest) * swish);
+  const size = 0.8 + 0.2 * Math.sin(t * 0.6); // every wave a little different
+  for (let i = 1; i < TAIL_BONES; i++) {
+    const ts = t - W.swishLag * i;
+    const lazy =
+      0.7 * Math.sin(W.swishSpeed[0] * ts) +
+      0.3 * Math.sin(W.swishSpeed[1] * ts + 1.1);
+    const ph = Math.PI * 2 * W.tipHz * t - W.tipLag * i;
+    const wave = Math.sin(ph) + 0.22 * Math.sin(2 * ph + 0.8); // not a perfect sine: a bit more natural
+    out[i] = swish * W.swishAmp[i] * lazy + tip * W.tipAmp[i] * size * wave;
+  }
+}
+
+/** length-based position along the tail's centre line */
+function tailLine(pts: V3[]) {
+  const len: number[] = [0];
+  for (let i = 1; i < pts.length; i++)
+    len.push(
+      len[i - 1] +
+        Math.hypot(
+          pts[i][0] - pts[i - 1][0],
+          pts[i][1] - pts[i - 1][1],
+          pts[i][2] - pts[i - 1][2],
+        ),
+    );
+  const total = len[len.length - 1];
+  /** the point at fraction f (0 … 1) of the length */
+  const at = (f: number): V3 => {
+    const d = clamp01(f) * total;
+    let i = 1;
+    while (i < len.length - 1 && len[i] < d) i++;
+    const k = (d - len[i - 1]) / (len[i] - len[i - 1] || 1);
+    return [
+      pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * k,
+      pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * k,
+      pts[i - 1][2] + (pts[i][2] - pts[i - 1][2]) * k,
+    ];
+  };
+  /** the fraction (0 … 1) of the nearest point on the line */
+  const param = (x: number, y: number, z: number) => {
+    let best = 1e9;
+    let f = 0;
+    for (let i = 1; i < pts.length; i++) {
+      const ax = pts[i - 1][0];
+      const ay = pts[i - 1][1];
+      const az = pts[i - 1][2];
+      const bx = pts[i][0] - ax;
+      const by = pts[i][1] - ay;
+      const bz = pts[i][2] - az;
+      const h = clamp01(
+        ((x - ax) * bx + (y - ay) * by + (z - az) * bz) /
+          (bx * bx + by * by + bz * bz || 1),
+      );
+      const ex = x - ax - bx * h;
+      const ey = y - ay - by * h;
+      const ez = z - az - bz * h;
+      const d = ex * ex + ey * ey + ez * ez;
+      if (d < best) {
+        best = d;
+        f = (len[i - 1] + h * (len[i] - len[i - 1])) / total;
+      }
+    }
+    return f;
+  };
+  return { at, param };
+}
+
+/** bone weight of every tail vertex = how far along the tail it is (0 root … 1 tip) */
+function tailWeights(m: Mesh, pts: V3[]): Float32Array {
+  const line = tailLine(pts);
+  const n = m.pos.length / 3;
+  const w = new Float32Array(n);
+  for (let i = 0; i < n; i++)
+    w[i] = line.param(m.pos[i * 3], m.pos[i * 3 + 1], m.pos[i * 3 + 2]);
+  return w;
+}
+
+/** the pose function: bone i = the bones before it, then a turn around its own joint.
+ *  Everything turns around the vertical axis, so the maths stays in the ground plane. */
+function makeTailPose(pts: V3[]): (t: number) => Float32Array {
+  const line = tailLine(pts);
+  const joints: V3[] = [TAIL_PIVOT];
+  for (let i = 1; i < TAIL_BONES; i++)
+    joints.push(line.at(i / (TAIL_BONES - 1)));
+  const out = new Float32Array(16 * TAIL_BONES);
+  const ang: number[] = new Array(TAIL_BONES).fill(0);
+  const D = Math.PI / 180;
+  return (t: number) => {
+    tailAngles(t, ang);
+    let th = 0; // turn of the bones before this one
+    let tx = 0; // and their shift (x, z)
+    let tz = 0;
+    for (let i = 0; i < TAIL_BONES; i++) {
+      const phi = ang[i] * D;
+      const c = Math.cos(phi);
+      const s = Math.sin(phi);
+      const jx = joints[i][0];
+      const jz = joints[i][2];
+      // turn around the joint (x' = c·x + s·z, z' = −s·x + c·z, same as rotateY), then the parent's pose
+      const dx = jx - (c * jx + s * jz);
+      const dz = jz - (-s * jx + c * jz);
+      const cp = Math.cos(th);
+      const sp = Math.sin(th);
+      tx += cp * dx + sp * dz;
+      tz += -sp * dx + cp * dz;
+      th += phi;
+      const C = Math.cos(th);
+      const S = Math.sin(th);
+      const o = i * 16;
+      out[o] = C;
+      out[o + 2] = -S;
+      out[o + 5] = 1;
+      out[o + 8] = S;
+      out[o + 10] = C;
+      out[o + 12] = tx;
+      out[o + 14] = tz;
+      out[o + 15] = 1;
+    }
+    return out;
+  };
+}
+
 function* buildCatGen(lite: boolean): Generator<void, CatGeo, void> {
   const pace = makePace(4);
   const h = lite ? 0.022 : 0.0165;
@@ -1070,15 +1270,17 @@ function* buildCatGen(lite: boolean): Generator<void, CatGeo, void> {
   const lb = yield* shadeMesh(mb, all, model.tones, 0.9, pace);
   const lh = yield* shadeMesh(mh, all, model.tones, 0.75, pace);
   const lt = yield* shadeMesh(mt, all, model.tones, 0.9, pace);
+  const tailW = tailWeights(mt, model.tailPts);
 
   const geo: CatGeo = {
     body: toBuilder(mb, lb),
     head: toBuilder(mh, lh),
     eyes: buildEyes(head),
-    tail: toBuilder(mt, lt),
+    tail: toBuilder(mt, lt, tailW),
     headPivot: [HX - 0.015, 0.42, 0.1], // the neck: the head turns around here
-    tailPivot: [-0.5, 0.12, 0.0], // inside the rump (a long lever, so the sway reads)
+    tailPivot: TAIL_PIVOT, // inside the rump (a long lever, so the sway reads)
     eyesPivot: [HX, EYE_Y, 0.4],
+    tailPose: makeTailPose(model.tailPts),
   };
   return geo;
 }
