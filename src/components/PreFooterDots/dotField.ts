@@ -27,6 +27,14 @@ import type { LandHole } from "./holeBridge";
 import type { GravityBridge, GravitySample } from "./gravityBridge";
 
 export interface DotFieldOptions {
+  /**
+   * Opt-in (PreFooter only, default off): a STILL dot picture. No gravity waves, no cursor /
+   * touch reaction, no tilt, no ambient swell, no start pulse. The dots are drawn once the
+   * picture is ready and the animation loop stops (zero cost while idle).
+   */
+  still?: boolean;
+  /** Seconds for the picture to fade in (default 2.4). 0 = it simply appears, already complete. */
+  revealSeconds?: number;
   canvas: HTMLCanvasElement;
   /** The banner <section>: gives the size and receives pointer events. */
   host: HTMLElement;
@@ -554,6 +562,8 @@ export function createDotField(opts: DotFieldOptions): DotField {
   }
 
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const still = !!opts.still;
+  const revealSec = Math.max(0, opts.revealSeconds ?? REVEAL_SECONDS);
 
   let destroyed = false;
   let glReady = false;
@@ -1197,7 +1207,7 @@ export function createDotField(opts: DotFieldOptions): DotField {
     gl.uniform1f(U.uSpacing, spacingNow);
     gl.uniform1f(U.uMinDiam, 1.1);
     gl.uniform1f(U.uDpr, dpr);
-    gl.uniform1f(U.uTime, reduced ? 0 : time);
+    gl.uniform1f(U.uTime, reduced || still ? 0 : time);
     gl.uniform1f(U.uFocal, FOCAL);
     gl.uniform1f(U.uSlide, SLIDE);
     gl.uniform1f(U.uReveal, reveal);
@@ -1245,8 +1255,8 @@ export function createDotField(opts: DotFieldOptions): DotField {
   const startReveal = () => {
     if (revealStart >= 0 || reveal >= 1 || !lum || !layout) return;
     revealStart = time;
-    // one soft pulse through the portrait as it appears
-    kicks.push({ x: layout.cx, y: layout.cy, k: 0.9 });
+    // one soft pulse through the portrait as it appears (not in still mode)
+    if (!still) kicks.push({ x: layout.cx, y: layout.cy, k: 0.9 });
     wake();
   };
 
@@ -1300,7 +1310,7 @@ export function createDotField(opts: DotFieldOptions): DotField {
 
     // portrait fade-in
     if (revealStart >= 0 && reveal < 1) {
-      const t = Math.min(1, (time - revealStart) / REVEAL_SECONDS);
+      const t = Math.min(1, (time - revealStart) / Math.max(0.001, revealSec));
       reveal = 1 - Math.pow(1 - t, 3);
     }
 
@@ -1312,6 +1322,8 @@ export function createDotField(opts: DotFieldOptions): DotField {
     rotX += (BASE_PITCH + ny * MAX_TILT * 0.8 - rotX) * follow;
 
     draw();
+    // still picture is complete: nothing will ever move, so stop the loop (rebuild() redraws)
+    if (still && reveal >= 1 && lum) return;
     raf = requestAnimationFrame(frame);
   };
 
@@ -1360,12 +1372,12 @@ export function createDotField(opts: DotFieldOptions): DotField {
   };
 
   const onMove = (e: PointerEvent) => {
-    if (reduced) return;
+    if (reduced || still) return;
     const p = local(e);
     aim(p.x, p.y);
   };
   const onDown = (e: PointerEvent) => {
-    if (reduced) return;
+    if (reduced || still) return;
     const p = local(e);
     aim(p.x, p.y);
     kicks.push({ x: p.x, y: p.y, k: CLICK_KICK });
@@ -1460,7 +1472,7 @@ export function createDotField(opts: DotFieldOptions): DotField {
         lumAspect = el.naturalWidth / el.naturalHeight;
         layoutKey = "";
         rebuild();
-        if (reduced) {
+        if (reduced || revealSec <= 0) {
           reveal = 1;
           draw();
         } else {

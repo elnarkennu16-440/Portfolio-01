@@ -93,3 +93,32 @@ section[aria-label="Profile and Work Inquiries"] canvas {
   [class*="rightMetaTitle"] {
   color: var(--text-primary);
 }
+
+/* ---- 4. DARK MODE: the right side text (Kennu Elnar / location / role) stays readable over the
+        bright dots. A soft dark glow sits BEHIND the text (absolute, so nothing in the layout
+        moves) and the lines are a bit brighter. Not used in light mode or on mobile (hidden). ---- */
+section[aria-label="Profile and Work Inquiries"] div[class*="rightMeta"] {
+  position: relative;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+section[aria-label="Profile and Work Inquiries"]
+  div[class*="rightMeta"]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -22px calc(5.5rem - 36px) -18px -56px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(11, 11, 13, 0.85) 0%,
+    rgba(11, 11, 13, 0.65) 45%,
+    rgba(11, 11, 13, 0) 80%
+  );
+  pointer-events: none;
+}
+
+[data-theme="light"]
+  section[aria-label="Profile and Work Inquiries"]
+  div[class*="rightMeta"]::before {
+  display: none;
+}

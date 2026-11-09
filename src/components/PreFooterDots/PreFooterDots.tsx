@@ -7,19 +7,23 @@ const FILL_TONE = 0.85; // 0..1 : lower = darker / dimmer image (text reads bett
 const FOCUS_X = 0.5; // 0 = keep the left of the image, 1 = keep the right
 const FOCUS_Y = 0.35; // 0 = keep the top of the image, 1 = keep the bottom (face is usually higher up)
 
-/* Calm zone: the figure (head + shoulders) and a wide gap around it get NO gravity movement,
-   so it is not bent when the cursor goes over it. The dots farther away move as before.
-   CALM_AMOUNT: 0..1 -> 1 = no movement at all inside the zones, 0 = feature off.
-   CALM_ZONES are ellipses (x, y = center, rx, ry = radius, in px) drawn on a section of
-   CALM_REF size. Inside the ellipse there is no movement; the movement fades back in over
-   the next ~30% outside it. Bigger rx / ry = bigger calm gap around the figure.
-   They are attached to the image, so they follow it on every screen size. */
-const CALM_AMOUNT = 1;
-const CALM_REF = { w: 1219, h: 520 };
-const CALM_ZONES = [
-  { x: 680, y: 258, rx: 360, ry: 215 }, // head + wide gap around it
-  { x: 676, y: 548, rx: 430, ry: 200 }, // shoulders / body + wide gap
-];
+/* The dot picture is STILL (no gravity waves / cursor movement). Reveal speed:
+   0 = the picture is simply there, complete, before it scrolls into view (no delay);
+   e.g. 0.8 = a short fade-in. */
+const REVEAL_SECONDS = 0;
+
+/* The image is requested + decoded as soon as the page mounts (not only when the banner is
+   near the screen), so the dots do not wait for the download when you scroll here.
+   Kept in memory so the browser does not drop it. */
+const preloaded = new Map<string, HTMLImageElement>();
+const preloadImage = (src: string) => {
+  if (!src || preloaded.has(src)) return;
+  const img = new Image();
+  img.decoding = "async";
+  img.src = src;
+  preloaded.set(src, img);
+  img.decode?.().catch(() => undefined);
+};
 
 interface PreFooterDotsProps {
   /** Prefooter-Background-Image.png (imported in PreFooterBanner.tsx) */
@@ -29,10 +33,9 @@ interface PreFooterDotsProps {
 }
 
 /**
- * Background of the PreFooter banner: your portrait made of gray dots, with a
- * soft 3D gravity-wave that follows the cursor / touch.
- * It fills its parent (position: absolute; inset: 0) and never blocks clicks:
- * pointer events are listened to on the surrounding <section>.
+ * Background of the PreFooter banner: your portrait made of gray dots (a still picture,
+ * no cursor / touch movement).
+ * It fills its parent (position: absolute; inset: 0) and never blocks clicks.
  *
  * WebGL context rule (phones allow very few live contexts): the context is only
  * created while this banner is near the screen, and handed back when it is far away.
@@ -44,6 +47,10 @@ export const PreFooterDots: React.FC<PreFooterDotsProps> = ({
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    preloadImage(imageSrc);
+  }, [imageSrc]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -80,13 +87,9 @@ export const PreFooterDots: React.FC<PreFooterDotsProps> = ({
       fillTone: FILL_TONE,
       fillFocusX: FOCUS_X,
       fillFocusY: FOCUS_Y,
-      // gravity waves are weakened over the figure (only this banner uses it)
-      calm: {
-        refW: CALM_REF.w,
-        refH: CALM_REF.h,
-        amount: CALM_AMOUNT,
-        zones: CALM_ZONES,
-      },
+      // still picture: no gravity waves, no cursor / touch movement (only this banner uses it)
+      still: true,
+      revealSeconds: REVEAL_SECONDS,
     });
     return () => {
       field.destroy();
